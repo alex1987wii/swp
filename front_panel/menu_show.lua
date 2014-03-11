@@ -6,7 +6,7 @@ init_menu = function()
     
     stdscr:clear()
     stdscr:box(0, 0)
-    for i=1, cols-1 do
+    for i=1, cols-2 do
         stdscr:mvaddstr(2, i, "-")
         stdscr:mvaddstr(lines-4, i, "-")
     end
@@ -32,6 +32,27 @@ init_menu = function()
     list_win:clear()
     
     return {ret = true}
+end
+
+get_string_in_window = function(note)
+    local lines = curses.lines()
+    local cols  = curses.cols()
+    
+    local nw = stdscr:sub(5, cols-4, 4, 3)
+    if nil == nw then
+        return {ret = false, errmsg = "stdscr:sub get_string_in_window create fail"}
+    end
+    nw:clear()
+    nw:refresh()
+    curses.echo(true)
+    nw:box(0, 0)
+    nw:mvaddstr(1, 1, note)
+    nw:move(2, 1)
+    nw:refresh()
+    local str = nw:getstr()
+    nw:close()
+    curses.echo(false)
+    return {ret = true, str = str}
 end
 
 show_menu = function(t)
@@ -78,9 +99,7 @@ show_menu = function(t)
 
     list_win:refresh()
 
-    if "function" == type(t.action) then
-        t:action()
-    end
+
 end
 
 menu_action = function(t)
@@ -114,17 +133,21 @@ menu_action = function(t)
                 show_menu(t[t.select_index])
                 menu_action(t[t.select_index])
             else
+                t.select_status[t.select_index] = true
+                if "function" == type(t.action) then
+                    t:action()
+                end
                 show_menu(front_panel_data)
                 menu_action(front_panel_data)
             end
         elseif ch == curses.KEY_LEFT then  -- <- left, goto main menu 
             show_menu(front_panel_data)
             menu_action(front_panel_data)
-        elseif ch == '*' then   -- start test process 
+        elseif ch == 0x2a then   -- start test process 
             if t == front_panel_data then
                 dotestp()
             end
-        elseif ch == '#' then  -- stop test process
+        elseif ch == 0x23 then  -- stop test process
             if t == front_panel_data then
                 killtestp()
             end

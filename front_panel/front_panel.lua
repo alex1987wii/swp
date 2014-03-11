@@ -15,8 +15,8 @@ sleep = function (t) os.execute("sleep "..t) end
 
 curses.initscr()
 curses.cbreak() 
-curses.echo(0)  -- not noecho !
-curses.nl(0)    -- not nonl !  
+curses.echo(false)  -- not noecho !
+curses.nl(true)    -- not nonl !  
 
 stdscr = curses.stdscr()
 if nil == stdscr then

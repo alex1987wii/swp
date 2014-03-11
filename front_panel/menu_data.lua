@@ -10,13 +10,22 @@ front_panel_data = {
     [1] = {
         title = "Freq", 
         tips  = "Select Freq", 
-        action = function ()
-
+        action = function (t)
+            local instr = ""
+            if (t.select_index ~= nil) and (t.select_index == 4) then
+                local r = get_string_in_window(t[t.select_index])
+                if r.ret then
+                    t.enter_freq = tonumber(r.str)
+                    t[t.select_index] = "Enter "..t.enter_freq
+                else
+                    lua_log.i("freq", "enter freq(Hz) "..r.errmsg)
+                end
+            end
         end, 
         "136.125MHz", 
         "155.125MHz", 
         "173.125MHz", 
-        "Enter frequency in Hz", 
+        "Enter freq (Hz)", 
     }, 
     [2] = {
         title = "Band Width", 
