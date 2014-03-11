@@ -63,33 +63,31 @@ front_panel_data = {
         action = function ()
 
         end, 
-        [1] = {
-            [1] = "none", 
-            [2] = {
-                title = "Analog", 
-                tips  = "Select Analog", 
-                action = function ()
+        [1] = "none", 
+        [2] = {
+            title = "Analog", 
+            tips  = "Select Analog", 
+            action = function ()
 
-                end, 
-                "CTCSS (Tone = 250.3 Hz)", 
-                "CDCSS (Code = 532)", 
-                "MDC1200", 
-                "none", 
-            }, 
-            [3] = {
-                title = "Digital", 
-                tips  = "Select Digital", 
-                action = function ()
+            end, 
+            "CTCSS (Tone = 250.3 Hz)", 
+            "CDCSS (Code = 532)", 
+            "MDC1200", 
+            "none", 
+        }, 
+        [3] = {
+            title = "Digital", 
+            tips  = "Select Digital", 
+            action = function ()
 
-                end, 
-                "DVOA", 
-                "TDMA Voice", 
-                "TDMA Data", 
-                "ARDS Voice", 
-                "ARDS Data", 
-                "P25 Voice", 
-                "P25 Data", 
-            }, 
+            end, 
+            "DVOA", 
+            "TDMA Voice", 
+            "TDMA Data", 
+            "ARDS Voice", 
+            "ARDS Data", 
+            "P25 Voice", 
+            "P25 Data", 
         }, 
     },  
     [7] = {
@@ -117,9 +115,11 @@ table_info = function(t)
             if type(v.title) == "string" then
                 gp[k] = v.title
             else
+                lua_log.e("table_info", t.title.." "..k..".title type:"..type(v.title))
                 gp[k] = "unknown item["..k.."]"
             end
         else
+            lua_log.e("table_info", t.title.." "..k.." type:"..type(v))
             gp[k] = "unknown item["..k.."]"
         end
     end

@@ -96,7 +96,8 @@ menu_action = function(t)
                 t.select_index = t.select_index - 1
             end
         elseif ch == 0x20 then -- space 
-            if t.select_status == nil then
+            if (t.select_status == nil) or (t.select_status[t.select_index] == nil) then
+                t.select_status = {}
                 t.select_status[t.select_index] = true
             elseif t.select_status[t.select_index] then
                 t.select_status[t.select_index] = false
@@ -108,6 +109,9 @@ menu_action = function(t)
                 t.select_status[t.select_index] = true
                 show_menu(t[t.select_index])
                 menu_action(t[t.select_index])
+            else
+                show_menu(front_panel_data)
+                menu_action(front_panel_data)
             end
         elseif ch == curses.KEY_LEFT then  -- <- left, goto main menu 
             show_menu(front_panel_data)
