@@ -58,7 +58,10 @@ show_menu = function(t)
 
     for k, v in ipairs(gp.lists) do
         list_win:mvaddstr(k-1, 2, v)
-        if (t.select_status == nil) or (t.select_status[k] == nil) then
+        if t.select_status == nil then
+            t.select_status = {}
+            list_win:mvaddstr(k-1, 0, " ")
+        elseif t.select_status[k] == nil then
             list_win:mvaddstr(k-1, 0, " ")
         elseif not t.select_status[k] then
             list_win:mvaddstr(k-1, 0, " ")
@@ -96,8 +99,9 @@ menu_action = function(t)
                 t.select_index = t.select_index - 1
             end
         elseif ch == 0x20 then -- space 
-            if (t.select_status == nil) or (t.select_status[t.select_index] == nil) then
+            if t.select_status == nil then
                 t.select_status = {}
+            elseif t.select_status[t.select_index] == nil then
                 t.select_status[t.select_index] = true
             elseif t.select_status[t.select_index] then
                 t.select_status[t.select_index] = false
@@ -131,9 +135,9 @@ menu_action = function(t)
 end
 
 dotestp = function ()
-    
+    lua_log.i("dotest", "stat test")
 end
 
 killtestp = function()
-
+    lua_log.i("killtest", "stop test")
 end
