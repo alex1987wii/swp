@@ -3,13 +3,15 @@
 front_panel_data = {
     title = "Front Panel", 
     tips  = "Select the test item, move and space to select", 
+    multi_select_mode = true, 
     action = function (t)
 
     end, 
-    select_status = {true, true, true}, 
+
     [1] = {
         title = "Freq", 
         tips  = "Select Freq", 
+        multi_select_mode = false, 
         action = function (t)
             local instr = ""
             if (t.select_index ~= nil) and (t.select_index == 4) then
@@ -30,6 +32,7 @@ front_panel_data = {
     [2] = {
         title = "Band Width", 
         tips  = "Select Band Width", 
+        multi_select_mode = false, 
         action = function ()
 
         end, 
@@ -39,6 +42,7 @@ front_panel_data = {
     [3] = {
         title = "Power", 
         tips  = "Select Power", 
+        multi_select_mode = false, 
         action = function ()
 
         end, 
@@ -49,6 +53,7 @@ front_panel_data = {
     [4] = {
         title = "Audio Path", 
         tips  = "Select Audio Path", 
+        multi_select_mode = false, 
         action = function ()
 
         end, 
@@ -59,6 +64,7 @@ front_panel_data = {
     [5] = {
         title = "Squelch", 
         tips  = "Select Squelch", 
+        multi_select_mode = false, 
         action = function ()
 
         end, 
@@ -69,6 +75,7 @@ front_panel_data = {
     [6] = {
         title = "Modulation", 
         tips  = "Select Modulation", 
+        multi_select_mode = false, 
         action = function ()
 
         end, 
@@ -76,6 +83,7 @@ front_panel_data = {
         [2] = {
             title = "Analog", 
             tips  = "Select Analog", 
+            multi_select_mode = false, 
             action = function ()
 
             end, 
@@ -87,6 +95,7 @@ front_panel_data = {
         [3] = {
             title = "Digital", 
             tips  = "Select Digital", 
+            multi_select_mode = false, 
             action = function ()
 
             end, 
@@ -102,13 +111,14 @@ front_panel_data = {
     [7] = {
         title = "Enable Bluetooth", 
         tips  = "Setting up bluetooth device", 
+        multi_select_mode = false, 
         action = function ()
             
         end, 
     }, 
     [8] = "Enable GPS", 
     [9] = "Enable LCD", 
-    [10]= "Display static image(LCD)", 
+    [10]= "Show static image(LCD)", 
     [11]= "Enable slide show", 
     [12]= "Enable LED test", 
     [13]= "Active Clone cable", 

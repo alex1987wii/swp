@@ -55,6 +55,10 @@ get_string_in_window = function(note)
     return {ret = true, str = str}
 end
 
+note_in_window = function(note)
+
+end
+
 show_menu = function(t)
     
     title_win:clear()
@@ -120,7 +124,22 @@ menu_action = function(t)
         elseif ch == 0x20 then -- space 
             if t.select_status == nil then
                 t.select_status = {}
-            elseif t.select_status[t.select_index] == nil then
+            end
+            
+            -- if radio select, clear other select status 
+            if not t.multi_select_mode then
+                if t.select_status[t.select_index] == nil then
+                    t.select_status = {}
+                elseif t.select_status[t.select_index] then
+                    t.select_status = {}
+                    t.select_status[t.select_index] = true
+                else
+                    t.select_status = {}
+                    t.select_status[t.select_index] = false
+                end
+            end
+            
+            if t.select_status[t.select_index] == nil then
                 t.select_status[t.select_index] = true
             elseif t.select_status[t.select_index] then
                 t.select_status[t.select_index] = false
@@ -128,6 +147,22 @@ menu_action = function(t)
                 t.select_status[t.select_index] = true
             end
         elseif ch == 0xa then  -- ENTER 
+            if t.select_status == nil then
+                t.select_status = {}
+            end
+            -- if radio select, clear other select status 
+            if not t.multi_select_mode then
+                if t.select_status[t.select_index] == nil then
+                    t.select_status = {}
+                elseif t.select_status[t.select_index] then
+                    t.select_status = {}
+                    t.select_status[t.select_index] = true
+                else
+                    t.select_status = {}
+                    t.select_status[t.select_index] = false
+                end
+            end
+            
             if type(t[t.select_index]) == "table" then
                 t.select_status[t.select_index] = true
                 show_menu(t[t.select_index])
