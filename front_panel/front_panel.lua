@@ -31,9 +31,12 @@ if not r.ret then
     os.exit(-1)
 end
 --
+local m = create_main_menu(front_panel_data.FCC)
+m:show()
+m:action()
 
-show_menu(front_panel_data)
-menu_action(front_panel_data)
+--show_menu(front_panel_data)
+--menu_action(front_panel_data)
 
 sleep(5)
 

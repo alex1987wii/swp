@@ -59,6 +59,7 @@ note_in_window = function(note)
 
 end
 
+--[[
 show_menu = function(t)
     
     title_win:clear()
@@ -190,6 +191,167 @@ menu_action = function(t)
         
         show_menu(t)
     end
+end
+--]]
+
+create_main_menu = function(main_menu_table)
+    return {
+        main_table = main_menu_table, 
+        show = function(self, ...)
+            local info = function(s) lua_log.i("show", s) end
+
+            local menu_table = arg[1] or self.main_table
+            title_win:clear()
+            if "string" == type(menu_table.title) then
+                title_win:mvaddstr(0, 0, menu_table.title)
+            else 
+                title_win:mvaddstr(0, 0, "no title")
+            end
+            title_win:refresh()
+
+            tips_win:clear()
+            if "string" == type(menu_table.tips) then
+                tips_win:mvaddstr(0, 0, "Tips: "..menu_table.tips)
+            else 
+                tips_win:mvaddstr(0, 0, "Tips: no tips")
+            end
+            tips_win:refresh()
+
+            list_win:clear()
+            local gp = table_info (menu_table)
+
+            for k, v in ipairs(gp.get_group()) do
+                list_win:mvaddstr(k-1, 2, v)
+                if menu_table.select_status == nil then
+                    menu_table.select_status = {}
+                    list_win:mvaddstr(k-1, 0, " ")
+                elseif menu_table.select_status[k] == nil then
+                    list_win:mvaddstr(k-1, 0, " ")
+                elseif not menu_table.select_status[k] then
+                    list_win:mvaddstr(k-1, 0, " ")
+                else
+                    list_win:mvaddstr(k-1, 0, "*")
+                end
+            end
+
+            if nil == menu_table.select_index then
+                menu_table.select_index = 1
+            end
+
+            list_win:move(menu_table.select_index-1, 1)
+
+            list_win:refresh()
+        end, 
+        
+        action = function(self, ...)
+            local info = function(s) lua_log.i("action", s) end
+            
+            local menu_table = arg[1] or self.main_table
+            while true do
+                local ch = list_win:getch()
+                --
+                tips_win:mvaddstr(1, 0, "Tips: get ch "..tonumber(ch))
+                tips_win:refresh()
+                
+                info("1")
+                --
+                if ch == curses.KEY_DOWN then  -- down 
+                    info("12")
+                    if menu_table.select_index < table.getn(menu_table) then
+                        menu_table.select_index = menu_table.select_index + 1
+                    end
+                    info("13")
+                elseif ch == curses.KEY_UP then  -- up 
+                    info("14")
+                    if menu_table.select_index > 1 then
+                        menu_table.select_index = menu_table.select_index - 1
+                    end
+                    info("15")
+                elseif ch == 0x20 then -- space 
+                    if menu_table.select_status == nil then
+                        menu_table.select_status = {}
+                    end
+                    info("16")
+                    
+                    -- if radio select, clear other select status 
+                    if not menu_table.multi_select_mode then
+                        if menu_table.select_status[menu_table.select_index] == nil then
+                            menu_table.select_status = {}
+                        elseif menu_table.select_status[menu_table.select_index] then
+                            menu_table.select_status = {}
+                            menu_table.select_status[menu_table.select_index] = true
+                        else
+                            menu_table.select_status = {}
+                            menu_table.select_status[menu_table.select_index] = false
+                        end
+                    end
+                    
+                    if menu_table.select_status[menu_table.select_index] == nil then
+                        menu_table.select_status[menu_table.select_index] = true
+                    elseif menu_table.select_status[menu_table.select_index] then
+                        menu_table.select_status[menu_table.select_index] = false
+                    else
+                        menu_table.select_status[menu_table.select_index] = true
+                    end
+                    info("17")
+                elseif ch == 0xa then  -- ENTER 
+                    info("18")
+                    if menu_table.select_status == nil then
+                        menu_table.select_status = {}
+                    end
+                    info("19")
+                    -- if radio select, clear other select status 
+                    if not menu_table.multi_select_mode then
+                        if menu_table.select_status[menu_table.select_index] == nil then
+                            menu_table.select_status = {}
+                        elseif menu_table.select_status[menu_table.select_index] then
+                            menu_table.select_status = {}
+                            menu_table.select_status[menu_table.select_index] = true
+                        else
+                            menu_table.select_status = {}
+                            menu_table.select_status[menu_table.select_index] = false
+                        end
+                    end
+                    
+                    info("2")
+                    if type(menu_table[menu_table.select_index]) == "table" then
+                        info("21")
+                        menu_table.select_status[menu_table.select_index] = true
+                        
+                        self:show(menu_table[menu_table.select_index])
+                        self:action(menu_table[menu_table.select_index])
+                        info("22")
+                    else
+                        info("23")
+                        menu_table.select_status[menu_table.select_index] = true
+                        if "function" == type(menu_table.action) then
+                            menu_table:action()
+                        end
+                        info("24")
+                        self:show()
+                        self:action()
+                        
+                        info("25")
+                    end
+                elseif ch == curses.KEY_LEFT then  -- <- left, goto main menu 
+                    info("26")
+                    self:show()
+                    self:action()
+                    info("27")
+                elseif ch == 0x2a then   -- start test process 
+                    if menu_table == self.main_table then
+                        dotestp()
+                    end
+                elseif ch == 0x23 then  -- stop test process
+                    if menu_table == self.main_table then
+                        killtestp()
+                    end
+                end
+                
+                self:show(menu_table)
+            end
+        end
+    }
 end
 
 dotestp = function ()
