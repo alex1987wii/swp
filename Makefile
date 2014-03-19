@@ -7,11 +7,14 @@
 CLIBS= -lncurses 
 CC=/opt/ad6900/arm-compiler/bin/arm-linux-gcc
 CFLAGS=-I/opt/ad6900/arm-compiler/arm-none-linux-gnueabi/include/ncurses -Iinclude -DHAVE_NCURSES_CURSES_H
-UNILIB_PATH= /home/simba/src/ad6900/unilibs
+AD6900_PATH= /home/simba/src/ad6900
+UNILIB_PATH= $(AD6900_PATH)/unilibs
+ROOTFS_IFS_PATH= $(AD6900_PATH)/output/ifs/rootfs
 DSP_INC= -I$(UNILIB_PATH)/libbitdsp -L$(UNILIB_PATH)/libbitdsp -L/$(UNILIB_PATH)/dspadapter -L/$(UNILIB_PATH)/timers -L$(UNILIB_PATH)/annal -L$(UNILIB_PATH)/circbuf -L$(UNILIB_PATH)/crc16
-NONDSP_INC= -I$(UNILIB_PATH)/libbitnondsp/include -L/$(UNILIB_PATH)/timers -L$(UNILIB_PATH)/annal -L$(UNILIB_PATH)/circbuf
+# NONDSP_INC= -I$(UNILIB_PATH)/libbitnondsp/include -L$(UNILIB_PATH)/libbitnondsp -L/$(UNILIB_PATH)/timers -L$(UNILIB_PATH)/annal -L$(UNILIB_PATH)/circbuf -I$(UNILIB_PATH)/bitservice/include
+NONDSP_INC= -I$(UNILIB_PATH)/libbitnondsp/include -L$(ROOTFS_IFS_PATH)/lib -I$(UNILIB_PATH)/bitservice/include -L$(UNILIB_PATH)/bt
 
-all: lib/curses_c.so lib/posix_c.so lib/bit32.so lib/lnondsp.so lib/lnondsp.so
+all: lib/curses_c.so lib/posix_c.so lib/bit32.so lib/ldsp.so lib/lnondsp.so
 
 lib/curses_c.so: curses/curses.c
 	$(CC) -Wall -shared -o $@ -fPIC $^ $(CFLAGS) $(CLIBS)
@@ -26,7 +29,7 @@ lib/ldsp.so: ldsp/ldsp.c
 	$(CC) -Wall -shared -o $@ -fPIC $^ $(CFLAGS) -ldspadapter -lbitdsp -lpthread -ltimers -lannal -lcircbuf -lcrc16 $(DSP_INC)
 	
 lib/lnondsp.so: lnondsp/lnondsp.c
-	$(CC) -Wall -shared -o $@ -fPIC $^ $(CFLAGS) -lbitnondsp -lpthread -ltimers -lannal -lcircbuf $(NONDSP_INC) -DCONFIG_PROJECT_U4
+	$(CC) -Wall -shared -o $@ -fPIC $^ $(CFLAGS) -lbitnondsp -lpthread -ltimers -lannal -lcircbuf -lbluetooth -lbt -ldspadapter -lbitdsp -lcrc16 $(NONDSP_INC) -DCONFIG_PROJECT_U4
 
 clean:
-	rm -rf lib/curses_c.so lib/posix_c.so lib/bit32.so
+	rm -rf lib/curses_c.so lib/posix_c.so lib/bit32.so lib/ldsp.so lib/lnondsp.so

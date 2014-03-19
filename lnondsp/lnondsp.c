@@ -249,26 +249,668 @@ static int lnondsp_led_selftest_stop(lua_State *L)
         return 1;
     }
 }
+
+/* int32_t enableBluetoothReq(uint8_t speedType);
+ * speed type value range:
+ * 0: BT_LOW_SPEED (Uart Baud----38400bps)
+ * 1: BT_HIGH_SPEED (Uart Baud----115200bps)
+ * 2: BT_DUT_MODE 
+ * 3: BT_POWER_ON_ONLY
+ * */
+static int lnondsp_enable_bluetooth_req(lua_State *L)
+{
+    uint8_t speed_type;
+    
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt != 1) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+    
+    if (!lua_isnumber(L, 1)) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, 1);
+        return 2;
+    }
+    
+    speed_type = (uint8_t)lua_tointeger(L, 1);
+    
+    ret = enableBluetoothReq(speed_type);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t disableBluetooth(void);
+ * 
+ * */
+static int lnondsp_disable_bluetooth(lua_State *L)
+{
+    int ret = -1;
+
+    ret = disableBluetooth();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t scanOtherBluetoothIDReq(void);
+ * 
+ * */
+static int lnondsp_scan_othen_bluetooth_id_req(lua_State *L)
+{
+    int ret = -1;
+
+    ret = scanOtherBluetoothIDReq();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t pingBtReq(uint8_t *btId);
+ * btId: 18 Byte string
+ * */
+static int lnondsp_ping_bt_req(lua_State *L)
+{
+    uint8_t *bt_id = NULL;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt >= 1 && lua_isstring(L, 1)) {
+        bt_id = (uint8_t *)lua_tostring(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+    
+    ret = pingBtReq(bt_id);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+
+/* int32_t establishBtScoChannelReq(uint8_t *btId);
+ * 
+ * */
+static int lnondsp_establish_bt_sco_channel_req(lua_State *L)
+{
+    uint8_t *bt_id = NULL;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt >= 1 && lua_isstring(L, 1)) {
+        bt_id = (uint8_t *)lua_tostring(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+    
+    ret = establishBtScoChannelReq(bt_id);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t talkEchoStart(void);
+ * 
+ * */
+static int lnondsp_talk_echo_start(lua_State *L)
+{
+    int ret = -1;
+
+    ret = talkEchoStart();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t talkEchoStop(void);
+ * 
+ * */
+static int lnondsp_talk_echo_stop(lua_State *L)
+{
+    int ret = -1;
+
+    ret = talkEchoStop();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t setupBTSerialPortReq(uint8_t *btId, uint8_t serialPort);
+ * 
+ * */
+static int lnondsp_setup_bt_serial_port_req(lua_State *L)
+{
+    uint8_t *bt_id = NULL;
+    uint8_t serial_port;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt >= 2 && lua_isstring(L, 1)) {
+        bt_id = (uint8_t *)lua_tostring(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+    
+    if (!lua_isnumber(L, 2)) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -2);
+        return 2;
+    }
+    serial_port = (uint8_t)lua_tointeger(L, 2);
+    
+    ret = setupBTSerialPortReq(bt_id, serial_port);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t releaseBTSerialPort(void);
+ * 
+ * */
+static int lnondsp_release_bt_serial_port(lua_State *L)
+{
+    int ret = -1;
+
+    ret = releaseBTSerialPort();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t btReceiveReq(uint32_t len);
+ * 
+ * */
+static int lnondsp_bt_receive_req(lua_State *L)
+{
+    uint32_t len;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt >= 1 && lua_isnumber(L, 1)) {
+        len = (uint32_t)lua_tointeger(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+
+    ret = btReceiveReq(len);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t btSendReq(uint8_t *btId, uint8_t * data, uint32_t len);
+ * 
+ * */
+static int lnondsp_bt_send_req(lua_State *L)
+{
+    uint8_t *bt_id = NULL;
+    uint8_t *data = NULL;
+    uint32_t len = 0;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt >= 3 && lua_isstring(L, 1)) {
+        bt_id = (uint8_t *)lua_tostring(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+    
+    if (!lua_isuserdata(L, 2)) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -2);
+        return 2;
+    }
+    data = (uint8_t *)lua_touserdata(L, 2);
+    
+    if (!lua_isnumber(L, 3)) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -3);
+        return 2;
+    }
+    len = (uint32_t)lua_tointeger(L, 3);
+    
+    ret = btSendReq(bt_id, data, len);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t recvDataFromBTSerialPortReq(uint32_t len);
+ * 
+ * */
+static int lnondsp_recv_data_from_bt_serial_port_req(lua_State *L)
+{
+    uint32_t len;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt >= 1 && lua_isnumber(L, 1)) {
+        len = (uint32_t)lua_tointeger(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+
+    ret = recvDataFromBTSerialPortReq(len);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t sendDataToBTSerialPort(uint8_t *data, uint32_t len);
+ * 
+ * */
+static int lnondsp_bt_send_data_to_bt_serial_port(lua_State *L)
+{
+    uint8_t *data = NULL;
+    uint32_t len = 0;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt >= 2 && lua_isuserdata(L, 1)) {
+        data = (uint8_t *)lua_touserdata(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+
+    if (!lua_isnumber(L, 2)) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -2);
+        return 2;
+    }
+    len = (uint32_t)lua_tointeger(L, 2);
+    
+    ret = sendDataToBTSerialPort(data, len);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t setLocalBluetoothtID(uint8_t *btId);
+ * 
+ * */
+static int lnondsp_set_local_bt_id(lua_State *L)
+{
+    uint8_t *bt_id = NULL;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt >= 1 && lua_isstring(L, 1)) {
+        bt_id = (uint8_t *)lua_tostring(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+    
+    ret = setLocalBluetoothtID(bt_id);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t startSimpleTransmitter(uint16_t frequence, uint16_t txPowerLvl);
+ * 
+ * */
+
+/* int32_t stopSimpleTransmitter(void);
+ * 
+ * */
+static int lnondsp_stop_simple_transmitter(lua_State *L)
+{
+    int ret = -1;
+
+    ret = stopSimpleTransmitter();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t disconnectBtScoChannel(uint8_t *btId);
+ * 
+ * */
+static int lnondsp_disconnect_bt_sco_channel(lua_State *L)
+{
+    uint8_t *bt_id = NULL;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt >= 1 && lua_isstring(L, 1)) {
+        bt_id = (uint8_t *)lua_tostring(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+    
+    ret = disconnectBtScoChannel(bt_id);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t getBTState(uint8_t *state);
+ * state value:
+ * 0 power enable
+ * 1 connect serial or ...
+ * 2 other
+ * */
+static int lnondsp_get_bt_state(lua_State *L)
+{
+    uint8_t state;
+    int ret = -1;
+    int argcnt = 0;
+    
+    ret = getBTState(&state);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        lua_pushinteger(L, (uint32_t)state);
+        return 1;
+    }
+}
+
+/* int32_t getBluetoothID(uint8_t *btId);
+ * 
+ * */
+static int lnondsp_get_bt_id(lua_State *L)
+{
+    uint8_t bt_id[20];
+    int ret = -1;
+    
+    memset(bt_id, 0, 20);
+    ret = getBluetoothID(&bt_id);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        lua_pushstring(L, (uint8_t *)bt_id);
+        return 1;
+    }
+}
+
+/* int32_t readBtRSSIReq(uint8_t *btId);
+ * 
+ * */
+static int lnondsp_read_bt_rssi_req(lua_State *L)
+{
+    uint8_t *bt_id = NULL;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt >= 1 && lua_isstring(L, 1)) {
+        bt_id = (uint8_t *)lua_tostring(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+    
+    ret = readBtRSSIReq(bt_id);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t startBtRcd(uint8_t *name);
+ * 
+ * */
+static int lnondsp_start_bt_rcd(lua_State *L)
+{
+    uint8_t *name = NULL;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt >= 1 && lua_isstring(L, 1)) {
+        name = (uint8_t *)lua_tostring(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+    
+    ret = startBtRcd(name);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t stopBtRcd(void);
+ * 
+ * */
+static int lnondsp_stop_bt_rcd(lua_State *L)
+{
+    int ret = -1;
+
+    ret = stopBtRcd();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t startBtPlay(uint8_t *name);
+ * 
+ * */
+static int lnondsp_start_bt_play(lua_State *L)
+{
+    uint8_t *name = NULL;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt >= 1 && lua_isstring(L, 1)) {
+        name = (uint8_t *)lua_tostring(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+    
+    ret = startBtPlay(name);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t stopBtPlay(void);
+ * 
+ * */
+static int lnondsp_stop_bt_play(lua_State *L)
+{
+    int ret = -1;
+
+    ret = stopBtPlay();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+
 /*
  * interface for lua
  */
 static const struct luaL_reg nondsp_lib[] = 
 {
-    {"gps_enable",				lnondsp_gps_enable},
-    {"gps_disable",				lnondsp_gps_disable},
-
-    {"lcd_enable",				    lnondsp_lcd_enable},
-    {"gps_disable",				    lnondsp_lcd_disable},
-    {"lcd_display_static_image",	lnondsp_lcd_display_static_image},
-    {"lcd_slide_show_test_start",	lnondsp_lcd_slide_show_test_start},
-    {"lcd_slide_show_test_stop",	lnondsp_lcd_slide_show_test_stop},
-    {"lcd_pattern_test",				lnondsp_lcd_pattern_test},
-    {"lcd_backlight_enable",			lnondsp_lcd_backlight_enable},
-    {"lcd_backlight_disable",		lnondsp_lcd_backlight_disable},
+#define NF(n)   {#n, lnondsp_##n}
+    NF(gps_enable), 
+    NF(gps_disable), 
     
-    {"led_config",				lnondsp_led_config},
-    {"led_selftest_start",		lnondsp_led_selftest_start},
-    {"led_selftest_stop",		lnondsp_led_selftest_stop},
+    NF(lcd_enable), 
+    NF(lcd_disable), 
+    NF(lcd_pattern_test), 
+    NF(lcd_backlight_enable), 
+    NF(lcd_backlight_disable), 
+    NF(lcd_slide_show_test_start), 
+    NF(lcd_slide_show_test_stop), 
+    NF(lcd_display_static_image), 
+    
+    NF(led_config), 
+    NF(led_selftest_start), 
+    NF(led_selftest_stop), 
+
+    NF(enable_bluetooth_req), 
+    NF(disable_bluetooth), 
+    NF(scan_othen_bluetooth_id_req), 
+    NF(ping_bt_req), 
+    NF(establish_bt_sco_channel_req), 
+    NF(talk_echo_start), 
+    NF(talk_echo_stop), 
+    NF(setup_bt_serial_port_req), 
+    NF(release_bt_serial_port), 
+    NF(setup_bt_serial_port_req), 
+    NF(bt_send_req), 
+    NF(recv_data_from_bt_serial_port_req), 
+    NF(bt_send_data_to_bt_serial_port), 
+    NF(set_local_bt_id), 
+    NF(stop_simple_transmitter), 
+    NF(disconnect_bt_sco_channel), 
+    NF(get_bt_state), 
+    NF(get_bt_id), 
+    NF(read_bt_rssi_req), 
+    NF(start_bt_rcd), 
+    NF(stop_bt_rcd), 
+    NF(start_bt_play), 
+    NF(stop_bt_play), 
+
     {NULL, NULL}
 };
 

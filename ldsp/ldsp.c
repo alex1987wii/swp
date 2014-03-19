@@ -1,7 +1,7 @@
 
 #include "ldsp.h"
 
-static int ldsp_load_image(lua_State *L)
+static int ldsp_load(lua_State *L)
 {
     const char *imagepath = NULL;
     int path_len = 0;
@@ -340,27 +340,28 @@ static int ldsp_audio_tx_stop(lua_State *L)
  */
 static const struct luaL_reg dsp_lib[] = 
 {
-    {"load",				ldsp_load_image},
-    {"release",			ldsp_release},
-    {"stop",				ldsp_stop},
+#define NF(n)   {#n, ldsp_##n}
+    NF(load),
+    NF(release),
+    NF(stop),
     
     /* single power measurement interface */
-    {"start_rx_power_measurement",				ldsp_start_rx_power_measurement},
-    {"get_period_power_msr_data",				ldsp_get_period_power_msr_data},
+    NF(start_rx_power_measurement), 
+    NF(get_period_power_msr_data), 
     
     /* DSP RX desense scan interface */
-    {"start_rx_desense_scan",				ldsp_start_rx_desense_scan},
-    {"stop_rx_desense_scan",				ldsp_stop_rx_desense_scan},
+    NF(start_rx_desense_scan), 
+    NF(stop_rx_desense_scan),
     
     /* DSP two way transmit interface */
-    {"two_way_transmit_start",				ldsp_two_way_transmit_start},
-    {"two_way_transmit_stop",				ldsp_two_way_transmit_stop},
+    NF(two_way_transmit_start),
+    NF(two_way_transmit_stop),
     
     /* Tia603 DSP audio rx and tx interface */
-    {"audio_rx_start",				ldsp_audio_rx_start},
-    {"audio_rx_stop",				ldsp_audio_rx_stop},
-    {"audio_tx_start",				ldsp_audio_tx_start},
-    {"audio_tx_stop",				ldsp_audio_tx_stop},
+    NF(audio_rx_start), 
+    NF(audio_rx_stop), 
+    NF(audio_tx_start), 
+    NF(audio_tx_stop), 
     {NULL, NULL}
 };
 
