@@ -253,25 +253,21 @@ create_main_menu = function(main_menu_table)
                 tips_win:mvaddstr(1, 0, "Tips: get ch "..tonumber(ch))
                 tips_win:refresh()
                 
-                info("1")
                 --
                 if ch == curses.KEY_DOWN then  -- down 
-                    info("12")
+
                     if menu_table.select_index < table.getn(menu_table) then
                         menu_table.select_index = menu_table.select_index + 1
                     end
-                    info("13")
+
                 elseif ch == curses.KEY_UP then  -- up 
-                    info("14")
                     if menu_table.select_index > 1 then
                         menu_table.select_index = menu_table.select_index - 1
                     end
-                    info("15")
                 elseif ch == 0x20 then -- space 
                     if menu_table.select_status == nil then
                         menu_table.select_status = {}
                     end
-                    info("16")
                     
                     -- if radio select, clear other select status 
                     if not menu_table.multi_select_mode then
@@ -293,13 +289,12 @@ create_main_menu = function(main_menu_table)
                     else
                         menu_table.select_status[menu_table.select_index] = true
                     end
-                    info("17")
+
                 elseif ch == 0xa then  -- ENTER 
-                    info("18")
                     if menu_table.select_status == nil then
                         menu_table.select_status = {}
                     end
-                    info("19")
+
                     -- if radio select, clear other select status 
                     if not menu_table.multi_select_mode then
                         if menu_table.select_status[menu_table.select_index] == nil then
@@ -312,40 +307,31 @@ create_main_menu = function(main_menu_table)
                             menu_table.select_status[menu_table.select_index] = false
                         end
                     end
-                    
-                    info("2")
+
                     if type(menu_table[menu_table.select_index]) == "table" then
-                        info("21")
                         menu_table.select_status[menu_table.select_index] = true
-                        
-                        self:show(menu_table[menu_table.select_index])
-                        self:action(menu_table[menu_table.select_index])
-                        info("22")
-                    else
-                        info("23")
-                        menu_table.select_status[menu_table.select_index] = true
-                        if "function" == type(menu_table.action) then
-                            menu_table:action()
+
+                        if "function" == type(menu_table[menu_table.select_index].new_main_menu) then
+                             menu_table[menu_table.select_index]:new_main_menu()
+                        else
+                            self:show(menu_table[menu_table.select_index])
+                            self:action(menu_table[menu_table.select_index])
                         end
-                        info("24")
-                        self:show()
-                        self:action()
-                        
-                        info("25")
+                    else
+                        menu_table.select_status[menu_table.select_index] = true
+
                     end
-                elseif ch == curses.KEY_LEFT then  -- <- left, goto main menu 
-                    info("26")
-                    self:show()
-                    self:action()
-                    info("27")
-                elseif ch == 0x2a then   -- start test process 
+                elseif ch == curses.KEY_LEFT then  -- <- left, goto pre-menu 
+                    return true
+                elseif ch == 0x2a then   -- * start test process 
                     if menu_table == self.main_table then
                         dotestp()
                     end
-                elseif ch == 0x23 then  -- stop test process
+                elseif ch == 0x23 then  -- # stop test process
                     if menu_table == self.main_table then
                         killtestp()
                     end
+
                 end
                 
                 self:show(menu_table)

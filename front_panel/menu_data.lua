@@ -1,27 +1,32 @@
 -- menu data 
 
+--require "ldsp"
+--require "lnondsp"
+
 front_panel_data = {
     RFT = {
         title = "2Way RF Test", 
         tips  = "select and test", 
         multi_select_mode = false, 
         action = function (t)
-
+        
         end, 
 
         [1] = {
             title = "Rx Desense Test", 
             tips  = "Rx Desense Test", 
             multi_select_mode = true, 
-            action = function (t)
-
+            new_main_menu = function (t)
+                local m_sub = create_main_menu(t)
+                m_sub:show()
+                m_sub:action()
             end, 
             [1] = {
                 title = "Band Width", 
                 tips  = "Select Band Width", 
                 multi_select_mode = false, 
                 action = function ()
-
+                    
                 end, 
                 "12.5 KHz", 
                 "25 KHz", 
@@ -81,8 +86,10 @@ front_panel_data = {
             title = "Rx Antenna Test", 
             tips  = "* start; up down key move to config", 
             multi_select_mode = true, 
-            action = function (t)
-
+            new_main_menu = function (t)
+                local m_sub = create_main_menu(t)
+                m_sub:show()
+                m_sub:action()
             end, 
             [1] = {
                 title = "Band Width", 
@@ -104,8 +111,10 @@ front_panel_data = {
             title = "Tx with a duty cycle", 
             tips  = "Tx only with a settable duty cycle", 
             multi_select_mode = true, 
-            action = function (t)
-
+            new_main_menu = function (t)
+                local m_sub = create_main_menu(t)
+                m_sub:show()
+                m_sub:action()
             end, 
             [1] = {
                 title = "Freq", 
@@ -190,8 +199,10 @@ front_panel_data = {
             title = "Tx Antenna Gain Test", 
             tips  = "Tx Antenna Gain Test", 
             multi_select_mode = true, 
-            action = function (t)
-
+            new_main_menu = function (t)
+                local m_sub = create_main_menu(t)
+                m_sub:show()
+                m_sub:action()
             end, 
             [1] = {
                 title = "Power", 
