@@ -3,6 +3,26 @@
 require "ldsp"
 require "lnondsp"
 
+function check_num_range(num, ...)
+    if "number" ~= type(num) then
+        return false
+    end
+    local upper, low
+    if arg.n == 2 then
+        upper = arg[1]
+        low = arg[2]
+        if upper < low then
+            upper, low = low, upper
+        end
+        
+        if (num > upper) or (num < low) then
+            return false
+        end
+    end
+    
+    return true
+end
+
 front_panel_data = {
     RFT = {
         title = "2Way RF Test", 
@@ -26,6 +46,10 @@ front_panel_data = {
                     local r = get_string_in_window(t[t.select_index])
                     if r.ret then
                         t.freq =  tonumber(r.str)
+                        if not check_num_range(t.freq) then
+                            lua_log.i(t[t.select_index], "enter is not number")
+                            return false
+                        end
                         t[t.select_index] = "Freq(Hz) "..r.str
                     else
                         lua_log.i(t[t.select_index], "enter "..r.errmsg)
@@ -37,6 +61,10 @@ front_panel_data = {
                     local r = get_string_in_window(t[t.select_index])
                     if r.ret then
                         t.step_num =  tonumber(r.str)
+                        if not check_num_range(t.step_num, 0, 1500) then
+                            lua_log.i(t[t.select_index], "enter "..t.step_num.." is not 0~1500")
+                            return false
+                        end
                         t[t.select_index] = "Step Num(0~1500) "..r.str
                     else
                         lua_log.i(t[t.select_index], "enter "..r.errmsg)
@@ -46,6 +74,10 @@ front_panel_data = {
                     local r = get_string_in_window(t[t.select_index])
                     if r.ret then
                         t.msr_step_num =  tonumber(r.str)
+                        if not check_num_range(t.msr_step_num, 0, 50) then
+                            lua_log.i(t[t.select_index], "enter "..t.msr_step_num.." is not 0~50")
+                            return false
+                        end
                         t[t.select_index] = "msr_step_num(0~50) "..r.str
                     else
                         lua_log.i(t[t.select_index], "enter "..r.errmsg)
@@ -54,7 +86,11 @@ front_panel_data = {
                 [6] = function(t)
                     local r = get_string_in_window(t[t.select_index])
                     if r.ret then
-                        t.msr_step_num =  tonumber(r.str)
+                        t.samples =  tonumber(r.str)
+                        if not check_num_range(t.samples, 10, 5000) then
+                            lua_log.i(t[t.select_index], "enter "..t.samples.." is not 10~5000")
+                            return false
+                        end
                         t[t.select_index] = "samples(10~5000) "..r.str
                     else
                         lua_log.i(t[t.select_index], "enter "..r.errmsg)
@@ -63,7 +99,11 @@ front_panel_data = {
                 [7] = function(t)
                     local r = get_string_in_window(t[t.select_index])
                     if r.ret then
-                        t.msr_step_num =  tonumber(r.str)
+                        t.delaytime =  tonumber(r.str)
+                        if not check_num_range(t.delaytime, 0, 100) then
+                            lua_log.i(t[t.select_index], "enter "..t.delaytime.." is not 0~100")
+                            return false
+                        end
                         t[t.select_index] = "delaytime(0~100s) "..r.str
                     else
                         lua_log.i(t[t.select_index], "enter "..r.errmsg)
