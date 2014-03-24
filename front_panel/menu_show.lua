@@ -38,25 +38,57 @@ get_string_in_window = function(note)
     local lines = curses.lines()
     local cols  = curses.cols()
     
-    local nw = stdscr:sub(5, cols-4, 4, 3)
+    local nw = stdscr:sub(lines-7, cols-2, 3, 1)
     if nil == nw then
         return {ret = false, errmsg = "stdscr:sub get_string_in_window create fail"}
     end
     nw:clear()
-    nw:refresh()
-    curses.echo(true)
     nw:box(0, 0)
-    nw:mvaddstr(1, 1, note)
-    nw:move(2, 1)
     nw:refresh()
-    local str = nw:getstr()
-    nw:close()
+    
+    local nnw = stdscr:sub(lines-9, cols-4, 4, 2)
+    if nil == nnw then
+        return {ret = false, errmsg = "stdscr:sub get_string_in_window create fail"}
+    end
+    nnw:clear()
+    nnw:refresh()
+    curses.echo(true)
+    nnw:mvaddstr(0, 0, note)
+    nnw:move(1, 0)
+    nnw:refresh()
+    local str = nnw:getstr()
+    nnw:close()
     curses.echo(false)
+    
+    nw:close()
+    
     return {ret = true, str = str}
 end
 
 note_in_window = function(note)
-
+    local lines = curses.lines()
+    local cols  = curses.cols()
+    
+    local nw = stdscr:sub(lines-7, cols-2, 3, 1)
+    if nil == nw then
+        return {ret = false, errmsg = "stdscr:sub get_string_in_window create fail"}
+    end
+    nw:clear()
+    nw:box(0, 0)
+    nw:refresh()
+    
+    local nnw = stdscr:sub(lines-9, cols-4, 4, 2)
+    if nil == nnw then
+        return {ret = false, errmsg = "stdscr:sub get_string_in_window create fail"}
+    end
+    nnw:clear()
+    nnw:refresh()
+    nnw:move(0, 0)
+    nnw:addstr(0, 0, note)
+    nnw:refresh()
+    local str = nnw:getch()
+    nnw:close()    
+    nw:close()
 end
 
 create_main_menu = function(main_menu_table)
@@ -114,11 +146,7 @@ create_main_menu = function(main_menu_table)
             local menu_table = arg[1] or self.main_table
             while true do
                 local ch = list_win:getch()
-                --
-                tips_win:mvaddstr(1, 0, "Tips: get ch "..tonumber(ch))
-                tips_win:refresh()
-                
-                --
+
                 if ch == curses.KEY_DOWN then  -- down 
 
                     if menu_table.select_index < table.getn(menu_table) then
@@ -154,7 +182,6 @@ create_main_menu = function(main_menu_table)
                     else
                         menu_table.select_status[menu_table.select_index] = true
                     end
-
                 elseif ch == 0xa then  -- ENTER 
                     if menu_table.select_status == nil then
                         menu_table.select_status = {}
@@ -174,19 +201,24 @@ create_main_menu = function(main_menu_table)
                             self:action(menu_table[menu_table.select_index])
                         end
                     end
+                    
+                    if "function" == type(menu_table.action) then
+                         menu_table:action()
+                    end
+                    
                 elseif ch == curses.KEY_LEFT then  -- <- left, goto pre-menu 
                     return true
                 elseif ch == 0x2a then   -- * start test process 
                     if menu_table == self.main_table then
-                        if "function" == tyep(self.test_process_start) then
-                            self:test_process_start()
+                        if "function" == type(menu_table.test_process_start) then
+                            menu_table:test_process_start()
                         end
                     end
                 elseif ch == 0x23 then  -- # stop test process
                     if menu_table == self.main_table then
-                        if "function" == tyep(self.test_process_start) then
-                            self:test_process_stop()
-                            self:test_process_report()
+                        if "function" == type(menu_table.test_process_start) then
+                            menu_table:test_process_stop()
+                            menu_table:test_process_report()
                         end
                     end
                 end

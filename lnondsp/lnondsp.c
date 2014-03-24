@@ -94,6 +94,8 @@ static int lnondsp_lcd_slide_show_test_start(lua_State *L)
 {
     const char *path = NULL;
     uint8_t path_len = 0;
+    
+    /* The time interval of showing two different images. */
     uint32_t range = 0; 
     
     int ret = -1;
