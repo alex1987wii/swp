@@ -26,6 +26,7 @@
 #include "lauxlib.h"
 #include "lualib.h"
 #include <libbitdsp.h>
+#include <dsp_init.h>
 
 #define TRUE  1
 #define FALSE 0

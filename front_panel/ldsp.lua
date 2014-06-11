@@ -1,4 +1,5 @@
 -- ldsp.lua 
+require "log"
 
 local info = lua_log.i or print
 

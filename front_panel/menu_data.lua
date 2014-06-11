@@ -331,7 +331,6 @@ front_panel_data = {
             [4] = "Time between measurements(ms)", 
             [5] = "Start frequency(Hz)", 
         }, 
-        
         [3] = {
             title = "Tx with a duty cycle", 
             tips  = "Tx only with a settable duty cycle", 

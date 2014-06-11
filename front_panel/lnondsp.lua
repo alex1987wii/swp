@@ -1,5 +1,8 @@
 -- lnondsp.lua 
-local info = lua_log.i or print
+
+require "log"
+
+local info = (lua_log or lua_log.i) or print
 lnondsp = {
     gps_enable = function(...)
         local argstr = ""
