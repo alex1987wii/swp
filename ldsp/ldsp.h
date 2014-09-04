@@ -17,6 +17,8 @@
 #include <utime.h>
 #include <sys/statfs.h>
 
+#include <syslog.h>
+
 #include <sys/mman.h>
 #include <stdint.h>
 
@@ -25,11 +27,16 @@
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
+#include <mylist.h>
 #include <libbitdsp.h>
 #include <dsp_init.h>
+#include <pthread.h>
 
 #define TRUE  1
 #define FALSE 0
+
+#define log_err(fmt,arg...)    syslog(LOG_ERR, fmt, ##arg)
+#define log_notice(fmt,arg...) syslog(LOG_NOTICE, fmt, ##arg)
 
 #define LUA_LDSP_LIBNAME "ldsp"
 LUALIB_API int luaopen_ldsp(lua_State *L);

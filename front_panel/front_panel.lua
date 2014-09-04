@@ -1,4 +1,5 @@
-#!/bin/lua
+#!/usr/bin/lua
+
 --[[
 front panel main
 --]]
@@ -6,7 +7,7 @@ require "curses"
 require "posix"
 require "log"
 
-lua_log = newlog("front_panel")
+lua_log = lua_log or newlog("front_panel")
 
 require "menu_data"
 require "menu_show"

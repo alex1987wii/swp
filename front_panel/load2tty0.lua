@@ -1,4 +1,4 @@
-#!/bin/lua
+#!/usr/bin/lua
 
 --load2fb.lua 
 

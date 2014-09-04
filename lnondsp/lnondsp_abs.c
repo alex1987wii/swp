@@ -107,62 +107,13 @@ static int lnondsp_get_evt_item(lua_State *L)
         lua_pushstring2table(L, "errmsg", "lnondsp_get_evt lua_newuserdata return null");
         return 1;
     }
-    memcpy(pbuf, evt.buf, evt.bufsize);
+    memcpy(pbuf, &evt, evt.bufsize);
     lua_settable(L, -3);
     
     lua_pushboolean2table(L, "ret", TRUE);
     lua_pushinteger2table(L, "evt", evt.evt);
     lua_pushinteger2table(L, "evi", evt.evi);
     lua_pushinteger2table(L, "bufsize", evt.bufsize);
-    if (NONDSP_EVT_BT == evt.evt) {
-        switch(evt.evi) {
-            case NONDSP_EVT_BT_ENABLE_STATE:
-                lua_pushinteger2table(L, "status", (int32_t)*(uint32_t *)evt.buf);
-                break;
-            case NONDSP_EVT_BT_SCAN_ID:
-            {
-                uint8_t *pdata = evt.buf;
-                uint8_t id_cnt = *pdata;
-                uint8_t addr[BLUETOOTH_ID_LEN + 1];
-                addr[BLUETOOTH_ID_LEN] = '\0';
-                pdata = pdata + 1;
-                lua_pushinteger2table(L, "id_cnt", id_cnt);
-                
-                lua_newtable(L);
-                lua_pushstring(L, "id");
-                for (i=0; i<id_cnt; i++) {
-                    memcpy(addr, pdata[i*BLUETOOTH_ID_LEN], BLUETOOTH_ID_LEN);
-                    lua_pushintegerkeystring2table(L, i+1, addr);
-                }
-                lua_settable(L, -3);
-            }
-                break;
-            case NONDSP_EVT_BT_SERIAL_DATA_RECV:
-                
-                break;
-            case NONDSP_EVT_BT_DATA_RECV:
-                
-                break;
-            case NONDSP_EVT_BT_DATA_SEND:
-                
-                break;
-            case NONDSP_EVT_BT_SETUP_SERIAL_PORT:
-                
-                break;
-            case NONDSP_EVT_BT_ESTABLISH_SCO:
-                
-                break;
-            case NONDSP_EVT_BT_PING:
-                
-                break;
-            case NONDSP_EVT_BT_RSSI:
-                
-                break;
-            case NONDSP_EVT_BT_SCAN_ID_NAME:
-                
-                break;
-        }
-    }
     return 1;
 }
 
@@ -177,7 +128,7 @@ static int lnondsp_gps_enable(lua_State *L)
 {
     int ret = -1;
 
-    ret = gps_enable();
+    ret = GPSEnable();
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -192,7 +143,7 @@ static int lnondsp_gps_disable(lua_State *L)
 {
     int ret = -1;
 
-    ret = gps_disable();
+    ret = GPSDisable();
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -203,7 +154,6 @@ static int lnondsp_gps_disable(lua_State *L)
     }
 }
 
-#if 0
 /* LCD test interface */
 static int lnondsp_lcd_enable(lua_State *L)
 {
@@ -350,7 +300,6 @@ static int lnondsp_lcd_backlight_disable(lua_State *L)
         return 1;
     }
 }
-#endif
 
 /* LED test interface */
 static int lnondsp_led_config(lua_State *L)
@@ -384,7 +333,7 @@ static int lnondsp_led_config(lua_State *L)
     percent = (uint32_t)lua_tointeger(L, 3);
     cycles = (uint32_t)lua_tointeger(L, 4);
     
-    ret = led_config(ledid, period, percent, cycles);
+    ret = configLED(ledid, period, percent, cycles);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -399,7 +348,7 @@ static int lnondsp_led_selftest_start(lua_State *L)
 {
     int ret = -1;
 
-    ret = led_selftest_start();
+    ret = ledSelfTestStart();
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -414,7 +363,7 @@ static int lnondsp_led_selftest_stop(lua_State *L)
 {
     int ret = -1;
 
-    ret = led_selftest_stop();
+    ret = ledSelfTestStop();
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -425,89 +374,14 @@ static int lnondsp_led_selftest_stop(lua_State *L)
     }
 }
 
-/* start key pad event polling 
- * int keypad_enable(void);
+/* int32_t enableBluetoothReq(uint8_t speedType);
+ * speed type value range:
+ * 0: BT_LOW_SPEED (Uart Baud----38400bps)
+ * 1: BT_HIGH_SPEED (Uart Baud----115200bps)
+ * 2: BT_DUT_MODE 
+ * 3: BT_POWER_ON_ONLY
  * */
-static int lnondsp_keypad_enable(lua_State *L)
-{
-    int ret = -1;
-
-    ret = keypad_enable();
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
-/* close key pad event polling  
- * int keypad_disable(void);
- * */
-static int lnondsp_keypad_disable(lua_State *L)
-{
-    int ret = -1;
-
-    ret = keypad_disable();
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
-/* key set back light interface 
- * int set_backlight(int ctl);
- * */
-static int lnondsp_keypad_set_backlight(lua_State *L)
-{
-    int ctl;
-    
-    int ret = -1;
-    int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt != 1) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, -1);
-        return 2;
-    }
-    
-    if (!lua_isboolean(L, 1)) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, 1);
-        return 2;
-    }
-    
-    ctl = (int)lua_toboolean(L, 1);
-    
-    ret = set_backlight(ctl);
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
-/* 
- * int32_t bt_enable(uint8_t mode);
- *  Description:
- *      enable bluetooth module, no block
- *  Params:
- *      @mode[in]     BT_HIGH_SPEED/BT_LOW_SPEED/BT_DUT_MODE/BT_POWER_ON_ONLY
- *  return:
- *      0: success
- *     -1: failed
- * */
-static int lnondsp_bt_enable(lua_State *L)
+static int lnondsp_enable_bluetooth_req(lua_State *L)
 {
     uint8_t speed_type;
     
@@ -529,49 +403,7 @@ static int lnondsp_bt_enable(lua_State *L)
     
     speed_type = (uint8_t)lua_tointeger(L, 1);
     
-    ret = bt_enable(speed_type);
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-/* 
- * int32_t bt_enable_block(uint8_t mode);
- *  Description:
- *      enable bluetooth module with block
- *  Params:
- *      @mode[in]     BT_HIGH_SPEED/BT_LOW_SPEED/BT_DUT_MODE/BT_POWER_ON_ONLY
- *  return:
- *      0: success
- *     -1: failed
- * */
-static int lnondsp_bt_enable_block(lua_State *L)
-{
-    uint8_t speed_type;
-    
-    int ret = -1;
-    int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt != 1) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, -1);
-        return 2;
-    }
-    
-    if (!lua_isnumber(L, 1)) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, 1);
-        return 2;
-    }
-    
-    speed_type = (uint8_t)lua_tointeger(L, 1);
-    
-    ret = bt_enable_block(speed_type);
+    ret = enableBluetoothReq(speed_type);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -582,16 +414,10 @@ static int lnondsp_bt_enable_block(lua_State *L)
     }
 }
 
-/* int32_t bt_disable(void);
- *  Description:
- *      disable bluetooth module
- *  Params:
- *      None
- *  return:
- *      0: success
- *     -1: failed
+/* int32_t disableBluetooth(void);
+ * 
  * */
-static int lnondsp_bt_disable(lua_State *L)
+static int lnondsp_disable_bluetooth(lua_State *L)
 {
     int ret = -1;
 
@@ -606,20 +432,28 @@ static int lnondsp_bt_disable(lua_State *L)
     }
 }
 
-/* int32_t bt_establish_sco(uint8_t *bt_id);
- *  Description:
- *      Establish a synchronous connection-oriented channel to transfer audio
- *      between U3 and Bluetooth Headset device. And the connection will not be
- *      closed until the Bluetooth module power down.
- *  Params:
- *      @bt_id[in]  bluetooth device id
- *  return:
- *      0: success
- *     -1: failed
- *  Note:
- *      block mode
+/* int32_t scanOtherBluetoothIDReq(void);
+ * 
  * */
-static int lnondsp_bt_establish_sco(lua_State *L)
+static int lnondsp_scan_othen_bluetooth_id_req(lua_State *L)
+{
+    int ret = -1;
+
+    ret = scanOtherBluetoothIDReq();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t pingBtReq(uint8_t *btId);
+ * btId: 18 Byte string
+ * */
+static int lnondsp_ping_bt_req(lua_State *L)
 {
     uint8_t *bt_id = NULL;
     int ret = -1;
@@ -634,7 +468,7 @@ static int lnondsp_bt_establish_sco(lua_State *L)
         return 2;
     }
     
-    ret = bt_establish_sco(bt_id);
+    ret = pingBtReq(bt_id);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -645,20 +479,11 @@ static int lnondsp_bt_establish_sco(lua_State *L)
     }
 }
 
-/* int32_t bt_establish_sco_block(uint8_t *bt_id);
- *  Description:
- *      Establish a synchronous connection-oriented channel to transfer audio
- *      between U3 and Bluetooth Headset device. And the connection will not be
- *      closed until the Bluetooth module power down.
- *  Params:
- *      @bt_id[in]  bluetooth device id
- *  return:
- *      0: success
- *     -1: failed
- *  Note:
- *      block mode
+
+/* int32_t establishBtScoChannelReq(uint8_t *btId);
+ * 
  * */
-static int lnondsp_bt_establish_sco_block(lua_State *L)
+static int lnondsp_establish_bt_sco_channel_req(lua_State *L)
 {
     uint8_t *bt_id = NULL;
     int ret = -1;
@@ -673,7 +498,7 @@ static int lnondsp_bt_establish_sco_block(lua_State *L)
         return 2;
     }
     
-    ret = bt_establish_sco_block(bt_id);
+    ret = establishBtScoChannelReq(bt_id);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -684,55 +509,14 @@ static int lnondsp_bt_establish_sco_block(lua_State *L)
     }
 }
 
-/* int32_t bt_disconnect_sco(uint8_t *bt_id);
- *  Description:
- *      Disconnect a bluetooth synchronous connection-oriented channel
- *  Params:
- *      @bt_id[in]  bluetooth device id
- *  return:
- *      0: success
- *     -1: failed
+/* int32_t talkEchoStart(void);
+ * 
  * */
-static int lnondsp_bt_disconnect_sco(lua_State *L)
-{
-    uint8_t *bt_id = NULL;
-    int ret = -1;
-    int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt >= 1 && lua_isstring(L, 1)) {
-        bt_id = (uint8_t *)lua_tostring(L, 1);
-    } else {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, -1);
-        return 2;
-    }
-    
-    ret = bt_disconnect_sco(bt_id);
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
-/* int32_t bt_talk_echo_start(void);
- *  Description:
- *      start bluetooth headset talk echo, must invoke after establish sco
- *  Params:
- *      None
- *  return:
- *      0: success
- *     -1: failed
- * */
-static int lnondsp_bt_talk_echo_start(lua_State *L)
+static int lnondsp_talk_echo_start(lua_State *L)
 {
     int ret = -1;
 
-    ret = bt_talk_echo_start();
+    ret = talkEchoStart();
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -743,20 +527,14 @@ static int lnondsp_bt_talk_echo_start(lua_State *L)
     }
 }
 
-/* int32_t bt_talk_echo_stop(void);
- *  Description:
- *      stop bluetooth headset talk echo
- *  Params:
- *      None
- *  return:
- *      0: success
- *     -1: failed
+/* int32_t talkEchoStop(void);
+ * 
  * */
-static int lnondsp_bt_talk_echo_stop(lua_State *L)
+static int lnondsp_talk_echo_stop(lua_State *L)
 {
     int ret = -1;
 
-    ret = bt_talk_echo_stop();
+    ret = talkEchoStop();
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -767,87 +545,10 @@ static int lnondsp_bt_talk_echo_stop(lua_State *L)
     }
 }
 
-/* int32_t bt_ping(uint8_t *bt_id);
- *  Description:
- *      ping another bluetooth device
- *  Params:
- *      @bt_id[in] destination bluetooth address,18 Byte string
- *  return:
- *      0: success
- *     -1: failed
+/* int32_t setupBTSerialPortReq(uint8_t *btId, uint8_t serialPort);
+ * 
  * */
-static int lnondsp_bt_ping(lua_State *L)
-{
-    uint8_t *bt_id = NULL;
-    int ret = -1;
-    int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt >= 1 && lua_isstring(L, 1)) {
-        bt_id = (uint8_t *)lua_tostring(L, 1);
-    } else {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, -1);
-        return 2;
-    }
-    
-    ret = bt_ping(bt_id);
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
-/* int32_t bt_read_rssi(uint8_t *bt_id);
- *  Description:
- *      read RSSI(Received Signal Strength Indication)
- *  Params:
- *      @bt_id[in]      destination bluetooth address
- *  return:
- *      0: success
- *     -1: failed
- * */
-static int lnondsp_bt_read_rssi(lua_State *L)
-{
-    uint8_t *bt_id = NULL;
-    int ret = -1;
-    int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt >= 1 && lua_isstring(L, 1)) {
-        bt_id = (uint8_t *)lua_tostring(L, 1);
-    } else {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, -1);
-        return 2;
-    }
-    
-    ret = bt_read_rssi(bt_id);
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
-/* int32_t bt_serial_setup(uint8_t *bt_id, uint8_t port);
- *  Description:
- *      Send data to Bluetooth serial port
- *  Params:
- *      @data[in]       data to be sent
- *      @len[in]        data length
- *  return:
- *      0: success
- *     -1: failed
- * */
-static int lnondsp_bt_serial_setup(lua_State *L)
+static int lnondsp_setup_bt_serial_port_req(lua_State *L)
 {
     uint8_t *bt_id = NULL;
     uint8_t serial_port;
@@ -870,7 +571,7 @@ static int lnondsp_bt_serial_setup(lua_State *L)
     }
     serial_port = (uint8_t)lua_tointeger(L, 2);
     
-    ret = bt_serial_setup(bt_id, serial_port);
+    ret = setupBTSerialPortReq(bt_id, serial_port);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -881,64 +582,14 @@ static int lnondsp_bt_serial_setup(lua_State *L)
     }
 }
 
-/* int32_t bt_serial_send(uint8_t *data, uint32_t len);
- *  Description:
- *      Send data to Bluetooth serial port
- *  Params:
- *      @data[in]       data to be sent
- *      @len[in]        data length
- *  return:
- *      0: success
- *     -1: failed
+/* int32_t releaseBTSerialPort(void);
+ * 
  * */
-static int lnondsp_bt_serial_send(lua_State *L)
-{
-    uint8_t *data = NULL;
-    uint32_t len = 0;
-    int ret = -1;
-    int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt >= 2 && lua_isuserdata(L, 1)) {
-        data = (uint8_t *)lua_touserdata(L, 1);
-    } else {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, -1);
-        return 2;
-    }
-
-    if (!lua_isnumber(L, 2)) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, -2);
-        return 2;
-    }
-    len = (uint32_t)lua_tointeger(L, 2);
-    
-    ret = bt_serial_send(data, len);
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
-/* int32_t bt_serial_release(void);
- *  Description:
- *      Release Bluetooth Serial port connection
- *  Params:
- *      None
- *  return:
- *      0: success
- *     -1: failed
- * */
-static int lnondsp_bt_serial_release(lua_State *L)
+static int lnondsp_release_bt_serial_port(lua_State *L)
 {
     int ret = -1;
 
-    ret = bt_serial_release();
+    ret = releaseBTSerialPort();
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -949,16 +600,10 @@ static int lnondsp_bt_serial_release(lua_State *L)
     }
 }
 
-/* int32_t bt_serial_recv(uint32_t len);
- *  Description:
- *      Request to receive data from Bluetooth serial port
- *  Params:
- *      @len[in]    length want to receive, must not greater than 4096
- *  return:
- *      0: success
- *     -1: failed
+/* int32_t btReceiveReq(uint32_t len);
+ * 
  * */
-static int lnondsp_bt_serial_recv(lua_State *L)
+static int lnondsp_bt_receive_req(lua_State *L)
 {
     uint32_t len;
     int ret = -1;
@@ -973,7 +618,7 @@ static int lnondsp_bt_serial_recv(lua_State *L)
         return 2;
     }
 
-    ret = bt_serial_recv(len);
+    ret = btReceiveReq(len);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -984,261 +629,10 @@ static int lnondsp_bt_serial_recv(lua_State *L)
     }
 }
 
-/* int32_t bt_get_state(uint8_t *state);
- *  Description:
- *      get Bluetooth state
- *  Params:
- *      @state[out]     bluetooth current state
- *                      0: disable; 1: searching; 2: connected
- *  return:
- *      0: success
- *     -1: failed
+/* int32_t btSendReq(uint8_t *btId, uint8_t * data, uint32_t len);
+ * 
  * */
-static int lnondsp_bt_get_state(lua_State *L)
-{
-    uint8_t state;
-    int ret = -1;
-    
-    ret = bt_get_state(&state);
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        lua_pushinteger(L, (uint32_t)state);
-        return 2;
-    }
-}
-
-/* int32_t bt_get_addr(uint8_t *bt_id);
- *  Description:
- *      get local bluetooth device address
- *  Params:
- *      @bt_id[out]     buffer to store bluetooth device address
- *  return:
- *      0: success
- *     -1: failed
- * */
-static int lnondsp_bt_get_addr(lua_State *L)
-{
-    uint8_t addr[20];
-    int ret = -1;
-    
-    memset(&addr, 0, 20);
-    ret = bt_get_addr(&addr);
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        lua_pushstring(L, (uint8_t *)addr);
-        return 2;
-    }
-}
-
-/* int32_t bt_set_addr(uint8_t *bt_id);
- *  Description:
- *      set local bluetooth device address
- *  Params:
- *      @bt_id[in]     bluetooth device address
- *  return:
- *      0: success
- *     -1: failed
- * */
-static int lnondsp_bt_set_addr(lua_State *L)
-{
-    uint8_t *addr = NULL;
-    int ret = -1;
-    int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt >= 1 && lua_isstring(L, 1)) {
-        addr = (uint8_t *)lua_tostring(L, 1);
-    } else {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, -1);
-        return 2;
-    }
-    
-    ret = bt_set_addr(addr);
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
-/* int32_t bt_simple_transmitter_start(uint16_t freq, uint16_t power_level);
- *  Description:
- *      start simple transmitter for bluetooth radio test
- *  Params:
- *      @freq[in]       transmitter/receive frequency in MHz
- *      @level[in]      transmitter/receive power amplifier
- *  return:
- *      0: success
- *     -1: failed
- * */
-static int lnondsp_bt_simple_transmitter_start(lua_State *L)
-{
-    uint16_t freq;
-    uint16_t power_level;
-    int ret = -1;
-    int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt >= 2 && lua_isnumber(L, 1)) {
-        freq = (uint16_t)lua_tointeger(L, 1);
-    } else {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, -1);
-        return 2;
-    }
-    
-    if (!lua_isnumber(L, 2)) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, -2);
-        return 2;
-    }
-
-    power_level = (uint16_t)lua_tointeger(L, 2);
-    
-    ret = bt_simple_transmitter_start(freq, power_level);
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
-/* int32_t bt_simple_transmitter_stop(void);
- *  Description:
- *      stop simple transmitter
- *  Params:
- *      None
- *  return:
- *      0: success
- *     -1: failed
- * */
-static int lnondsp_bt_simple_transmitter_stop(lua_State *L)
-{
-    int ret = -1;
-
-    ret = bt_simple_transmitter_stop();
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
-/* int32_t bt_scan(void);
- *  Description:
- *      scan other bluetooth devices
- *  Params:
- *      None
- *  return:
- *      0: success
- *     -1: failed
- * */
-static int lnondsp_bt_scan(lua_State *L)
-{
-    int ret = -1;
-
-    ret = bt_scan();
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
-/* int32_t bt_scan_block(void);
- *  Description:
- *      scan other bluetooth devices
- *  Params:
- *      None
- *  return:
- *      0: success
- *     -1: failed
- * */
-static int lnondsp_bt_scan_block(lua_State *L)
-{
-    int ret = -1;
-
-    ret = bt_scan_block();
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
-/* int32_t bt_recv(uint32_t len);
- *  Description:
- *      send data to another bluetooth device
- *  Params:
- *      @bt_id[in]  destination bluetooth device address
- *      @data[in]   data to be send
- *      @len[in]    data len
- *  return:
- *      0: success
- *     -1: failed
- * */
-static int lnondsp_bt_recv(lua_State *L)
-{
-    uint32_t len;
-    int ret = -1;
-    int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt >= 1 && lua_isnumber(L, 1)) {
-        len = (uint32_t)lua_tointeger(L, 1);
-    } else {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, -1);
-        return 2;
-    }
-
-    ret = bt_recv(len);
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
-/* int32_t bt_send(uint8_t *bt_id, uint8_t *data, uint32_t len);
- *  Description:
- *      send data to another bluetooth device
- *  Params:
- *      @bt_id[in]  destination bluetooth device address
- *      @data[in]   data to be send
- *      @len[in]    data len
- *  return:
- *      0: success
- *     -1: failed
- * */
-static int lnondsp_bt_send(lua_State *L)
+static int lnondsp_bt_send_req(lua_State *L)
 {
     uint8_t *bt_id = NULL;
     uint8_t *data = NULL;
@@ -1269,7 +663,7 @@ static int lnondsp_bt_send(lua_State *L)
     }
     len = (uint32_t)lua_tointeger(L, 3);
     
-    ret = bt_send(bt_id, data, len);
+    ret = btSendReq(bt_id, data, len);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -1280,16 +674,229 @@ static int lnondsp_bt_send(lua_State *L)
     }
 }
 
-/* int32_t bt_record_start(uint8_t *filename);
- *  Description:
- *      record data come from bluetooth controller PCM
- *  Params:
- *      @filename[in]  file to store record data
- *  return:
- *      0: success
- *     -1: failed
+/* int32_t recvDataFromBTSerialPortReq(uint32_t len);
+ * 
  * */
-static int lnondsp_bt_record_start(lua_State *L)
+static int lnondsp_recv_data_from_bt_serial_port_req(lua_State *L)
+{
+    uint32_t len;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt >= 1 && lua_isnumber(L, 1)) {
+        len = (uint32_t)lua_tointeger(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+
+    ret = recvDataFromBTSerialPortReq(len);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t sendDataToBTSerialPort(uint8_t *data, uint32_t len);
+ * 
+ * */
+static int lnondsp_bt_send_data_to_bt_serial_port(lua_State *L)
+{
+    uint8_t *data = NULL;
+    uint32_t len = 0;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt >= 2 && lua_isuserdata(L, 1)) {
+        data = (uint8_t *)lua_touserdata(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+
+    if (!lua_isnumber(L, 2)) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -2);
+        return 2;
+    }
+    len = (uint32_t)lua_tointeger(L, 2);
+    
+    ret = sendDataToBTSerialPort(data, len);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t setLocalBluetoothtID(uint8_t *btId);
+ * 
+ * */
+static int lnondsp_set_local_bt_id(lua_State *L)
+{
+    uint8_t *bt_id = NULL;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt >= 1 && lua_isstring(L, 1)) {
+        bt_id = (uint8_t *)lua_tostring(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+    
+    ret = setLocalBluetoothtID(bt_id);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t startSimpleTransmitter(uint16_t frequence, uint16_t txPowerLvl);
+ * 
+ * */
+
+/* int32_t stopSimpleTransmitter(void);
+ * 
+ * */
+static int lnondsp_stop_simple_transmitter(lua_State *L)
+{
+    int ret = -1;
+
+    ret = stopSimpleTransmitter();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t disconnectBtScoChannel(uint8_t *btId);
+ * 
+ * */
+static int lnondsp_disconnect_bt_sco_channel(lua_State *L)
+{
+    uint8_t *bt_id = NULL;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt >= 1 && lua_isstring(L, 1)) {
+        bt_id = (uint8_t *)lua_tostring(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+    
+    ret = disconnectBtScoChannel(bt_id);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t getBTState(uint8_t *state);
+ * state value:
+ * 0 power enable
+ * 1 connect serial or ...
+ * 2 other
+ * */
+static int lnondsp_get_bt_state(lua_State *L)
+{
+    uint8_t state;
+    int ret = -1;
+    
+    ret = getBTState(&state);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        lua_pushinteger(L, (uint32_t)state);
+        return 2;
+    }
+}
+
+/* int32_t getBluetoothID(uint8_t *btId);
+ * 
+ * */
+static int lnondsp_get_bt_id(lua_State *L)
+{
+    uint8_t bt_id[20];
+    int ret = -1;
+    
+    memset(bt_id, 0, 20);
+    ret = getBluetoothID(&bt_id);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        lua_pushstring(L, (uint8_t *)bt_id);
+        return 2;
+    }
+}
+
+/* int32_t readBtRSSIReq(uint8_t *btId);
+ * 
+ * */
+static int lnondsp_read_bt_rssi_req(lua_State *L)
+{
+    uint8_t *bt_id = NULL;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt >= 1 && lua_isstring(L, 1)) {
+        bt_id = (uint8_t *)lua_tostring(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+    
+    ret = readBtRSSIReq(bt_id);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* int32_t startBtRcd(uint8_t *name);
+ * 
+ * */
+static int lnondsp_start_bt_rcd(lua_State *L)
 {
     uint8_t *name = NULL;
     int ret = -1;
@@ -1304,7 +911,7 @@ static int lnondsp_bt_record_start(lua_State *L)
         return 2;
     }
     
-    ret = bt_record_start(name);
+    ret = startBtRcd(name);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -1315,20 +922,14 @@ static int lnondsp_bt_record_start(lua_State *L)
     }
 }
 
-/* int32_t bt_record_stop(void);
- *  Description:
- *      stop record
- *  Params:
- *      None
- *  return:
- *      0: success
- *     -1: failed
+/* int32_t stopBtRcd(void);
+ * 
  * */
-static int lnondsp_bt_record_stop(lua_State *L)
+static int lnondsp_stop_bt_rcd(lua_State *L)
 {
     int ret = -1;
 
-    ret = bt_record_stop();
+    ret = stopBtRcd();
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -1339,16 +940,10 @@ static int lnondsp_bt_record_stop(lua_State *L)
     }
 }
 
-/* int32_t bt_play_start(uint8_t *filename);
- *  Description:
- *      play PCM voice data
- *  Params:
- *      @filename[in]  file to play
- *  return:
- *      0: success
- *     -1: failed
+/* int32_t startBtPlay(uint8_t *name);
+ * 
  * */
-static int lnondsp_bt_play_start(lua_State *L)
+static int lnondsp_start_bt_play(lua_State *L)
 {
     uint8_t *name = NULL;
     int ret = -1;
@@ -1363,7 +958,7 @@ static int lnondsp_bt_play_start(lua_State *L)
         return 2;
     }
     
-    ret = bt_play_start(name);
+    ret = startBtPlay(name);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -1374,20 +969,14 @@ static int lnondsp_bt_play_start(lua_State *L)
     }
 }
 
-/* int32_t bt_play_stop(void);
- *  Description:
- *      stop play
- *  Params:
- *      None
- *  return:
- *      0: success
- *     -1: failed
+/* int32_t stopBtPlay(void);
+ * 
  * */
-static int lnondsp_bt_play_stop(lua_State *L)
+static int lnondsp_stop_bt_play(lua_State *L)
 {
     int ret = -1;
 
-    ret = bt_play_stop();
+    ret = stopBtPlay();
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -1397,6 +986,7 @@ static int lnondsp_bt_play_stop(lua_State *L)
         return 1;
     }
 }
+
 
 /*
  * interface for lua
@@ -1412,7 +1002,6 @@ static const struct luaL_reg nondsp_lib[] =
     NF(gps_enable), 
     NF(gps_disable), 
     
-    #if 0
     NF(lcd_enable), 
     NF(lcd_disable), 
     NF(lcd_pattern_test), 
@@ -1421,61 +1010,41 @@ static const struct luaL_reg nondsp_lib[] =
     NF(lcd_slide_show_test_start), 
     NF(lcd_slide_show_test_stop), 
     NF(lcd_display_static_image), 
-    #endif
     
     NF(led_config), 
     NF(led_selftest_start), 
     NF(led_selftest_stop), 
 
-    NF(keypad_enable), 
-    NF(keypad_disable), 
-    NF(keypad_set_backlight), 
+    NF(enable_bluetooth_req), 
+    NF(disable_bluetooth), 
+    NF(scan_othen_bluetooth_id_req), 
+    NF(ping_bt_req), 
+    NF(establish_bt_sco_channel_req), 
+    NF(talk_echo_start), 
+    NF(talk_echo_stop), 
+    NF(setup_bt_serial_port_req), 
+    NF(release_bt_serial_port), 
+    NF(setup_bt_serial_port_req),
+    NF(bt_receive_req), 
+    NF(bt_send_req), 
+    NF(recv_data_from_bt_serial_port_req), 
+    NF(bt_send_data_to_bt_serial_port), 
+    NF(set_local_bt_id), 
+    NF(stop_simple_transmitter), 
+    NF(disconnect_bt_sco_channel), 
+    NF(get_bt_state), 
+    NF(get_bt_id), 
+    NF(read_bt_rssi_req), 
+    NF(start_bt_rcd), 
+    NF(stop_bt_rcd), 
+    NF(start_bt_play), 
+    NF(stop_bt_play), 
 
-    NF(bt_enable), 
-    NF(bt_enable_block), 
-    NF(bt_disable), 
-    NF(bt_establish_sco), 
-    NF(bt_establish_sco_block), 
-    NF(bt_disconnect_sco), 
-    NF(bt_talk_echo_start), 
-    NF(bt_talk_echo_stop), 
-    NF(bt_ping), 
-    NF(bt_read_rssi), 
-    NF(bt_serial_setup), 
-    NF(bt_serial_send), 
-    NF(bt_serial_recv), 
-    NF(bt_serial_release), 
-    NF(bt_get_state), 
-    NF(bt_get_addr), 
-    NF(bt_set_addr), 
-    NF(bt_simple_transmitter_start), 
-    NF(bt_simple_transmitter_stop), 
-    NF(bt_scan), 
-    NF(bt_scan_block), 
-    NF(bt_recv), 
-    NF(bt_send), 
-    NF(bt_record_start), 
-    NF(bt_record_stop), 
-    NF(bt_play_start), 
-    NF(bt_play_stop), 
     {NULL, NULL}
 };
-
-#define set_integer_const(key, value)	\
-	lua_pushinteger(L, value);	\
-	lua_setfield(L, -2, key)
-    
-#define MENTRY(_f) set_integer_const(#_f, _f)
 
 int luaopen_lnondsp(lua_State *L) {
 	luaL_register (L, LUA_LNONDSP_LIBNAME, nondsp_lib);
     list_head_init(&nondsp_list_head);
-
-    /* bluetooth */
-    MENTRY(BT_HIGH_SPEED);
-    MENTRY(BT_LOW_SPEED);
-    MENTRY(BT_DUT_MODE);
-    MENTRY(BT_POWER_ON_ONLY);
-    //MENTRY();
 	return 1;
 }

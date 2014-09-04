@@ -1,6 +1,18 @@
 
 #include "ldsp.h"
 
+extern int dsp_master_fd;
+extern int dsp_audio_fd;
+
+typedef struct dsp_evt
+{
+    uint32_t type;  /* 0 event, 1 exception */
+    uint32_t bufsize;
+    uint8_t *buf;
+} dsp_evt_t;
+
+static list_head_t dsp_list_head;
+
 /**
  * dsp init interface, param0 is the fd of /dev/dspmaster, param1 is the absolute path of dsp image
  * int dsp_init(int dsp_master_fd, const char *image_path);
@@ -9,7 +21,7 @@ static int ldsp_init(lua_State *L)
 {
     const char *dspmasterpath = NULL;
     const char *imagepath = NULL;
-    int dsp_master_fd = -1;
+    int dspmaster_fd = -1;
     int ret = -1;
     int argcnt = 0;
     
@@ -27,19 +39,19 @@ static int ldsp_init(lua_State *L)
     }
     dspmasterpath = (char *)lua_tostring(L, 1);
     imagepath      = (char *)lua_tostring(L, 2);
-    dsp_master_fd = open(dspmasterpath, O_RDWR);
-    if (dsp_master_fd < 0) {
+    dspmaster_fd = open(dspmasterpath, O_RDWR);
+    if (dspmaster_fd < 0) {
         lua_pushnil(L);
         lua_pushstring(L, "ldsp_init cannot open sapmasterpath\n");
         return 2;
     }
-    ret = dsp_init(dsp_master_fd, imagepath);
+    ret = dsp_init(dspmaster_fd, imagepath);
     if (ret != 0) {
         lua_pushnil(L);
         lua_pushstring(L, "ldsp_init dsp_init fail\n");
         return 2;
     } else {
-        lua_pushinteger(L, dsp_master_fd);
+        lua_pushinteger(L, dspmaster_fd);
         return 1;
     }
 }
@@ -77,6 +89,203 @@ static int ldsp_init(lua_State *L)
         lua_pushboolean(L, TRUE);
         return 1;
     }
+}
+
+static int ldsp_bit_launch_dsp(lua_State *L)
+{
+    int ret = -1;
+
+    ret = bit_launch_dsp();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* DSP event callback function */
+static int32_t dsp_event_handle(uint32_t bufsize, uint8_t *evtbuf)
+{
+    dsp_evt_t *evt = NULL;
+    list_head_t *index = NULL;
+    
+    log_notice("dsp event generate, size %d\n", bufsize);
+    index = list_head_creat();
+    if (NULL == index) {
+        log_err("dsp_event_handle, list_head_creat index fail\n");
+        return -1;
+    }
+    list_head_init(index);
+    
+    evt = malloc(sizeof(dsp_evt_t));
+    if (NULL == evt) {
+            log_err("dsp_event_handle, malloc memory %d fail\n", sizeof(dsp_evt_t));
+            free(index);
+            index = NULL;
+            return -1;
+    }
+    
+    evt->type = 0;
+    evt->bufsize = bufsize;
+    
+    evt->buf = malloc(bufsize);
+    if (NULL == evt->buf) {
+            log_err("dsp_event_handle, malloc memory %d fail\n", bufsize);
+            free(evt);
+            free(index);
+            return -1;
+    }
+    
+    memcpy(evt->buf, evtbuf, bufsize);
+    index->data = (void *)evt;
+    list_add_tail(index, &dsp_list_head);
+    return 0;
+}
+
+/* DSP exception callback fuction */
+static int32_t dsp_exception_handle(uint32_t bufsize, uint8_t *excepbuf)
+{
+    dsp_evt_t *evt = NULL;
+    list_head_t *index = NULL;
+    
+    log_notice("dsp exception generate, size %d\n", bufsize);
+    index = list_head_creat();
+    if (NULL == index) {
+        log_err("dsp_exception_handle, list_head_creat index fail\n");
+        return -1;
+    }
+    list_head_init(index);
+    
+    evt = malloc(sizeof(dsp_evt_t));
+    if (NULL == evt) {
+            log_err("dsp_exception_handle, malloc memory %d fail\n", sizeof(dsp_evt_t));
+            free(index);
+            index = NULL;
+            return -1;
+    }
+    
+    evt->type = 1;
+    evt->bufsize = bufsize;
+    
+    evt->buf = malloc(bufsize);
+    if (NULL == evt->buf) {
+            log_err("dsp_exception_handle, malloc memory %d fail\n", bufsize);
+            free(evt);
+            free(index);
+            return -1;
+    }
+    
+    memcpy(evt->buf, excepbuf, bufsize);
+    index->data = (void *)evt;
+    list_add_tail(index, &dsp_list_head);
+    return 0;
+}
+
+static int ldsp_register_callbacks(lua_State *L)
+{
+    register_dsp_evt_callback(dsp_event_handle);
+    register_dsp_excep_callback(dsp_exception_handle);
+    return 0;
+}
+
+static void *polling_event_process_thread(void *arg)
+{
+    int32_t ret = 0;
+    log_notice("creat event or exception polling thread successfully\n");
+    pthread_detach(pthread_self());
+
+    while (1) {
+        polling_event_and_exception();
+    }
+
+    pthread_exit((void *)ret);
+    return (void *)ret;
+}
+
+/* maybe calling by thread */
+static int ldsp_start_dsp_service(lua_State *L)
+{
+    int ret = 0;
+    pthread_t polling_event_pthread;
+    /* Start polling DSP Event. */
+    ret = pthread_create(&polling_event_pthread, NULL, polling_event_process_thread, NULL);
+    if (ret != 0) {
+        log_err("error: %s \n", strerror(ret));
+        lua_pushboolean(L, FALSE);
+        return 1;
+    }
+
+    lua_pushboolean(L, TRUE);
+    return 0;
+}
+
+static int ldsp_get_evt_number(lua_State *L)
+{
+    lua_pushinteger(L, get_list_number(&dsp_list_head));
+    return 1;
+}
+
+static int ldsp_get_evt_item(lua_State *L)
+{
+    int index_num;
+    list_head_t *index = NULL;
+    dsp_evt_t evt;
+    void *pbuf = NULL;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+    if (argcnt != 1) {
+        log_err("ldsp_get_evt_item argcnt != 1\n");
+        lua_newtable(L);
+        lua_pushboolean2table(L, "ret", FALSE);
+        lua_pushinteger2table(L, "errno", -1);
+        lua_pushstring2table(L, "errmsg", "argcnt != 1\n");
+        return 1;
+    }
+    
+    if (!lua_isnumber(L, 1)) {
+        lua_newtable(L);
+        lua_pushboolean2table(L, "ret", FALSE);
+        lua_pushinteger2table(L, "errno", -1);
+        lua_pushstring2table(L, "errmsg", "arg[1] is not number\n");
+        return 1;
+    }
+    index_num = lua_tointeger(L, 1);
+
+    index = get_list_item(index_num, &dsp_list_head);
+    if (NULL == index) {
+        lua_newtable(L);
+        lua_pushboolean2table(L, "ret", FALSE);
+        lua_pushinteger2table(L, "errno", -1);
+        lua_pushstring2table(L, "errmsg", "thers is not list item\n");
+        return 1;
+    }
+    
+    memcpy(&evt, index->data, sizeof(dsp_evt_t));
+    
+    lua_newtable(L);
+    lua_pushstring(L, "buf");
+    pbuf = lua_newuserdata(L, evt.bufsize);
+    if (NULL == pbuf){
+        log_err("ldsp_get_evt_item lua_newuserdata return null\n");
+        lua_pushnil(L);
+        lua_settable(L, -3);
+        
+        lua_pushboolean2table(L, "ret", FALSE);
+        lua_pushinteger2table(L, "errno", -2);
+        lua_pushstring2table(L, "errmsg", "lnondsp_get_evt lua_newuserdata return null");
+        return 1;
+    }
+    memcpy(pbuf, evt.buf, evt.bufsize);
+    lua_settable(L, -3);
+    
+    lua_pushboolean2table(L, "ret", TRUE);
+    lua_pushinteger2table(L, "type", evt.type);
+    lua_pushinteger2table(L, "bufsize", evt.bufsize);
+    return 1;
 }
 
 /* define by libbitdsp */
@@ -135,51 +344,10 @@ static int ldsp_stop(lua_State *L)
 }
 #endif
 
-
 /* 
  * DSP complex function interface 
  */
 /* single power measurement interface */
-static int ldsp_start_rx_power_measurement(lua_State *L)
-{
-    unsigned int samples;    
-    unsigned int interval;  
-    unsigned int records; 
-    
-    int i;
-    int ret = -1;
-    int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt < 3) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, -1);
-        return 2;
-    }
-    
-    for (i=1; i<=argcnt; i++){
-        if (!lua_isnumber(L, i)) {
-            lua_pushboolean(L, FALSE);
-            lua_pushinteger(L, i);
-            return 2;
-        }
-    }
-    
-    samples = (unsigned int)lua_tointeger(L, 1);
-    interval = (unsigned int)lua_tointeger(L, 2);
-    records = (unsigned int)lua_tointeger(L, 3);
-    
-    ret = start_rx_power_measurement(samples, interval, records);
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
 static int ldsp_get_period_power_msr_data(lua_State *L)
 {
     unsigned int start;    
@@ -233,7 +401,7 @@ static int ldsp_start_rx_desense_scan(lua_State *L)
 {
     unsigned int freq;    /* Transmit freq, value range in UHF, VHF or WLB */
     unsigned char band_width;  /* 0->12.5KHz, 1->25KHz */
-    unsigned int step_size;  /* 0Hz, 12500Hz, 25000Hz, 100000Hz and 1000000Hz */
+    unsigned int step_size;  /* 0Hz, 125000Hz, 25000Hz, 100000Hz and 1000000Hz */
     unsigned int step_num;   /* 0~ 15000 */
     unsigned int msr_step_num; /* 0~50 */
     unsigned int samples;     /* 10~50000 */
@@ -450,12 +618,11 @@ static int ldsp_write_dsp_audio_samples_data(lua_State *L)
 static int ldsp_dsp_capture_process(lua_State *L)
 {
     int flag;
-    int i;
     int ret = -1;
     int argcnt = 0;
     
 	argcnt = lua_gettop(L);
-	if (argcnt != 1 {
+	if (argcnt != 1) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_dsp_capture_process argcnt != 1\n");
         return 2;
@@ -488,12 +655,11 @@ static int ldsp_dsp_capture_process(lua_State *L)
 static int ldsp_dsp_delivery_process(lua_State *L)
 {
     int flag;
-    int i;
     int ret = -1;
     int argcnt = 0;
     
 	argcnt = lua_gettop(L);
-	if (argcnt != 1 {
+	if (argcnt != 1) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_dsp_delivery_process argcnt != 1\n");
         return 2;
@@ -555,10 +721,10 @@ static int ldsp_start_audio_transfer(lua_State *L)
         lua_pushstring(L, "ldsp_start_audio_transfer arg[3] is not string\n");
         return 2;
     }
-    
+
     src  = (unsigned char)lua_tointeger(L, 1);
     dest = (unsigned char)lua_tointeger(L, 2);
-    path = (unsigned char *)lua_touserdata(L, 3);
+    path = (unsigned char *)lua_tostring(L, 3);
     
     ret = start_audio_transfer(src, dest, path);
     if (ret != 0) {
@@ -589,6 +755,7 @@ static int ldsp_stop_audio_transfer(lua_State *L)
     }
 }
 
+#if 0
 /** Tia603 DSP audio rx and tx interface
  * int start_tia603_audio_rx(unsigned char dest, unsigned int freq, unsigned char bandwidth, 
  *      unsigned char emphasis, unsigned char scrambler, unsigned char expander);
@@ -728,6 +895,7 @@ static int ldsp_audio_tx_stop(lua_State *L)
         return 1;
     }
 }
+#endif 
 
 /*
  * interface for lua
@@ -737,6 +905,18 @@ static const struct luaL_reg dsp_lib[] =
 #define NF(n)   {#n, ldsp_##n}
     NF(init),
     NF(stop),
+    NF(bit_launch_dsp),
+    
+    /* for dsp event and exception */
+    NF(register_callbacks),
+    NF(start_dsp_service),
+
+    NF(get_evt_number),
+    NF(get_evt_item),
+#if 0
+    NF(read_dsp_evt),
+    NF(read_dsp_exception),
+#endif
 /* define by libbitdsp */
 #if 0 
     NF(release),
@@ -745,7 +925,6 @@ static const struct luaL_reg dsp_lib[] =
 #endif
 
     /* single power measurement interface */
-    NF(start_rx_power_measurement), 
     NF(get_period_power_msr_data), 
     
     /* DSP RX desense scan interface */
@@ -762,18 +941,30 @@ static const struct luaL_reg dsp_lib[] =
     NF(dsp_capture_process), 
     NF(dsp_delivery_process), 
 #endif
+
     NF(start_audio_transfer), 
     NF(stop_audio_transfer), 
 
     /* Tia603 DSP audio rx and tx interface */
+#if 0
     NF(audio_rx_start), 
     NF(audio_rx_stop), 
     NF(audio_tx_start), 
     NF(audio_tx_stop), 
+#endif
+
     {NULL, NULL}
 };
 
+#define set_integer_const(key, value)	\
+	lua_pushinteger(L, value);	\
+	lua_setfield(L, -2, key)
+
 int luaopen_ldsp(lua_State *L) {
 	luaL_register (L, LUA_LDSP_LIBNAME, dsp_lib);
+    set_integer_const("dsp_master_fd", dsp_master_fd);
+    set_integer_const("dsp_audio_fd", dsp_audio_fd);
+    list_head_init(&dsp_list_head);
+    
 	return 1;
 }

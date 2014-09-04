@@ -42,121 +42,174 @@ front_panel_data = {
                 m_sub:action()
             end, 
             action_map = {
-                [1] = function(t)
-                    local r = get_string_in_window(t[t.select_index])
-                    if r.ret then
-                        t.freq =  tonumber(r.str)
-                        if not check_num_range(t.freq) then
-                            lua_log.i(t[t.select_index], "enter is not number")
-                            return false
-                        end
-                        t[t.select_index] = "Freq(Hz) "..r.str
-                    else
-                        lua_log.i(t[t.select_index], "enter "..r.errmsg)
+                [2] = function(t)
+                    if nil == t.bluetooth then
+                        t.bluetooth = t[2].bluetooth
                     end
-                end, 
-                [2] = function(t) end, 
-                [3] = function(t) end, 
-                [4] = function(t)
-                    local r = get_string_in_window(t[t.select_index])
-                    if r.ret then
-                        t.step_num =  tonumber(r.str)
-                        if not check_num_range(t.step_num, 0, 1500) then
-                            lua_log.i(t[t.select_index], "enter "..t.step_num.." is not 0~1500")
-                            return false
-                        end
-                        t[t.select_index] = "Step Num(0~1500) "..r.str
-                    else
-                        lua_log.i(t[t.select_index], "enter "..r.errmsg)
-                    end
-                end, 
-                [5] = function(t)
-                    local r = get_string_in_window(t[t.select_index])
-                    if r.ret then
-                        t.msr_step_num =  tonumber(r.str)
-                        if not check_num_range(t.msr_step_num, 0, 50) then
-                            lua_log.i(t[t.select_index], "enter "..t.msr_step_num.." is not 0~50")
-                            return false
-                        end
-                        t[t.select_index] = "msr_step_num(0~50) "..r.str
-                    else
-                        lua_log.i(t[t.select_index], "enter "..r.errmsg)
-                    end
-                end, 
-                [6] = function(t)
-                    local r = get_string_in_window(t[t.select_index])
-                    if r.ret then
-                        t.samples =  tonumber(r.str)
-                        if not check_num_range(t.samples, 10, 5000) then
-                            lua_log.i(t[t.select_index], "enter "..t.samples.." is not 10~5000")
-                            return false
-                        end
-                        t[t.select_index] = "samples(10~5000) "..r.str
-                    else
-                        lua_log.i(t[t.select_index], "enter "..r.errmsg)
-                    end
-                end, 
-                [7] = function(t)
-                    local r = get_string_in_window(t[t.select_index])
-                    if r.ret then
-                        t.delaytime =  tonumber(r.str)
-                        if not check_num_range(t.delaytime, 0, 100) then
-                            lua_log.i(t[t.select_index], "enter "..t.delaytime.." is not 0~100")
-                            return false
-                        end
-                        t[t.select_index] = "delaytime(0~100s) "..r.str
-                    else
-                        lua_log.i(t[t.select_index], "enter "..r.errmsg)
-                    end
-                end, 
+                end
             }, 
             action = function (t)
                 if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
                     t.action_map[t.select_index](t)
                 end
             end, 
-
-            [1] = "Transmit freq(Hz)",  -- 波段扫描起始频率 
-            [2] = {
-                title = "Band Width", 
-                tips  = "Select Band Width", 
-                multi_select_mode = false, 
-                action = function ()
-                    
+            [1] = {
+                title = "Rx Desense Scan", 
+                tips  = "Rx Desense Scan", 
+                multi_select_mode = true, 
+                new_main_menu = function (t)
+                    local m_sub = create_main_menu(t)
+                    m_sub:show()
+                    m_sub:action()
                 end, 
-
-                "12.5 KHz", 
-                "25 KHz", 
-            }, 
-            [3] = {  -- 波段扫描步长 
-                title = "Step size", 
-                tips  = "Select Step size", 
-                multi_select_mode = false, 
-                action = function ()
-
-                end, 
-                step_size_map = {
-                    0, 
-                    2.5 * 1000, 
-                    6.25 * 1000, 
-                    12.5 * 1000, 
-                    25 * 1000, 
-                    100 * 1000, 
-                    1000 * 1000, 
+                action_map = {
+                    [1] = function(t)
+                        local r = get_string_in_window(t[t.select_index])
+                        if r.ret then
+                            t.freq =  tonumber(r.str)
+                            if nil == t.freq then
+                                posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                                t.select_status[t.select_index] = false
+                                return false
+                            end
+                            if not check_num_range(t.freq) then
+                                lua_log.i(t[t.select_index], "enter is not number")
+                                return false
+                            end
+                            t[t.select_index] = "Freq(Hz) "..r.str
+                        else
+                            lua_log.i(t[t.select_index], "enter "..r.errmsg)
+                        end
+                    end, 
+                    [2] = function(t) 
+                        t.band_width = t[2].band_width
+                    end, 
+                    [3] = function(t) 
+                        t.step_size = t[3].step_size
+                    end, 
+                    [4] = function(t)
+                        local r = get_string_in_window(t[t.select_index])
+                        if r.ret then
+                            t.step_num =  tonumber(r.str)
+                            if nil == t.step_num then
+                                posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                                t.select_status[t.select_index] = false
+                                return false
+                            end
+                            if not check_num_range(t.step_num, 0, 1500) then
+                                lua_log.i(t[t.select_index], "enter "..t.step_num.." is not 0~1500")
+                                return false
+                            end
+                            t[t.select_index] = "Step Num(0~1500) "..r.str
+                        else
+                            lua_log.i(t[t.select_index], "enter "..r.errmsg)
+                        end
+                    end, 
+                    [5] = function(t)
+                        local r = get_string_in_window(t[t.select_index])
+                        if r.ret then
+                            t.msr_step_num =  tonumber(r.str)
+                            if nil == t.msr_step_num then
+                                posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                                t.select_status[t.select_index] = false
+                                return false
+                            end
+                            if not check_num_range(t.msr_step_num, 0, 50) then
+                                lua_log.i(t[t.select_index], "enter "..t.msr_step_num.." is not 0~50")
+                                return false
+                            end
+                            t[t.select_index] = "msr_step_num(0~50) "..r.str
+                        else
+                            lua_log.i(t[t.select_index], "enter "..r.errmsg)
+                        end
+                    end, 
+                    [6] = function(t)
+                        local r = get_string_in_window(t[t.select_index])
+                        if r.ret then
+                            t.samples =  tonumber(r.str)
+                            if nil == t.simples then
+                                posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                                t.select_status[t.select_index] = false
+                                return false
+                            end
+                            if not check_num_range(t.samples, 10, 5000) then
+                                lua_log.i(t[t.select_index], "enter "..t.samples.." is not 10~5000")
+                                return false
+                            end
+                            t[t.select_index] = "samples(10~5000) "..r.str
+                        else
+                            lua_log.i(t[t.select_index], "enter "..r.errmsg)
+                        end
+                    end, 
+                    [7] = function(t)
+                        local r = get_string_in_window(t[t.select_index])
+                        if r.ret then
+                            t.delaytime =  tonumber(r.str)
+                            if nil == t.delaytime then
+                                posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                                t.select_status[t.select_index] = false
+                                return false
+                            end
+                            if not check_num_range(t.delaytime, 0, 100) then
+                                lua_log.i(t[t.select_index], "enter "..t.delaytime.." is not 0~100")
+                                return false
+                            end
+                            t[t.select_index] = "delaytime(0~100s) "..r.str
+                        else
+                            lua_log.i(t[t.select_index], "enter "..r.errmsg)
+                        end
+                    end, 
                 }, 
-                "0    Hz", 
-                "2.5  KHz", 
-                "6.25 KHz", 
-                "12.5 KHz", 
-                "25   KHz", 
-                "100  KHz", 
-                "1    MHz", 
+                action = function (t)
+                    if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                        t.action_map[t.select_index](t)
+                    end
+                end, 
+
+                [1] = "Start freq(Hz)",  -- 波段扫描起始频率 
+                [2] = {
+                    title = "Band Width", 
+                    tips  = "Select Band Width", 
+                    multi_select_mode = false, 
+                    action = function (t)
+                        local bw_g = {0, 1} -- 0:12.5KHz 1:25KHz 
+                        t.band_width = bw_g[t.select_index]
+                    end, 
+
+                    "12.5 KHz", 
+                    "25 KHz", 
+                }, 
+                [3] = {  -- 波段扫描步长 
+                    title = "Step size", 
+                    tips  = "Select Step size", 
+                    multi_select_mode = false, 
+                    action = function (t)
+                        local step_size_g = {
+                            0, 
+                            2.5 * 1000, 
+                            6.25 * 1000, 
+                            12.5 * 1000, 
+                            25 * 1000, 
+                            100 * 1000, 
+                            1000 * 1000, 
+                        }
+                        t.step_size = step_size_g[t.select_index]
+                    end, 
+
+                    "0    Hz", 
+                    "2.5  KHz", 
+                    "6.25 KHz", 
+                    "12.5 KHz", 
+                    "25   KHz", 
+                    "100  KHz", 
+                    "1    MHz", 
+                }, 
+                [4] = "Step Num(0~1500)",  -- 扫描波段的个数 
+                [5] = "msr_step_num(0~50)",  -- 每一个波段measure次数 
+                [6] = "samples(10~5000)", -- 测量的samples值 
+                [7] = "delaytime(0~100s)", -- 每个波段measure的间隔时间，有效值范围 
             }, 
-            [4] = "Step Num(0~1500)",  -- 扫描波段的个数 
-            [5] = "msr_step_num(0~50)",  -- 每一个波段measure次数 
-            [6] = "samples(10~5000)", -- 测量的samples值 
-            [7] = "delaytime(0~100s)", -- 每个波段measure的间隔时间，有效值范围 
-            [8] = {
+            [2] = {
                 title = "Enable Bluetooth", 
                 tips  = "Setting up bluetooth device", 
                 multi_select_mode = false, 
@@ -164,107 +217,89 @@ front_panel_data = {
                     
                 end, 
             }, 
-            [9] = "Enable GPS", 
-            [10] = "Enable LCD", 
-            [11] = "Show static image(LCD)", 
-            [12] = "Enable slide show", 
-            [13] = "Enable LED test", 
-            [14] = {
-                title = "Enable RS232 test", 
-                tips  = "Select Enable RS232 test", 
-                multi_select_mode = false, 
-                action = function ()
+            [3] = "Enable GPS", 
+            [4] = "Enable LCD", 
+            [5] = "Show static image(LCD)", 
+            [6] = "Enable slide show", 
+            [7] = "Enable LED test", 
 
-                end, 
-                "1200", 
-                "2400", 
-                "4800", 
-                "9600", 
-                "19200", 
-                "34800", 
-                "57600",
-                "115200" 
-            }, 
             test_process = {
-                [9] = function(t)
+                [3] = function(t)
                     local r, msgid
-                    if t.select_status[9] then
+                    if t.select_status[3] then
                         r, msgid = lnondsp.gps_enable()
-                        t.report[9] = {ret=r, errno=msgid}
+                        t.report[3] = {ret=r, errno=msgid}
                     else
                         r, msgid = lnondsp.gps_disable()
                     end
                 end, 
-                [10] = function(t)
+                [4] = function(t)
                     local r, msgid
-                    if t.select_status[10] then
+                    if t.select_status[4] then
                         r, msgid = lnondsp.lcd_enable()
-                        t.report[10] = {ret=r, errno=msgid}
+                        t.report[4] = {ret=r, errno=msgid}
                     else
                         r, msgid = lnondsp.lcd_disable()
                     end
                 end, 
-                [11] = function(t)
+                [5] = function(t)
                     local pic_path = "/root/u4_logo.dat"
                     local width = 270
                     local height = 220
                     local r, msgid
-                    if t.select_status[11] then
+                    if t.select_status[5] then
                         r, msgid = lnondsp.lcd_display_static_image(pic_path, width, height)
-                        t.report[11] = {ret=r, errno=msgid}
+                        t.report[5] = {ret=r, errno=msgid}
                     end
                 end, 
-                [12] = function(t)
+                [6] = function(t)
                     local pic_path = "/usr/slideshow_dat_for_fcc"
                     local range = 1  -- The time interval of showing two different images. 
                     local r, msgid
-                    if t.select_status[10] then
+                    if t.select_status[6] then
                         r, msgid = lnondsp.lcd_slide_show_test_start(pic_path, range)
-                        t.report[12] = {ret=r, errno=msgid}
+                        t.report[6] = {ret=r, errno=msgid}
                     else
                         r, msgid = lnondsp.lcd_slide_show_test_stop()
                     end
                 end, 
-                [13] = function(t)
+                [7] = function(t)
                     local r, msgid
-                    if t.select_status[13] then
+                    if t.select_status[7] then
                         r, msgid = lnondsp.led_selftest_start()
-                        t.report[13] = {ret=r, errno=msgid}
+                        t.report[7] = {ret=r, errno=msgid}
                     else
                         r, msgid = lnondsp.led_selftest_stop()
                     end
-                end, 
-                [14] = function(t)
-                
                 end, 
             }, 
             stop_process = {
-                [9] = function(t)
+                [3] = function(t)
                     local r, msgid
-                    if t.select_status[9] then
+                    if t.select_status[3] then
                         r, msgid = lnondsp.gps_disable()
                     end
                 end, 
-                [10] = function(t)
+                [4] = function(t)
                     local r, msgid
-                    if t.select_status[10] then
+                    if t.select_status[4] then
                         r, msgid = lnondsp.lcd_disable()
                     end
                 end, 
-                [11] = function(t)  end, 
-                [12] = function(t)
+                [5] = function(t)  end, 
+                [6] = function(t)
                     local r, msgid
-                    if t.select_status[10] then
+                    if t.select_status[6] then
                         r, msgid = lnondsp.lcd_slide_show_test_stop()
                     end
                 end, 
-                [13] = function(t)
+                [7] = function(t)
                     local r, msgid
-                    if t.select_status[13] then
+                    if t.select_status[7] then
                         r, msgid = lnondsp.led_selftest_stop()
                     end
                 end, 
-                [14] = function(t) end, 
+
             }, 
             test_process_start = function(t)
                 local check_param = {result=true}
@@ -286,7 +321,7 @@ front_panel_data = {
                 end
                 
                 t.report = {}
-                for i=9, #t do
+                for i=3, #t do
                     if "function" == type(t.test_process[i]) then
                         t.test_process[i](t)
                     end
@@ -296,7 +331,7 @@ front_panel_data = {
             end, 
             test_process_stop = function(t)
                 ldsp.stop_rx_desense_scan()
-                for i=9, #t do
+                for i=3, #t do
                     if "function" == type(t.test_process[i]) then
                         t.stop_process[i](t)
                     end
@@ -306,7 +341,6 @@ front_panel_data = {
                 
             end, 
         }, 
-        
         [2] = {
             title = "Rx Antenna Test", 
             tips  = "* start; up down key move to config", 
@@ -316,20 +350,109 @@ front_panel_data = {
                 m_sub:show()
                 m_sub:action()
             end, 
-            [1] = {
+            step_num = 1,  
+            step_size = 0, 
+            action_map = {
+                [1] = function(t)
+                    local r = get_string_in_window(t[t.select_index])
+                    if r.ret then
+                        t.freq =  tonumber(r.str)
+                        if nil == t.freq then
+                            posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                            t.select_status[t.select_index] = false
+                            return false
+                        end
+                        
+                        if not check_num_range(t.freq) then
+                            lua_log.i(t[t.select_index], "enter is not number")
+                            return false
+                        end
+                        t[t.select_index] = "Start freq(Hz) "..r.str
+                    else
+                        lua_log.i(t[t.select_index], "enter "..r.errmsg)
+                    end
+                end, 
+                [2] = function(t) 
+                    t.band_width = t[2].band_width
+                end, 
+                [3] = function(t)
+                    local r = get_string_in_window(t[t.select_index])
+                    if r.ret then
+                        t.msr_step_num =  tonumber(r.str)
+                        if nil == t.msr_step_num then
+                            posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                            t.select_status[t.select_index] = false
+                            return false
+                        end
+                        if not check_num_range(t.msr_step_num, 0, 50) then
+                            lua_log.i(t[t.select_index], "enter "..t.msr_step_num.." is not 0~50")
+                            return false
+                        end
+                        t[t.select_index] = "msr_step_num(0~50) "..r.str
+                    else
+                        lua_log.i(t[t.select_index], "enter "..r.errmsg)
+                    end
+                end, 
+                [4] = function(t)
+                    local r = get_string_in_window(t[t.select_index])
+                    if r.ret then
+                        t.samples =  tonumber(r.str)
+                        if nil == t.samples then
+                            posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                            t.select_status[t.select_index] = false
+                            return false
+                        end
+                        if not check_num_range(t.samples, 10, 5000) then
+                            lua_log.i(t[t.select_index], "enter "..t.samples.." is not 10~5000")
+                            return false
+                        end
+                        t[t.select_index] = "samples(10~5000) "..r.str
+                    else
+                        lua_log.i(t[t.select_index], "enter "..r.errmsg)
+                    end
+                end, 
+                [5] = function(t)
+                    local r = get_string_in_window(t[t.select_index])
+                    if r.ret then
+                        t.delaytime =  tonumber(r.str)
+                        if nil == t.delaytime then
+                            posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                            t.select_status[t.select_index] = false
+                            return false
+                        end
+                        if not check_num_range(t.delaytime, 0, 100) then
+                            lua_log.i(t[t.select_index], "enter "..t.delaytime.." is not 0~100")
+                            return false
+                        end
+                        t[t.select_index] = "delaytime(0~100s) "..r.str
+                    else
+                        lua_log.i(t[t.select_index], "enter "..r.errmsg)
+                    end
+                end, 
+            }, 
+            action = function (t)
+                if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                    t.action_map[t.select_index](t)
+                end
+            end, 
+
+            [1] = "Start freq(Hz)",  -- 波段扫描起始频率 
+            [2] = {
                 title = "Band Width", 
                 tips  = "Select Band Width", 
                 multi_select_mode = false, 
-                action = function ()
-
+                action = function (t)
+                    local bw_g = {0, 1} -- 0:12.5KHz 1:25KHz 
+                    t.band_width = bw_g[t.select_index]
                 end, 
+
                 "12.5 KHz", 
                 "25 KHz", 
             }, 
-            [2] = "Num of measurements", 
-            [3] = "Sample size", 
-            [4] = "Time between measurements(ms)", 
-            [5] = "Start frequency(Hz)", 
+            [3] = "msr_step_num(0~50)",  -- 每一个波段measure次数 
+            [4] = "samples(10~5000)", -- 测量的samples值 
+            [5] = "delaytime(0~100s)", -- 每个波段measure的间隔时间，有效值范围 
+            
         }, 
         [3] = {
             title = "Tx with a duty cycle", 
@@ -340,6 +463,59 @@ front_panel_data = {
                 m_sub:show()
                 m_sub:action()
             end, 
+            action_map = {
+                [1] = function(t)
+                    t.freq = t[1].freq
+                end, 
+                [2] = function(t) 
+                    t.band_width = t[2].band_width
+                end, 
+                [3] = function(t)
+                    t.power = t[3].power
+                end, 
+                [4] = function(t)
+                    local r = get_string_in_window(t[t.select_index])
+                    if r.ret then
+                        t.samples =  tonumber(r.str)
+                        if nil == t.samples then
+                            posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                            t.select_status[t.select_index] = false
+                            return false
+                        end
+                        if not check_num_range(t.samples, 10, 5000) then
+                            lua_log.i(t[t.select_index], "enter "..t.samples.." is not 10~5000")
+                            return false
+                        end
+                        t[t.select_index] = "samples(10~5000) "..r.str
+                    else
+                        lua_log.i(t[t.select_index], "enter "..r.errmsg)
+                    end
+                end, 
+                [5] = function(t)
+                    local r = get_string_in_window(t[t.select_index])
+                    if r.ret then
+                        t.delaytime =  tonumber(r.str)
+                        if nil == t.delaytime then
+                            posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                            t.select_status[t.select_index] = false
+                            return false
+                        end
+                        if not check_num_range(t.delaytime, 0, 100) then
+                            lua_log.i(t[t.select_index], "enter "..t.delaytime.." is not 0~100")
+                            return false
+                        end
+                        t[t.select_index] = "delaytime(0~100s) "..r.str
+                    else
+                        lua_log.i(t[t.select_index], "enter "..r.errmsg)
+                    end
+                end, 
+            }, 
+            action = function (t)
+                if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                    t.action_map[t.select_index](t)
+                end
+            end, 
+
             [1] = {
                 title = "Freq", 
                 tips  = "Select Freq", 
@@ -358,8 +534,19 @@ front_panel_data = {
                         local r = get_string_in_window(t[t.select_index])
                         if r.ret then
                             t.freq =  tonumber(r.str)
+                            if nil == t.freq then
+                                posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                                t.select_status[t.select_index] = false
+                                return false
+                            end
+                            
+                            if not check_num_range(t.freq) then
+                                lua_log.i(t[t.select_index], "enter is not number")
+                                return false
+                            end
+                            t[t.select_index] = r.str.." (Hz)"
                         else
-                            lua_log.i("freq", "enter "..t[t.select_index].." "..r.errmsg)
+                            lua_log.i(t[t.select_index], "Enter "..r.errmsg)
                         end
                     end, 
                 }, 
@@ -378,7 +565,8 @@ front_panel_data = {
                 tips  = "Select Band Width", 
                 multi_select_mode = false, 
                 action = function ()
-
+                    local bw_g = {0, 1} -- 0:12.5KHz 1:25KHz 
+                    t.band_width = bw_g[t.select_index]
                 end, 
                 "12.5 KHz", 
                 "25 KHz", 
@@ -387,12 +575,14 @@ front_panel_data = {
                 title = "Power", 
                 tips  = "Select Power", 
                 multi_select_mode = false, 
-                action = function ()
-
+                action = function (t)
+                    local powers = {1, 2, 3, 5}
+                    t.power = powers[t.select_index]
                 end, 
                 "1 Watt", 
                 "2 Watt", 
                 "3 Watt",
+                "5 Watt",
             }, 
             [4] = {
                 title = "Audio Path", 
@@ -450,6 +640,7 @@ front_panel_data = {
                 "1 Watt", 
                 "2 Watt", 
                 "3 Watt",
+                "5 Watt",
             }, 
             [2] = {
                 title = "Start delay(sec)", 
@@ -520,24 +711,70 @@ front_panel_data = {
         title = "Front Panel", 
         tips  = "Select the test item, move and space to select", 
         multi_select_mode = true, 
+        action_map = {
+            [1] = function(t)
+                t.freq = t[1].freq
+            end, 
+            [2] = function(t) 
+                t.band_width = t[2].band_width
+            end, 
+            [3] = function(t)
+                t.power = t[3].power
+            end, 
+            [4] = function(t)
+                t.audio_path = t[4].audio_path
+            end, 
+            [5] = function(t)
+                t.squelch = t[5].squelch
+            end, 
+            [6] = function(t)
+                t.modulation = t[6].modulation
+                t.mod_mode = t[6].mod_mode
+            end, 
+            [7] = function(t) end, 
+        }, 
         action = function (t)
-
+            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                t.action_map[t.select_index](t)
+            end
         end, 
-
         [1] = {
             title = "Freq", 
             tips  = "Select Freq", 
             multi_select_mode = false, 
-            action = function (t)
-                local instr = ""
-                if (t.select_index ~= nil) and (t.select_index == 4) then
+            action_map = {
+                [1] = function(t)
+                    t.freq =  136125 * 1000
+                end, 
+                [2] = function(t)
+                    t.freq =  155125 * 1000
+                end, 
+                [3] = function(t)
+                    t.freq =  173125 * 1000
+                end, 
+                [4] = function(t)
                     local r = get_string_in_window(t[t.select_index])
                     if r.ret then
-                        t.enter_freq = tonumber(r.str)
-                        t[t.select_index] = "Enter "..t.enter_freq
+                        t.freq =  tonumber(r.str)
+                        if nil == t.freq then
+                            posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                            t.select_status[t.select_index] = false
+                            return false
+                        end
+                        
+                        if not check_num_range(t.freq) then
+                            lua_log.i(t[t.select_index], "enter is not number")
+                            return false
+                        end
+                        t[t.select_index] = r.str.." (Hz)"
                     else
-                        lua_log.i("freq", "enter freq(Hz) "..r.errmsg)
+                        lua_log.i(t[t.select_index], "Enter "..r.errmsg)
                     end
+                end, 
+            }, 
+            action = function (t)
+                if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                    t.action_map[t.select_index](t)
                 end
             end, 
             "136.125MHz", 
@@ -549,8 +786,9 @@ front_panel_data = {
             title = "Band Width", 
             tips  = "Select Band Width", 
             multi_select_mode = false, 
-            action = function ()
-
+            action = function (t)
+                local bw_g = {0, 1} -- 0:12.5KHz 1:25KHz 
+                t.band_width = bw_g[t.select_index]
             end, 
             "12.5 KHz", 
             "25 KHz", 
@@ -559,19 +797,22 @@ front_panel_data = {
             title = "Power", 
             tips  = "Select Power", 
             multi_select_mode = false, 
-            action = function ()
-
+            action = function (t)
+                local powers = {1, 2, 3, 5}
+                t.power = powers[t.select_index]
             end, 
             "1 Watt", 
             "2 Watt", 
             "3 Watt",
+            "5 Watt",
         }, 
         [4] = {
             title = "Audio Path", 
             tips  = "Select Audio Path", 
             multi_select_mode = false, 
-            action = function ()
-
+            action = function (t)
+                local audio_path_g = {0, 1, 2}  -- 0:internal speaker/mic, 1:external speaker/mic, 2:bluetooth 
+                t.audio_path = audio_path_g[t.select_index]
             end, 
             "Internal speaker / mic", 
             "External speaker / mic", 
@@ -581,8 +822,9 @@ front_panel_data = {
             title = "Squelch", 
             tips  = "Select Squelch", 
             multi_select_mode = false, 
-            action = function ()
-
+            action = function (t)
+                local squelch_g = {0, 1, 2}  -- 0:none, 1:external speaker/mic, 2:bluetooth 
+                t.squelch = squelch_g[t.select_index]
             end, 
             "none", 
             "normal", 
@@ -592,8 +834,23 @@ front_panel_data = {
             title = "Modulation", 
             tips  = "Select Modulation", 
             multi_select_mode = false, 
-            action = function ()
-
+            action_map = {
+                [1] = function(t)
+                    t.modulation = 0
+                end, 
+                [2] = function(t)
+                    t.modulation = 1
+                    t.mod_mode = t[2].analog
+                end, 
+                [3] = function(t)
+                    t.modulation = 2
+                    t.mod_mode = t[3].digital
+                end
+            }, 
+            action = function (t)
+                if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                    t.action_map[t.select_index](t)
+                end
             end, 
             [1] = "none", 
             [2] = {
@@ -601,7 +858,8 @@ front_panel_data = {
                 tips  = "Select Analog", 
                 multi_select_mode = false, 
                 action = function ()
-
+                    local analog_g = {0, 1, 2, 3}
+                    t.analog = analog_t[t.select_index]
                 end, 
                 "CTCSS (Tone = 250.3 Hz)", 
                 "CDCSS (Code = 532)", 
@@ -613,7 +871,8 @@ front_panel_data = {
                 tips  = "Select Digital", 
                 multi_select_mode = false, 
                 action = function ()
-
+                    local digital_g = {0, 1, 2, 3, 4, 5, 6}
+                    t.digital = digital_g[t.select_index]
                 end, 
                 "DVOA", 
                 "TDMA Voice", 
@@ -661,7 +920,7 @@ table_info = function(t)
                 lua_log.e("table_info", "get_item() type err: "..type(n))
             end
         end, 
-        get_group = function()
+        get_group = function(t)
             local num = table.getn(t)
             local gp = {}
             for k, v in ipairs(t) do

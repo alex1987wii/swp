@@ -61,7 +61,9 @@ get_string_in_window = function(note)
     curses.echo(false)
     
     nw:close()
-    
+    if (nil == str) and ("" == str) then
+        return {ret = false, errmsg = "nnw:getstr nil"}
+    end
     return {ret = true, str = str}
 end
 

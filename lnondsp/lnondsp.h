@@ -22,13 +22,25 @@
 
 #include <linux/ioctl.h>
 
+#include <syslog.h>
+
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
-#include <bitnondsp_abstract.h>
+
+#include <pthread.h>
+#include <mylist.h>
+
+#include <bitnondsp_adapter.h>
+#include <led.h>
+#include <gps.h>
+#include <bluetooth.h>
 
 #define TRUE  1
 #define FALSE 0
+
+#define log_err(fmt,arg...)    syslog(LOG_ERR, fmt, ##arg)
+#define log_notice(fmt,arg...) syslog(LOG_NOTICE, fmt, ##arg)
 
 #define LUA_LNONDSP_LIBNAME "lnondsp"
 LUALIB_API int luaopen_lnondsp(lua_State *L);
@@ -42,6 +54,12 @@ LUALIB_API int luaopen_lnondsp(lua_State *L);
 #define lua_pushintegerkey2table(L,key,val) do{\
 	lua_pushinteger(L, key);\
 	lua_pushinteger(L, val);\
+	lua_settable(L, -3);\
+}while(0)
+
+#define lua_pushintegerkeystring2table(L,key,val) do{\
+	lua_pushinteger(L, key);\
+	lua_pushstring(L, val);\
 	lua_settable(L, -3);\
 }while(0)
 
