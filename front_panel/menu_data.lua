@@ -920,7 +920,7 @@ table_info = function(t)
                 lua_log.e("table_info", "get_item() type err: "..type(n))
             end
         end, 
-        get_group = function(t)
+        get_group = function()
             local num = table.getn(t)
             local gp = {}
             for k, v in ipairs(t) do

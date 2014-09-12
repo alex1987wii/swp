@@ -14,7 +14,8 @@ DSP_INC= -I$(UNILIB_PATH)/libbitdsp -L$(UNILIB_PATH)/libbitdsp -I/$(UNILIB_PATH)
 # NONDSP_INC= -I$(UNILIB_PATH)/libbitnondsp/include -L$(UNILIB_PATH)/libbitnondsp -L/$(UNILIB_PATH)/timers -L$(UNILIB_PATH)/annal -L$(UNILIB_PATH)/circbuf -I$(UNILIB_PATH)/bitservice/include
 NONDSP_INC= -I$(UNILIB_PATH)/libbitnondsp/include -I$(UNILIB_PATH)/libbitnondsp/nondspdriver -L$(ROOTFS_IFS_PATH)/lib -I$(UNILIB_PATH)/bitservice/include -L$(UNILIB_PATH)/bt
 
-all: lib/curses_c.so lib/posix_c.so lib/bit32.so lib/ldsp.so lib/lnondsp.so
+all: lib/curses_c.so lib/posix_c.so lib/bit32.so 
+# all: lib/curses_c.so lib/posix_c.so lib/bit32.so lib/ldsp.so lib/lnondsp.so
 
 lib/curses_c.so: curses/curses.c
 	$(CC) -Wall -shared -o $@ -fPIC $^ $(CFLAGS) $(CLIBS)
