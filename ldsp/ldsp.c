@@ -467,6 +467,8 @@ static int ldsp_two_way_transmit_start(lua_State *L)
     unsigned char band_width;  /* 0->12.5KHz, 1->25KHz */
     int16_t  power_level;  /* Signed 16-bit value represents power level in dBm times 100. 
                             For example,” -20.50 dBm” is specified as -2050. */
+    unsigned int start_delay;
+    unsigned int step_size;
     int repeat_num;
     unsigned int on_time; 
     unsigned int off_time;
@@ -493,11 +495,13 @@ static int ldsp_two_way_transmit_start(lua_State *L)
     freq = (unsigned int)lua_tointeger(L, 1);
     band_width = (unsigned char)lua_tointeger(L, 2);
     power_level = (int16_t)lua_tointeger(L, 3);
-    repeat_num = (int)lua_tointeger(L, 4);
-    on_time = (unsigned int)lua_tointeger(L, 5);
-    off_time = (unsigned int)lua_tointeger(L, 6);
+    start_delay = (int16_t)lua_tointeger(L, 4);
+    step_size = (int16_t)lua_tointeger(L, 5);
+    repeat_num = (int)lua_tointeger(L, 6);
+    on_time = (unsigned int)lua_tointeger(L, 7);
+    off_time = (unsigned int)lua_tointeger(L, 8);
     
-    ret = two_way_transmit_start(freq, band_width, power_level, repeat_num, on_time, off_time);
+    ret = two_way_transmit_start(freq, band_width, power_level, start_delay, step_size, repeat_num, on_time, off_time);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
