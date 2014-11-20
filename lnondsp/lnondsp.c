@@ -58,6 +58,7 @@ static int lnondsp_get_evt_number(lua_State *L)
 
 static int lnondsp_get_evt_item(lua_State *L)
 {
+    int i = 0;
     int index_num;
     list_head_t *index = NULL;
     nondsp_evt_t evt;

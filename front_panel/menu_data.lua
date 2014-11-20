@@ -816,7 +816,7 @@ front_panel_data = {
             end, 
             "Internal speaker / mic", 
             "External speaker / mic", 
-            "BlueTooth (attempt to auto  pair)", 
+            "BlueTooth (attempt to auto pair)", 
         }, 
         [5] = {
             title = "Squelch", 

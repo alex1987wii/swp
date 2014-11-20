@@ -26,10 +26,10 @@ lib/bit32.so: bit32/bit32.c
 	$(CC) -Wall -shared -o $@ -fPIC $^ $(CFLAGS)
 	
 lib/ldsp.so: ldsp/ldsp.c
-	$(CC) -Wall -shared -o $@ -fPIC $^ $(CFLAGS) -lcaldb -ldspadapter -lbitdsp -lpthread -ltimers -lannal -lcircbuf -lcrc16 $(DSP_INC) -DCONFIG_PROJECT_G3
+	$(CC) -Wall -shared -o $@ -fPIC $^ $(CFLAGS) -caldb -ldspadapter -lbitdsp -lpthread -ltimers -lannal -lcircbuf -lcrc16 $(DSP_INC) -DCONFIG_PROJECT_U3
 	
 lib/lnondsp.so: lnondsp/lnondsp.c
-	$(CC) -Wall -shared -o $@ -fPIC $^ $(CFLAGS) -lbitnondsp -lpthread -ltimers -lannal -lcircbuf -lbluetooth -ldspadapter -lbitdsp -lcrc16 $(NONDSP_INC) -DCONFIG_PROJECT_G3
+	$(CC) -Wall -shared -o $@ -fPIC $^ $(CFLAGS) -lbitnondsp -lpthread -ltimers -lannal -lcircbuf -lbluetooth -ldspadapter -lbitdsp -lcrc16 $(NONDSP_INC) -DCONFIG_PROJECT_U3
 
 clean:
 	rm -rf lib/curses_c.so lib/posix_c.so lib/bit32.so lib/ldsp.so lib/lnondsp.so

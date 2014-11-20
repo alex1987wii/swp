@@ -1,4 +1,4 @@
-#!/usr/bin/lua
+#!/usr/bin/lua5.1
 
 --[[
 front panel main
@@ -13,6 +13,8 @@ require "menu_data"
 require "menu_show"
 
 sleep = function (t) os.execute("sleep "..t) end
+
+posix.setenv("TERMINFO", "/usr/share/terminfo", 1)
 
 curses.initscr()
 curses.cbreak() 
@@ -32,7 +34,7 @@ if not r.ret then
     os.exit(-1)
 end
 --
-local m = create_main_menu(front_panel_data.RFT)
+local m = create_main_menu(front_panel_data.FCC)
 m:show()
 m:action()
 

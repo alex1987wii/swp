@@ -55,7 +55,7 @@ else -- parent process
     end
 
     print("while for pid: "..pid)
-    posix.wait(pid)
+    --posix.wait(pid)
     posix.close (tty)
   
 end
