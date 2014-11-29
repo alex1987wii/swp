@@ -32,6 +32,7 @@
 #include <mylist.h>
 
 #include <bitnondsp_adapter.h>
+#include <bitnondsp_struct.h>
 #include <led.h>
 #include <gps.h>
 #include <bluetooth.h>

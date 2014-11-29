@@ -76,7 +76,7 @@ front_panel_data = {
                                 lua_log.i(t[t.select_index], "enter is not number")
                                 return false
                             end
-                            t[t.select_index] = "Freq(Hz) "..r.str
+                            t[t.select_index] = "Freq(Hz) "..tostring(r.str)
                         else
                             lua_log.i(t[t.select_index], "enter "..r.errmsg)
                         end
@@ -342,7 +342,7 @@ front_panel_data = {
             end, 
         }, 
         [2] = {
-            title = "Rx Antenna Test", 
+            title = "Rx Antenna Gain Test", 
             tips  = "* start; up down key move to config", 
             multi_select_mode = true, 
             new_main_menu = function (t)
@@ -897,7 +897,70 @@ front_panel_data = {
         [11]= "Enable slide show", 
         [12]= "Enable LED test", 
         [13]= "Active Clone cable", 
+    }, 
+    Bluetooth = {
+        title = "Bluetooth", 
+        tips  = "Select the test item, move and space to select", 
+        multi_select_mode = true, 
+        action_map = {
+            [1] = function(t)
+                t.freq = t[1].freq
+            end, 
+            [2] = function(t) 
+                t.band_width = t[2].band_width
+            end, 
+            [3] = function(t)
+                t.power = t[3].power
+            end, 
+            [4] = function(t)
+                t.audio_path = t[4].audio_path
+            end, 
+            [5] = function(t)
+                t.squelch = t[5].squelch
+            end, 
+            [6] = function(t)
+                t.modulation = t[6].modulation
+                t.mod_mode = t[6].mod_mode
+            end, 
+            [7] = function(t) end, 
+        }, 
+        action = function (t)
+            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                t.action_map[t.select_index](t)
+            end
+        end, 
+        [1] = {
+            title = "Find BT Device", 
+            tips  = "Find BT Device", 
+            multi_select_mode = false, 
+
+            action = function (t)
+                if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                    t.action_map[t.select_index](t)
+                end
+            end, 
+
+        }, 
+        [2] = {
+            title = "Band Width", 
+            tips  = "Select Band Width", 
+            multi_select_mode = false, 
+            action = function (t)
+                local bw_g = {0, 1} -- 0:12.5KHz 1:25KHz 
+                t.band_width = bw_g[t.select_index]
+            end, 
+            "12.5 KHz", 
+            "25 KHz", 
+        }, 
+
+        [8] = "Enable GPS", 
+        [9] = "Enable LCD", 
+        [10]= "Show static image(LCD)", 
+        [11]= "Enable slide show", 
+        [12]= "Enable LED test", 
+        [13]= "Active Clone cable", 
     }
+
 }
 
 table_info = function(t)

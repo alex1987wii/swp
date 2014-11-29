@@ -161,15 +161,15 @@ static __inline list_head_t *get_list_item(int index_num, const struct list_head
         return NULL;
     }
 
-    if (index_num > get_list_number(head)) {
+    if ((index_num < 1) || (index_num > get_list_number(head))) {
         return NULL;
     }
 
-    index = head;
-    for (i=0; i<index_num; i++) {
+    index = head->next;
+    for (i=1; i<index_num; i++) {
         index = index->next;
     }
-    
+
     return index;
 }
 

@@ -256,7 +256,7 @@ static int ldsp_get_evt_item(lua_State *L)
     index_num = lua_tointeger(L, 1);
 
     index = get_list_item(index_num, &dsp_list_head);
-    if (NULL == index) {
+    if ((NULL == index) || list_is_head(index, &dsp_list_head)) {
         lua_newtable(L);
         lua_pushboolean2table(L, "ret", FALSE);
         lua_pushinteger2table(L, "errno", -1);
@@ -463,7 +463,7 @@ static int ldsp_stop_rx_desense_scan(lua_State *L)
 /* DSP two way transmit interface */
 static int ldsp_two_way_transmit_start(lua_State *L)
 {
-    unsigned int freq;    /* Transmit freq, value range in UHF, VHF or WLB */
+    unsigned int start_freq;    /* Transmit freq, value range in UHF, VHF or WLB */
     unsigned char band_width;  /* 0->12.5KHz, 1->25KHz */
     int16_t  power_level;  /* Signed 16-bit value represents power level in dBm times 100. 
                             For example,” -20.50 dBm” is specified as -2050. */
@@ -492,7 +492,7 @@ static int ldsp_two_way_transmit_start(lua_State *L)
         }
     }
     
-    freq = (unsigned int)lua_tointeger(L, 1);
+    start_freq = (unsigned int)lua_tointeger(L, 1);
     band_width = (unsigned char)lua_tointeger(L, 2);
     power_level = (int16_t)lua_tointeger(L, 3);
     start_delay = (int16_t)lua_tointeger(L, 4);
@@ -501,7 +501,7 @@ static int ldsp_two_way_transmit_start(lua_State *L)
     on_time = (unsigned int)lua_tointeger(L, 7);
     off_time = (unsigned int)lua_tointeger(L, 8);
     
-    ret = two_way_transmit_start(freq, band_width, power_level, start_delay, step_size, repeat_num, on_time, off_time);
+    ret = two_way_transmit_start(start_freq, band_width, power_level, start_delay, step_size, repeat_num, on_time, off_time);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -517,6 +517,72 @@ static int ldsp_two_way_transmit_stop(lua_State *L)
     int ret = -1;
 
     ret = two_way_transmit_stop();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* DSP duty cycle test interface */
+static int ldsp_tx_duty_cycle_test_start(lua_State *L)
+{
+    unsigned int freq;    /* Transmit freq, value range in UHF, VHF or WLB */
+    unsigned char band_width;  /* 0->12.5KHz, 1->25KHz */
+    unsigned char power;  /* Signed 16-bit value represents power level in dBm times 100. 
+                            For example,” -20.50 dBm” is specified as -2050. */
+    unsigned char audio_path; /*  */
+    unsigned char modulation; /*  */
+
+    unsigned int trans_on_time; 
+    unsigned int trans_off_time;
+    
+    int i;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt < 6) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+    
+    for (i=1; i<=argcnt; i++){
+        if (!lua_isnumber(L, i)) {
+            lua_pushboolean(L, FALSE);
+            lua_pushinteger(L, i);
+            return 2;
+        }
+    }
+    
+    freq = (unsigned int)lua_tointeger(L, 1);
+    band_width = (unsigned char)lua_tointeger(L, 2);
+    power = (unsigned char)lua_tointeger(L, 3);
+    audio_path = (unsigned char)lua_tointeger(L, 4);
+    modulation = (unsigned char)lua_tointeger(L, 5);
+    trans_on_time = (unsigned int)lua_tointeger(L, 7);
+    trans_off_time = (unsigned int)lua_tointeger(L, 8);
+    
+    ret = tx_duty_cycle_test_start(freq, band_width, power, audio_path, modulation, trans_on_time, trans_off_time);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+static int ldsp_tx_duty_cycle_test_stop(lua_State *L)
+{
+    int ret = -1;
+
+    ret = tx_duty_cycle_test_stop();
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -938,6 +1004,10 @@ static const struct luaL_reg dsp_lib[] =
     /* DSP two way transmit interface */
     NF(two_way_transmit_start),
     NF(two_way_transmit_stop),
+    
+    /* DSP tx duty cycle test interface */
+    NF(tx_duty_cycle_test_start),
+    NF(tx_duty_cycle_test_stop),
     
 #if ( defined (CONFIG_PROJECT_U4) || defined (CONFIG_PROJECT_G3) || defined (CONFIG_PROJECT_M1) || defined (CONFIG_PROJECT_M1RU) )
     NF(read_dsp_audio_samples_data), 

@@ -18,4 +18,32 @@ ldsp = {
         end
         info("stop_rx_desense_scan", "type "..type(argstr).." "..(tostring(argstr) or " nil"))
     end, 
+    two_way_transmit_start = function(...)
+        local argstr = ""
+        for k=1, arg.n do
+            argstr = argstr..arg[k]..", "
+        end
+        info("two_way_transmit_start", "type "..type(argstr).." "..(tostring(argstr) or " nil"))
+    end, 
+    two_way_transmit_stop =function(...)
+        local argstr = ""
+        for k=1, arg.n do
+            argstr = argstr..arg[k]..", "
+        end
+        info("two_way_transmit_stop", "type "..type(argstr).." "..(tostring(argstr) or " nil"))
+    end, 
+    tx_duty_cycle_test_start = function(...)
+        local argstr = ""
+        for k=1, arg.n do
+            argstr = argstr..arg[k]..", "
+        end
+        info("tx_duty_cycle_test_start", "type "..type(argstr).." "..(tostring(argstr) or " nil"))
+    end, 
+    tx_duty_cycle_test_stop =function(...)
+        local argstr = ""
+        for k=1, arg.n do
+            argstr = argstr..arg[k]..", "
+        end
+        info("tx_duty_cycle_test_stop", "type "..type(argstr).." "..(tostring(argstr) or " nil"))
+    end, 
 }

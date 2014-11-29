@@ -85,7 +85,7 @@ static int lnondsp_get_evt_item(lua_State *L)
     index_num = lua_tointeger(L, 1);
 
     index = get_list_item(index_num, &nondsp_list_head);
-    if (NULL == index) {
+    if ((NULL == index) || list_is_head(index, &nondsp_list_head)) {
         lua_newtable(L);
         lua_pushboolean2table(L, "ret", FALSE);
         lua_pushinteger2table(L, "errno", -1);
@@ -115,6 +115,7 @@ static int lnondsp_get_evt_item(lua_State *L)
     lua_pushinteger2table(L, "evt", evt.evt);
     lua_pushinteger2table(L, "evi", evt.evi);
     lua_pushinteger2table(L, "bufsize", evt.bufsize);
+    #if 1
     if (NONDSP_EVT_BT == evt.evt) {
         switch(evt.evi) {
             case NONDSP_EVT_BT_ENABLE_STATE:
@@ -127,15 +128,18 @@ static int lnondsp_get_evt_item(lua_State *L)
                 uint8_t addr[BLUETOOTH_ID_LEN + 1];
                 addr[BLUETOOTH_ID_LEN] = '\0';
                 pdata = pdata + 1;
-                lua_pushinteger2table(L, "id_cnt", id_cnt);
+                lua_pushinteger2table(L, "count", id_cnt);
                 
-                lua_newtable(L);
-                lua_pushstring(L, "id");
-                for (i=0; i<id_cnt; i++) {
-                    memcpy(addr, pdata[i*BLUETOOTH_ID_LEN], BLUETOOTH_ID_LEN);
-                    lua_pushintegerkeystring2table(L, i+1, addr);
+                if (id_cnt > 0) {
+                    lua_newtable(L);
+                    lua_pushstring(L, "id");
+                    for (i=0; i<id_cnt; i++) {
+                        memset(addr, 0, BLUETOOTH_ID_LEN+1);
+                        memcpy(addr, pdata[i*BLUETOOTH_ID_LEN], BLUETOOTH_ID_LEN);
+                        lua_pushintegerkeystring2table(L, i+1, addr);
+                    }
+                    lua_settable(L, -3);
                 }
-                lua_settable(L, -3);
             }
                 break;
             case NONDSP_EVT_BT_SERIAL_DATA_RECV:
@@ -160,10 +164,40 @@ static int lnondsp_get_evt_item(lua_State *L)
                 
                 break;
             case NONDSP_EVT_BT_SCAN_ID_NAME:
+            {
+                struct btScanIdName *idname;
+                uint8_t id[BLUETOOTH_ID_LEN + 1];
+                uint8_t btname[256];
+                id[BLUETOOTH_ID_LEN] = '\0';
                 
+                idname = (struct btScanIdName *)evt.buf;
+                lua_pushinteger2table(L, "count", idname->count);
+                
+                if (idname->count > 0) {
+                    lua_newtable(L);
+                    lua_pushstring(L, "id");
+                    for (i=0; i<idname->count; i++) {
+                        memset(id, 0, BLUETOOTH_ID_LEN+1);
+                        memcpy(id, idname->record[i].btId, BLUETOOTH_ID_LEN);
+                        lua_pushintegerkeystring2table(L, i+1, id);
+                    }
+                    lua_settable(L, -3);
+                    
+                    lua_newtable(L);
+                    lua_pushstring(L, "name");
+                    for (i=0; i<idname->count; i++) {
+                        memset(btname, 0, 256);
+                        strcpy(btname, idname->record[i].btName);
+                        lua_pushintegerkeystring2table(L, i+1, btname);
+                    }
+                    lua_settable(L, -3);
+                }
+            }
                 break;
         }
     }
+    #endif
+    
     return 1;
 }
 
