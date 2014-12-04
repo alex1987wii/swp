@@ -36,7 +36,7 @@ chmod +x switch_fpl_mode.sh
 chmod +x front_panel.lua
 chmod +x load2tty0.lua
 
-cp so/*so ${libs_path}/ 
+cp arm-so/*so ${libs_path}/ 
 cp *.lua ${lua_module_path}/ 
 
 lock /

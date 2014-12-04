@@ -565,9 +565,10 @@ front_panel_data = {
                 tips  = "Select Band Width", 
                 multi_select_mode = false, 
                 action = function ()
-                    local bw_g = {0, 1} -- 0:12.5KHz 1:25KHz 
+                    local bw_g = {0, 1, 2} -- 0:6.25KHz 1:12.5KHz 2:25KHz 
                     t.band_width = bw_g[t.select_index]
                 end, 
+                "6.25 KHz", 
                 "12.5 KHz", 
                 "25 KHz", 
             }, 
@@ -576,20 +577,19 @@ front_panel_data = {
                 tips  = "Select Power", 
                 multi_select_mode = false, 
                 action = function (t)
-                    local powers = {1, 2, 3, 5}
+                    local powers = {0, 1, 2}
                     t.power = powers[t.select_index]
                 end, 
-                "1 Watt", 
-                "2 Watt", 
-                "3 Watt",
-                "5 Watt",
+                "Power profile 1",
+                "Power profile 2",
+                "Power profile 3",
             }, 
             [4] = {
                 title = "Audio Path", 
                 tips  = "Select Audio Path", 
                 multi_select_mode = false, 
                 action = function ()
-
+                    local audio_path = {1, 2}
                 end, 
                 "Internal mic", 
                 "External mic", 
@@ -599,16 +599,16 @@ front_panel_data = {
                 tips  = "Select Modulation", 
                 multi_select_mode = false, 
                 action = function ()
-
+                    local modulation = {1, 2, 3, 4, 5, 8}
                 end, 
                 "none", 
                 "CTCSS", 
                 "CDCSS", 
                 "2 tone", 
                 "5/6 tone", 
-                "Modem(Digital 4FSK)", 
+                --"Modem(Digital 4FSK)", 
                 "MDC1200", 
-                "DTMF", 
+                --"DTMF", 
             }, 
             [6] = {
                 title = "Tx ON/OFF Time Setting", 
