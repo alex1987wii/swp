@@ -3,6 +3,11 @@
 require "ldsp"
 require "lnondsp"
 
+local freq_band = {
+    VHF = {start=136 * 1000 * 100, last = 174 * 1000 * 1000}, 
+    UHF = {start=136 * 1000 * 100, last = 174 * 1000 * 1000},
+}
+
 function check_num_range(num, ...)
     if "number" ~= type(num) then
         return false
@@ -21,6 +26,48 @@ function check_num_range(num, ...)
     end
     
     return true
+end
+
+function check_num_parameters(...)
+    for i=1, arg.n do
+        if nil == arg[i] then
+            return {ret = false, errno = i, errmsg="arg["..i.."] nil"}
+        end
+        
+        if "number" ~= type(arg[i]) then
+            return {ret = false, errno = i, errmsg="arg["..i.."] wrong type, not number"}
+        end
+    end
+    
+    return {ret = true}
+end
+
+switch_self_refresh = function(flag)
+    if "boolean" ~= type(flag) then
+        posix.syslog(posix.LOG_ERR, "switch_self_refresh: flag type error")
+        return false
+    end
+    if flag then
+        os.execute("echo 1 > /sys/devices/platform/ad6900-lcd/self_refresh")
+    else
+        os.execute("echo 0 > /sys/devices/platform/ad6900-lcd/self_refresh")
+    end
+    
+    return true
+end
+
+thread_do = function(func)
+    local pid = posix.fork()
+    
+    if pid == 0 then
+        if "function" == type(func) then
+            func()
+        end
+        
+        posix._exit(0)
+    end
+    
+    return pid
 end
 
 front_panel_data = {
@@ -166,7 +213,7 @@ front_panel_data = {
                     end
                 end, 
 
-                [1] = "Start freq(Hz)",  -- 波段扫描起始频率 
+                [1] = "Start Freq(Hz)",  -- 波段扫描起始频率 
                 [2] = {
                     title = "Band Width", 
                     tips  = "Select Band Width", 
@@ -224,6 +271,18 @@ front_panel_data = {
             [7] = "Enable LED test", 
 
             test_process = {
+                [1] = function(t)
+                    local cr = check_num_parameters(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime)
+                    if cr.ret then
+                        local r_des, msgid_des = ldsp.start_rx_desense_scan(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime)
+                    else
+                        note_in_window("parameter error: check "..cr.errno.." "..cr.errmsg)
+                    end
+
+                end, 
+                [2] = function(t)
+                
+                end, 
                 [3] = function(t)
                     local r, msgid
                     if t.select_status[3] then
@@ -274,6 +333,12 @@ front_panel_data = {
                 end, 
             }, 
             stop_process = {
+                [1] = function(t)
+                    local r_des, msgid_des = ldsp.stop_rx_desense_scan()
+                end, 
+                [2] = function(t)
+                
+                end, 
                 [3] = function(t)
                     local r, msgid
                     if t.select_status[3] then
@@ -302,36 +367,15 @@ front_panel_data = {
 
             }, 
             test_process_start = function(t)
-                local check_param = {result=true}
-                for i=1, 7 do
-                    if not t.select_status[i] then
-                        check_param.result = false
-                        check_param[#check_param + 1] = i
-                    end
-                end
-                
-                if not check_param.result then
-                    local note = "Must set and select the item:\n"
-                    for i=1, #check_param do
-                        note = note..t[check_param[i]].."\n"
-                    end
-                    
-                    note_in_window(note)
-                    return false
-                end
-                
                 t.report = {}
-                for i=3, #t do
+                for i=1, #t do
                     if "function" == type(t.test_process[i]) then
                         t.test_process[i](t)
                     end
                 end
-                
-                local r_des, msgid_des = ldsp.start_rx_desense_scan()
             end, 
             test_process_stop = function(t)
-                ldsp.stop_rx_desense_scan()
-                for i=3, #t do
+                for i=1, #t do
                     if "function" == type(t.test_process[i]) then
                         t.stop_process[i](t)
                     end
@@ -453,6 +497,19 @@ front_panel_data = {
             [4] = "samples(10~5000)", -- 测量的samples值 
             [5] = "delaytime(0~100s)", -- 每个波段measure的间隔时间，有效值范围 
             
+            test_process_start = function(t)
+                local cr = check_num_parameters(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime)
+                if cr.ret then
+                    local r_des, msgid_des = ldsp.start_rx_desense_scan(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime)
+                else
+                    note_in_window("parameter error: check "..cr.errno.." "..cr.errmsg)
+                end
+                
+            end, 
+            
+            test_process_stop = function(t)
+                local r_des, msgid_des = ldsp.stop_rx_desense_scan()
+            end
         }, 
         [3] = {
             title = "Tx with a duty cycle", 
@@ -474,40 +531,14 @@ front_panel_data = {
                     t.power = t[3].power
                 end, 
                 [4] = function(t)
-                    local r = get_string_in_window(t[t.select_index])
-                    if r.ret then
-                        t.samples =  tonumber(r.str)
-                        if nil == t.samples then
-                            posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
-                            t.select_status[t.select_index] = false
-                            return false
-                        end
-                        if not check_num_range(t.samples, 10, 5000) then
-                            lua_log.i(t[t.select_index], "enter "..t.samples.." is not 10~5000")
-                            return false
-                        end
-                        t[t.select_index] = "samples(10~5000) "..r.str
-                    else
-                        lua_log.i(t[t.select_index], "enter "..r.errmsg)
-                    end
+                    t.audio_path = t[4].audio_path
                 end, 
                 [5] = function(t)
-                    local r = get_string_in_window(t[t.select_index])
-                    if r.ret then
-                        t.delaytime =  tonumber(r.str)
-                        if nil == t.delaytime then
-                            posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
-                            t.select_status[t.select_index] = false
-                            return false
-                        end
-                        if not check_num_range(t.delaytime, 0, 100) then
-                            lua_log.i(t[t.select_index], "enter "..t.delaytime.." is not 0~100")
-                            return false
-                        end
-                        t[t.select_index] = "delaytime(0~100s) "..r.str
-                    else
-                        lua_log.i(t[t.select_index], "enter "..r.errmsg)
-                    end
+                    t.modulation = t[4].modulation
+                end, 
+                [6] = function(t)
+                    t.trans_on_time = t[6].trans_on_time
+                    t.trans_off_time = t[6].trans_off_time
                 end, 
             }, 
             action = function (t)
@@ -555,9 +586,9 @@ front_panel_data = {
                         t.action_map[t.select_index](t)
                     end
                 end, 
-                "136.125MHz", 
-                "155.125MHz", 
-                "173.125MHz", 
+                "Low frequency in MHz", 
+                "Mid frequency in MHz", 
+                "High frequency in MHz", 
                 "Enter freq (Hz)", 
             },  
             [2] = {
@@ -614,12 +645,67 @@ front_panel_data = {
                 title = "Tx ON/OFF Time Setting", 
                 tips  = "Select and input the start/stop time", 
                 multi_select_mode = true, 
+                action_map = {
+                    [1] = function(t)
+                        local r = get_string_in_window(t[t.select_index])
+                        if r.ret then
+                            t.trans_on_time =  tonumber(r.str)
+                            if nil == t.trans_on_time then
+                                posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                                t.select_status[t.select_index] = false
+                                return false
+                            end
+                            if not check_num_range(t.trans_on_time, 0, 100) then
+                                lua_log.i(t[t.select_index], "enter "..t.trans_on_time.." is not 0~100")
+                                return false
+                            end
+                            t[t.select_index] = "Tx on time "..r.str
+                        else
+                            lua_log.i(t[t.select_index], "enter "..r.errmsg)
+                        end
+                    end, 
+                    [2] = function(t)
+                        local r = get_string_in_window(t[t.select_index])
+                        if r.ret then
+                            t.trans_off_time =  tonumber(r.str)
+                            if nil == t.trans_off_time then
+                                posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                                t.select_status[t.select_index] = false
+                                return false
+                            end
+                            if not check_num_range(t.trans_off_time, 0, 100) then
+                                lua_log.i(t[t.select_index], "enter "..t.trans_off_time.." is not 0~100")
+                                return false
+                            end
+                            t[t.select_index] = "Tx off time "..r.str
+                        else
+                            lua_log.i(t[t.select_index], "enter "..r.errmsg)
+                        end
+                    end, 
+                }, 
                 action = function ()
-
+                    if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                        t.action_map[t.select_index](t)
+                    end
                 end, 
                 "Tx on time(s)", 
                 "Tx off time(s)", 
             }, 
+            
+            test_process_start = function(t)
+                local cr = check_num_parameters(t.freq, t.band_width, t.power, t.audio_path, t.modulation, t.trans_on_time, t.trans_off_time)
+                if cr.ret then
+                    local r_des, msgid_des = ldsp.tx_duty_cycle_test_start(t.freq, t.band_width, t.power, t.audio_path, t.modulation, t.trans_on_time, t.trans_off_time)
+                else
+                    note_in_window("parameter error: check "..cr.errno.." "..cr.errmsg)
+                end
+                
+            end, 
+            
+            test_process_stop = function(t)
+                local r_des, msgid_des = ldsp.tx_duty_cycle_test_stop()
+            end
+            
         }, 
         [4] = {
             title = "Tx Antenna Gain Test", 
@@ -630,83 +716,192 @@ front_panel_data = {
                 m_sub:show()
                 m_sub:action()
             end, 
-            [1] = {
-                title = "Power", 
-                tips  = "Select Power", 
-                multi_select_mode = false, 
-                action = function ()
-
-                end, 
-                "1 Watt", 
-                "2 Watt", 
-                "3 Watt",
-                "5 Watt",
-            }, 
-            [2] = {
-                title = "Start delay(sec)", 
-                tips  = "Enter start delay in seconds.Ranging frome 1 to 10000 s", 
-                multi_select_mode = false, 
-                action = function ()
-
-                end, 
-                "Enter ...", 
-            }, 
-            [3] = {
-                title = "Transmission on time (sec)", 
-                tips  = "Enter transmission on time in seconds.Ranging frome 1 to 10000 s", 
-                multi_select_mode = false, 
-                action = function ()
-
-                end, 
-                "Enter ...", 
-            }, 
-            [4] = {
-                title = "Transmission off time (sec)", 
-                tips  = "Enter transmission off time in seconds.Ranging frome 1 to 10000 s", 
-                multi_select_mode = false, 
-                action = function ()
-
-                end, 
-                "Enter ...", 
-            }, 
-            [5] = {
-                title = "Frequency List", 
-                tips  = "Select Frequency", 
-                multi_select_mode = false, 
-                action = function (t)
-                    local instr = ""
-                    if (t.select_index ~= nil) and (t.select_index == 4) then
-                        local r = get_string_in_window(t[t.select_index])
-                        if r.ret then
-                            t.enter_freq = tonumber(r.str)
-                            t[t.select_index] = "Enter "..t.enter_freq
-                        else
-                            lua_log.i("freq", "enter freq(Hz) "..r.errmsg)
+            action_map = {
+                [1] = function(t)
+                    local r = get_string_in_window(t[t.select_index])
+                    if r.ret then
+                        t.freq =  tonumber(r.str)
+                        if nil == t.freq then
+                            posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                            t.select_status[t.select_index] = false
+                            return false
                         end
+                        if not check_num_range(t.freq) then
+                            lua_log.i(t[t.select_index], "enter is not number")
+                            return false
+                        end
+                        t[t.select_index] = "Start freq(Hz) "..tostring(r.str)
+                    else
+                        lua_log.i(t[t.select_index], "enter "..r.errmsg)
                     end
                 end, 
-                [1] = "none (the end of menu)", 
-                [2] = "start freq (Hz)",
-                [3] = {
-                    title = "Step size", 
-                    tips  = "Select the step size", 
-                    multi_select_mode = false, 
-                    action = function ()
-
-                    end, 
-                    "0 Hz(only on freq tested)", 
-                    "1 MHz", 
-                    "2 MHz", 
-                    "5 MHz", 
-                }, 
-                [4] = "Number of steps",  -- a non-zero number 
-                
-                -- wait for test status 
+                [2] = function(t) 
+                    t.band_width = t[2].band_width
+                end, 
+                [3] = function(t)
+                    t.power_level = t[3].power_level
+                end, 
+                [4] = function(t)
+                    local r = get_string_in_window(t[t.select_index])
+                    if r.ret then
+                        t.start_delay =  tonumber(r.str)
+                        if nil == t.start_delay then
+                            posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                            t.select_status[t.select_index] = false
+                            return false
+                        end
+                        if not check_num_range(t.start_delay) then
+                            lua_log.i(t[t.select_index], "enter is not number")
+                            return false
+                        end
+                        t[t.select_index] = "Start delay(s) "..tostring(r.str)
+                    else
+                        lua_log.i(t[t.select_index], "enter "..r.errmsg)
+                    end
+                end, 
+                [5] = function(t)
+                    local r = get_string_in_window(t[t.select_index])
+                    if r.ret then
+                        t.step_size =  tonumber(r.str)
+                        if nil == t.step_size then
+                            posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                            t.select_status[t.select_index] = false
+                            return false
+                        end
+                        if not check_num_range(t.step_size) then
+                            lua_log.i(t[t.select_index], "enter is not number")
+                            return false
+                        end
+                        t[t.select_index] = "Step size "..tostring(r.str)
+                    else
+                        lua_log.i(t[t.select_index], "enter "..r.errmsg)
+                    end
+                end, 
+                [6] = function(t)
+                    local r = get_string_in_window(t[t.select_index])
+                    if r.ret then
+                        t.step_num =  tonumber(r.str)
+                        if nil == t.step_num then
+                            posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                            t.select_status[t.select_index] = false
+                            return false
+                        end
+                        if not check_num_range(t.step_num) then
+                            lua_log.i(t[t.select_index], "enter is not number")
+                            return false
+                        end
+                        t[t.select_index] = "Step num "..tostring(r.str)
+                    else
+                        lua_log.i(t[t.select_index], "enter "..r.errmsg)
+                    end
+                end, 
+                [7] = function(t)
+                    t.on_time = t[7].on_time
+                    t.off_time = t[7].off_time
+                end, 
             }, 
-        
-        }
+            action = function (t)
+                if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                    t.action_map[t.select_index](t)
+                end
+            end, 
 
+            [1] = "Start Freq", 
+            [2] = {
+                title = "Band Width", 
+                tips  = "Select Band Width", 
+                multi_select_mode = false, 
+                action = function ()
+                    local bw_g = {0, 1, 2} -- 0:6.25KHz 1:12.5KHz 2:25KHz 
+                    t.band_width = bw_g[t.select_index]
+                end, 
+                "6.25 KHz", 
+                "12.5 KHz", 
+                "25 KHz", 
+            }, 
+            [3] = {
+                title = "Power Level", 
+                tips  = "Select Power Level", 
+                multi_select_mode = false, 
+                action = function (t)
+                    local power_level_g = {1, 2, 3}
+                    t.power_level = power_level_g[t.select_index]
+                end, 
+                "Power Level 1",
+                "Power Level 2",
+                "Power Level 3",
+            }, 
+            [4] = "Start delay", 
+            [5] = "Step size", 
+            [6] = "Step num", 
+            [7] = {
+                title = "ON/OFF Time Setting", 
+                tips  = "Select and input the start/stop time", 
+                multi_select_mode = true, 
+                action_map = {
+                    [1] = function(t)
+                        local r = get_string_in_window(t[t.select_index])
+                        if r.ret then
+                            t.on_time =  tonumber(r.str)
+                            if nil == t.on_time then
+                                posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                                t.select_status[t.select_index] = false
+                                return false
+                            end
+                            if not check_num_range(t.on_time, 0, 100) then
+                                lua_log.i(t[t.select_index], "enter "..t.on_time.." is not 0~100")
+                                return false
+                            end
+                            t[t.select_index] = "On time "..r.str
+                        else
+                            lua_log.i(t[t.select_index], "enter "..r.errmsg)
+                        end
+                    end, 
+                    [2] = function(t)
+                        local r = get_string_in_window(t[t.select_index])
+                        if r.ret then
+                            t.off_time =  tonumber(r.str)
+                            if nil == t.off_time then
+                                posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                                t.select_status[t.select_index] = false
+                                return false
+                            end
+                            if not check_num_range(t.off_time, 0, 100) then
+                                lua_log.i(t[t.select_index], "enter "..t.off_time.." is not 0~100")
+                                return false
+                            end
+                            t[t.select_index] = "Off time "..r.str
+                        else
+                            lua_log.i(t[t.select_index], "enter "..r.errmsg)
+                        end
+                    end, 
+                }, 
+                action = function ()
+                    if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                        t.action_map[t.select_index](t)
+                    end
+                end, 
+                "Tx on time(s)", 
+                "Tx off time(s)", 
+            }, 
+            
+            test_process_start = function(t)
+                local cr = check_num_parameters(t.freq, t.band_width, t.power_level, t.step_delay, t.step_num, t.on_time, t.off_time)
+                if cr.ret then
+                    local r_des, msgid_des = ldsp.two_way_transmit_start(t.freq, t.band_width, t.power_level, t.step_delay, t.step_num, t.on_time, t.off_time)
+                else
+                    note_in_window("parameter error: check "..cr.errno.." "..cr.errmsg)
+                end
+                
+            end, 
+            
+            test_process_stop = function(t)
+                local r_des, msgid_des = ldsp.two_way_transmit_stop()
+            end
+            
+        }, 
     }, 
+
     FCC = {
         title = "Front Panel", 
         tips  = "Select the test item, move and space to select", 
@@ -896,8 +1091,8 @@ front_panel_data = {
         [10]= "Show static image(LCD)", 
         [11]= "Enable slide show", 
         [12]= "Enable LED test", 
-        [13]= "Active Clone cable", 
     }, 
+
     Bluetooth = {
         title = "Bluetooth", 
         tips  = "Select the test item, move and space to select", 

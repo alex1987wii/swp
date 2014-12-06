@@ -478,7 +478,7 @@ static int ldsp_two_way_transmit_start(lua_State *L)
     int argcnt = 0;
     
 	argcnt = lua_gettop(L);
-	if (argcnt < 6) {
+	if (argcnt < 8) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, -1);
         return 2;
@@ -545,7 +545,7 @@ static int ldsp_tx_duty_cycle_test_start(lua_State *L)
     int argcnt = 0;
     
 	argcnt = lua_gettop(L);
-	if (argcnt < 6) {
+	if (argcnt < 7) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, -1);
         return 2;
@@ -592,6 +592,72 @@ static int ldsp_tx_duty_cycle_test_stop(lua_State *L)
         return 1;
     }
 }
+
+/*  int fcc_start(unsigned int frequency, unsigned char band_width, unsigned char power,
+                unsigned char audio_path, unsigned char squelch, unsigned char modulation) */
+static int ldsp_fcc_start(lua_State *L)
+{
+    unsigned int freq;    /* Transmit freq, value range in UHF, VHF or WLB */
+    unsigned char band_width;  /* 0->12.5KHz, 1->25KHz */
+    unsigned char power;  /* Signed 16-bit value represents power level in dBm times 100. 
+                            For example,” -20.50 dBm” is specified as -2050. */
+    unsigned char audio_path; /*  */
+    unsigned char squelch; /*  */
+
+    unsigned char modulation; /*  */
+    
+    int i;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt < 6) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+    
+    for (i=1; i<=argcnt; i++){
+        if (!lua_isnumber(L, i)) {
+            lua_pushboolean(L, FALSE);
+            lua_pushinteger(L, i);
+            return 2;
+        }
+    }
+    
+    freq = (unsigned int)lua_tointeger(L, 1);
+    band_width = (unsigned char)lua_tointeger(L, 2);
+    power = (unsigned char)lua_tointeger(L, 3);
+    audio_path = (unsigned char)lua_tointeger(L, 4);
+    squelch = (unsigned char)lua_tointeger(L, 5);
+    modulation = (unsigned int)lua_tointeger(L, 6);
+    
+    ret = fcc_start(freq, band_width, power, audio_path, squelch, modulation);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+static int ldsp_fcc_stop(lua_State *L)
+{
+    int ret = -1;
+
+    ret = fcc_stop();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
 
 #if ( defined (CONFIG_PROJECT_U4) || defined (CONFIG_PROJECT_G3) || defined (CONFIG_PROJECT_M1) || defined (CONFIG_PROJECT_M1RU) )
 /* read/write DSP audio samples data interface, only use in u4/g3/g4
@@ -1005,9 +1071,12 @@ static const struct luaL_reg dsp_lib[] =
     NF(two_way_transmit_start),
     NF(two_way_transmit_stop),
     
-    /* DSP tx duty cycle test interface */
+    /* DSP tx duty cycle test interface */fcc_start
     NF(tx_duty_cycle_test_start),
     NF(tx_duty_cycle_test_stop),
+    
+    NF(fcc_start),
+    NF(fcc_stop),
     
 #if ( defined (CONFIG_PROJECT_U4) || defined (CONFIG_PROJECT_G3) || defined (CONFIG_PROJECT_M1) || defined (CONFIG_PROJECT_M1RU) )
     NF(read_dsp_audio_samples_data), 
