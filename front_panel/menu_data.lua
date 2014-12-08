@@ -124,7 +124,16 @@ RFT_MODE = {
             m_sub:action()
         end, 
         action_map = {
-            [2] = function(t)
+            [1] = function (t)
+                t.freq = t[1].freq
+                t.band_width = t[1].band_width
+                t.step_size = t[1].step_size
+                t.step_num = t[1].step_num
+                t.msr_step_num = t[1].msr_step_num
+                t.samples = t[1].samples
+                t.delaytime = t[1].delaytime
+            end, 
+            [2] = function (t)
                 if nil == t.bluetooth then
                     t.bluetooth = t[2].bluetooth
                 end
