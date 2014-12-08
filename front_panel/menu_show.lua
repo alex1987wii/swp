@@ -213,14 +213,20 @@ create_main_menu = function(main_menu_table)
                 elseif ch == 0x2a then   -- * start test process 
                     if menu_table == self.main_table then
                         if "function" == type(menu_table.test_process_start) then
-                            menu_table:test_process_start()
+                            posix.syslog(posix.LOG_ERR, "call test_process_start in")
+                            if not menu_table.test_process_start_call then
+                                menu_table:test_process_start()
+                                menu_table.test_process_start_call = true
+                            end
                         end
                     end
                 elseif ch == 0x23 then  -- # stop test process
                     if menu_table == self.main_table then
                         if "function" == type(menu_table.test_process_start) then
+                            posix.syslog(posix.LOG_ERR, "call test_process_stop in")
                             menu_table:test_process_stop()
-                            menu_table:test_process_report()
+                            --menu_table:test_process_report()
+                            menu_table.test_process_start_call = false
                         end
                     end
                 end

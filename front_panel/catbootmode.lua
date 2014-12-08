@@ -8,4 +8,6 @@ read_bootmode = function()
     return s
 end
 
+print(read_bootmode())
+
 

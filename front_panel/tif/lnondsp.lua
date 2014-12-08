@@ -4,6 +4,17 @@ require "log"
 
 local info = (lua_log or lua_log.i) or print
 lnondsp = {
+    register_callbacks = function() 
+        info("lnondsp", "register_callbacks")
+    end, 
+    get_evt_number = function()
+        info("lnondsp", "get_evt_number")
+        return 1
+    end, 
+    get_evt_item = function()
+        info("lnondsp", "get_evt_item")
+        return {}
+    end, 
     gps_enable = function(...)
         local argstr = ""
         info("gps_enable", "1")

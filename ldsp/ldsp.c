@@ -1071,7 +1071,7 @@ static const struct luaL_reg dsp_lib[] =
     NF(two_way_transmit_start),
     NF(two_way_transmit_stop),
     
-    /* DSP tx duty cycle test interface */fcc_start
+    /* DSP tx duty cycle test interface */
     NF(tx_duty_cycle_test_start),
     NF(tx_duty_cycle_test_stop),
     

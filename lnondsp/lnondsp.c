@@ -238,7 +238,7 @@ static int lnondsp_gps_disable(lua_State *L)
     }
 }
 
-#if 0
+#if 1
 /* LCD test interface */
 static int lnondsp_lcd_enable(lua_State *L)
 {
@@ -1447,7 +1447,7 @@ static const struct luaL_reg nondsp_lib[] =
     NF(gps_enable), 
     NF(gps_disable), 
     
-    #if 0
+    #if 1
     NF(lcd_enable), 
     NF(lcd_disable), 
     NF(lcd_pattern_test), 

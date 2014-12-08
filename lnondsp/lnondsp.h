@@ -35,6 +35,7 @@
 #include <bitnondsp_struct.h>
 #include <led.h>
 #include <gps.h>
+#include <lcd.h>
 #include <bluetooth.h>
 
 #define TRUE  1
