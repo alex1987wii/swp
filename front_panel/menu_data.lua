@@ -5,8 +5,8 @@ require "lnondsp"
 
 local freq_band = {
     VHF = {start=136 * 1000 * 100, last = 174 * 1000 * 1000}, 
-    UHF = {start=136 * 1000 * 100, last = 174 * 1000 * 1000},
 }
+global_freq_band = freq_band.VHF
 
 function check_num_range(num, ...)
     if "number" ~= type(num) then
@@ -42,20 +42,6 @@ function check_num_parameters(...)
     end
     
     return {ret = true}
-end
-
-switch_self_refresh = function(flag)
-    if "boolean" ~= type(flag) then
-        posix.syslog(posix.LOG_ERR, "switch_self_refresh: flag type error")
-        return false
-    end
-    if flag then
-        os.execute("echo 1 > /sys/devices/platform/ad6900-lcd/self_refresh")
-    else
-        os.execute("echo 0 > /sys/devices/platform/ad6900-lcd/self_refresh")
-    end
-    
-    return true
 end
 
 thread_do = function(func)
@@ -327,7 +313,6 @@ RFT_MODE = {
 
         }, 
         test_process_start = function(t)
-            switch_self_refresh(false)
             t.report = {}
             for i=1, table.getn(t) do
 				lua_log.i("test", "tx duty test start "..i)
@@ -337,9 +322,8 @@ RFT_MODE = {
             end
         end, 
         test_process_stop = function(t)
-            switch_self_refresh(true)
             for i=1, table.getn(t) do
-                if "function" == type(t.test_process[i]) then
+                if "function" == type(t.stop_process[i]) then
                     t.stop_process[i](t)
                 end
             end
@@ -449,13 +433,13 @@ RFT_MODE = {
             multi_select_mode = false, 
             action_map = {
                 [1] = function(t)
-                    t.freq =  136125 * 1000
+                    t.freq =  global_freq_band.start + 125 * 1000
                 end, 
                 [2] = function(t)
-                    t.freq =  155125 * 1000
+                    t.freq =  (global_freq_band.start + global_freq_band.last) / 2 + 125 * 1000
                 end, 
                 [3] = function(t)
-                    t.freq =  173125 * 1000
+                    t.freq =  global_freq_band.last - 875 * 1000
                 end, 
                 [4] = get_para_func("freq", "Freq(Hz)"), 
             }, 
@@ -661,6 +645,7 @@ FCC_MODE = {
     title = "Front Panel", 
     tips  = "Select the test item, move and space to select", 
     multi_select_mode = true, 
+
     action_map = {
         [1] = function(t)
             t.freq = t[1].freq
@@ -679,7 +664,6 @@ FCC_MODE = {
         end, 
         [6] = function(t)
             t.modulation = t[6].modulation
-            t.mod_mode = t[6].mod_mode
         end, 
         [7] = function(t) end, 
     }, 
@@ -694,13 +678,13 @@ FCC_MODE = {
         multi_select_mode = false, 
         action_map = {
             [1] = function(t)
-                t.freq =  136125 * 1000
+                t.freq =  global_freq_band.start + 125 * 1000
             end, 
             [2] = function(t)
-                t.freq =  155125 * 1000
+                t.freq =  (global_freq_band.start + global_freq_band.last) / 2 + 125 * 1000
             end, 
             [3] = function(t)
-                t.freq =  173125 * 1000
+                t.freq =  global_freq_band.last - 875 * 1000
             end, 
             [4] = get_para_func("freq", "Freq(Hz)"), 
         }, 
@@ -709,9 +693,9 @@ FCC_MODE = {
                 t.action_map[t.select_index](t)
             end
         end, 
-        "136.125MHz", 
-        "155.125MHz", 
-        "173.125MHz", 
+        "Low frequency in MHz", 
+        "Mid frequency in MHz", 
+        "High frequency in MHz", 
         "Enter freq (Hz)", 
     }, 
     [2] = {
@@ -789,7 +773,7 @@ FCC_MODE = {
             multi_select_mode = false, 
             action = function (t)
                 local analog_g = {2, 3, 8}
-                t.analog = analog_t[t.select_index]
+                t.analog = analog_g[t.select_index]
             end, 
             "CTCSS (Tone = 250.3 Hz)", 
             "CDCSS (Code = 532)", 
@@ -825,6 +809,129 @@ FCC_MODE = {
     [10]= "Show static image(LCD)", 
     [11]= "Enable slide show", 
     [12]= "Enable LED test", 
+
+    test_process = {
+        [1] = function(t)
+            local cr = check_num_parameters(t.freq, t.band_width, t.power, t.audio_path, t.squelch, t.modulation)
+            if cr.ret then
+                local r_des, msgid_des = ldsp.fcc_start(t.freq, t.band_width, t.power, t.audio_path, t.squelch, t.modulation)
+            else
+                note_in_window("parameter error: check "..cr.errno.." "..cr.errmsg)
+            end
+
+        end, 
+        [7] = function(t)
+        
+        end, 
+        [8] = function(t)
+            local r, msgid
+            if t.select_status[3] then
+                r, msgid = lnondsp.gps_enable()
+                t.report[3] = {ret=r, errno=msgid}
+            else
+                r, msgid = lnondsp.gps_disable()
+            end
+        end, 
+        [9] = function(t)
+            local r, msgid
+            if t.select_status[4] then
+                r, msgid = lnondsp.lcd_enable()
+                t.report[4] = {ret=r, errno=msgid}
+            else
+                r, msgid = lnondsp.lcd_disable()
+            end
+        end, 
+        [10] = function(t)
+            local pic_path = "/root/u4_logo.dat"
+            local width = 270
+            local height = 220
+            local r, msgid
+            if t.select_status[5] then
+                r, msgid = lnondsp.lcd_display_static_image(pic_path, width, height)
+                t.report[5] = {ret=r, errno=msgid}
+            end
+        end, 
+        [11] = function(t)
+            local pic_path = "/usr/slideshow_dat_for_fcc"
+            local range = 1  -- The time interval of showing two different images. 
+            local r, msgid
+            if t.select_status[6] then
+                r, msgid = lnondsp.lcd_slide_show_test_start(pic_path, range)
+                t.report[6] = {ret=r, errno=msgid}
+            else
+                r, msgid = lnondsp.lcd_slide_show_test_stop()
+            end
+        end, 
+        [12] = function(t)
+            local r, msgid
+            if t.select_status[7] then
+                r, msgid = lnondsp.led_selftest_start()
+                t.report[7] = {ret=r, errno=msgid}
+            else
+                r, msgid = lnondsp.led_selftest_stop()
+            end
+        end, 
+    }, 
+    stop_process = {
+        [1] = function(t)
+            local r_des, msgid_des = ldsp.fcc_stop()
+        end, 
+        [7] = function(t)
+        
+        end, 
+        [8] = function(t)
+            local r, msgid
+            if t.select_status[8] then
+                r, msgid = lnondsp.gps_disable()
+            end
+        end, 
+        [9] = function(t)
+            local r, msgid
+            if t.select_status[9] then
+                r, msgid = lnondsp.lcd_disable()
+            end
+        end, 
+        [10] = function(t)  end, 
+        [11] = function(t)
+            local r, msgid
+            if t.select_status[11] then
+                r, msgid = lnondsp.lcd_slide_show_test_stop()
+            end
+        end, 
+        [12] = function(t)
+            local r, msgid
+            if t.select_status[12] then
+                r, msgid = lnondsp.led_selftest_stop()
+            end
+        end, 
+
+    }, 
+    test_process_start = function(t)
+        init_global_env()
+        if "function" == type(t.test_process[1]) then
+            t.test_process[1](t)
+        end
+        t.report = {}
+        for i=7, 12 do
+            lua_log.i("test", "tx duty test start "..i)
+            if "function" == type(t.test_process[i]) then
+                t.test_process[i](t)
+            end
+        end
+    end, 
+    test_process_stop = function(t)
+        if "function" == type(t.stop_process[1]) then
+            t.stop_process[1](t)
+        end
+        for i=7, 12 do
+            if "function" == type(t.stop_process[i]) then
+                t.stop_process[i](t)
+            end
+        end
+    end, 
+    test_process_report = function(t)
+        
+    end, 
 }
 
 Bluetooth_MODE = {
@@ -887,7 +994,7 @@ Bluetooth_MODE = {
     [10]= "Show static image(LCD)", 
     [11]= "Enable slide show", 
     [12]= "Enable LED test", 
-    [13]= "Active Clone cable", 
+
 }
 
 table_info = function(t)

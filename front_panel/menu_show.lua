@@ -215,6 +215,7 @@ create_main_menu = function(main_menu_table)
                         if "function" == type(menu_table.test_process_start) then
                             posix.syslog(posix.LOG_ERR, "call test_process_start in")
                             if not menu_table.test_process_start_call then
+                                switch_self_refresh(false)
                                 menu_table:test_process_start()
                                 menu_table.test_process_start_call = true
                             end
@@ -224,9 +225,12 @@ create_main_menu = function(main_menu_table)
                     if menu_table == self.main_table then
                         if "function" == type(menu_table.test_process_start) then
                             posix.syslog(posix.LOG_ERR, "call test_process_stop in")
-                            menu_table:test_process_stop()
-                            --menu_table:test_process_report()
-                            menu_table.test_process_start_call = false
+                            if menu_table.test_process_start_call then
+                                switch_self_refresh(true)
+                                menu_table:test_process_stop()
+                                menu_table.test_process_start_call = false
+                                --menu_table:test_process_report()
+                            end
                         end
                     end
                 end

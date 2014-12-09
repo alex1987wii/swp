@@ -9,13 +9,27 @@ require "log"
 
 lua_log = lua_log or newlog("front_panel")
 
-require "menu_data"
-require "menu_show"
+switch_self_refresh = function(flag)
+    if "boolean" ~= type(flag) then
+        posix.syslog(posix.LOG_ERR, "switch_self_refresh: flag type error")
+        return false
+    end
+    if flag then
+        os.execute("echo 1 > /sys/devices/platform/ad6900-lcd/self_refresh")
+    else
+        os.execute("echo 0 > /sys/devices/platform/ad6900-lcd/self_refresh")
+    end
+    
+    return true
+end
 
 sleep = function (t) os.execute("sleep "..t) end
 
+require "menu_data"
+require "menu_show"
+
 posix.setenv("TERMINFO", "/usr/share/terminfo", 1)
-os.execute("unlock /")
+os.execute("/usr/bin/unlock /")
 
 curses.initscr()
 curses.cbreak() 
@@ -36,13 +50,12 @@ if not r.ret then
 end
 --
 
-local m = create_main_menu(RFT_MODE)
+local m = create_main_menu(FCC_MODE)
 m:show()
-m:action()
+while true do 
+    switch_self_refresh(true)
+    m:action()
+end
 
---show_menu(front_panel_data)
---menu_action(front_panel_data)
-
---sleep(5)
 
 curses.endwin() 
