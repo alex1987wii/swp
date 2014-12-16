@@ -1,5 +1,5 @@
 #!/bin/sh
 
 echo fpl > /sys/sysdevs/bootmode
-reboot
+/sbin/reboot
 

@@ -825,18 +825,18 @@ FCC_MODE = {
         end, 
         [8] = function(t)
             local r, msgid
-            if t.select_status[3] then
+            if t.select_status[8] then
                 r, msgid = lnondsp.gps_enable()
-                t.report[3] = {ret=r, errno=msgid}
+                t.report[8] = {ret=r, errno=msgid}
             else
                 r, msgid = lnondsp.gps_disable()
             end
         end, 
         [9] = function(t)
             local r, msgid
-            if t.select_status[4] then
+            if t.select_status[9] then
                 r, msgid = lnondsp.lcd_enable()
-                t.report[4] = {ret=r, errno=msgid}
+                t.report[9] = {ret=r, errno=msgid}
             else
                 r, msgid = lnondsp.lcd_disable()
             end
@@ -846,27 +846,27 @@ FCC_MODE = {
             local width = 270
             local height = 220
             local r, msgid
-            if t.select_status[5] then
+            if t.select_status[10] then
                 r, msgid = lnondsp.lcd_display_static_image(pic_path, width, height)
-                t.report[5] = {ret=r, errno=msgid}
+                t.report[10] = {ret=r, errno=msgid}
             end
         end, 
         [11] = function(t)
             local pic_path = "/usr/slideshow_dat_for_fcc"
             local range = 1  -- The time interval of showing two different images. 
             local r, msgid
-            if t.select_status[6] then
+            if t.select_status[11] then
                 r, msgid = lnondsp.lcd_slide_show_test_start(pic_path, range)
-                t.report[6] = {ret=r, errno=msgid}
+                t.report[11] = {ret=r, errno=msgid}
             else
                 r, msgid = lnondsp.lcd_slide_show_test_stop()
             end
         end, 
         [12] = function(t)
             local r, msgid
-            if t.select_status[7] then
+            if t.select_status[12] then
                 r, msgid = lnondsp.led_selftest_start()
-                t.report[7] = {ret=r, errno=msgid}
+                t.report[12] = {ret=r, errno=msgid}
             else
                 r, msgid = lnondsp.led_selftest_stop()
             end
@@ -996,6 +996,127 @@ Bluetooth_MODE = {
     [12]= "Enable LED test", 
 
 }
+
+BaseBand_MODE = {
+    title = "BaseBand Test", 
+    tips  = "Select the test item, move and space to select", 
+    multi_select_mode = true, 
+    action_map = {
+        [1] = function(t)
+            
+        end, 
+        [2] = function(t) 
+            
+        end, 
+        [3] = function(t)
+            
+        end, 
+        [4] = function(t)
+            
+        end, 
+        [5] = function(t)
+            
+        end, 
+
+    }, 
+    action = function (t)
+        if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+            t.action_map[t.select_index](t)
+        end
+    end, 
+
+    [1] = "Enable GPS", 
+    [2] = "Enable LCD", 
+    [3]= "Show static image(LCD)", 
+    [4]= "Enable slide show", 
+    [5]= "Enable LED test", 
+
+}
+
+
+MODE_SWITCH = {
+    title = "Front Panel Mode Ctl", 
+    tips  = "select mode, and * to switch", 
+    multi_select_mode = false, 
+    action_map = {
+        [1] = function(t)
+            global_fpl_mode = t[1].fpl_mode
+            t.fpl_mode_name = t[1].fpl_mode_name
+        end, 
+        [2] = function(t) 
+            t.reboot_mode = "app"
+        end, 
+    }, 
+    action = function (t)
+        if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+            t.action_map[t.select_index](t)
+        end
+    end, 
+    
+    [1] = {
+        title = "reboot to fpl Mode", 
+        tips  = "select and reboot", 
+        multi_select_mode = false, 
+        action_map = {
+            [1] = function(t)
+                t.fpl_mode = RFT_MODE
+                t.fpl_mode_name = "RFT_MODE"
+            end, 
+            [2] = function(t) 
+                t.fpl_mode = FCC_MODE
+                t.fpl_mode_name = "FCC_MODE"
+            end, 
+            [3] = function(t)
+                t.fpl_mode = Bluetooth_MODE
+                t.fpl_mode_name = "Bluetooth_MODE"
+            end, 
+            [4] = function(t)
+                t.fpl_mode = BaseBand_MODE
+                t.fpl_mode_name = "BaseBand_MODE"
+            end, 
+        }, 
+        action = function (t)
+            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                t.action_map[t.select_index](t)
+            end
+        end, 
+        
+        [1] = "2Way RF Test", 
+        [2] = "FCC Test", 
+        [3] = "Bluetooth Test",
+        [4] = "BaseBand Test",
+    }, 
+    [2] = "reboot to app Mode", 
+    test_process = {
+        [1] = function (t)
+            if t.select_status[1] then
+                if not t.fpl_mode_name then
+                    os.execute("echo global_fpl_mode = "..t.fpl_mode_name.." > /userdata/set_fpl_mode.lua")
+                    os.execute("/userdata/front_panel/switch_fpl_mode.sh")
+                end
+            else
+                os.execute("rm -f /userdata/set_fpl_mode.lua")
+            end
+        end, 
+        [2] = function (t)
+            if t.select_status[2] then
+                os.execute("rm -f /userdata/set_fpl_mode.lua")
+                os.execute("/sbin/reboot")
+            end
+        end, 
+    }, 
+    test_process_start = function(t)
+        switch_self_refresh(true)
+        for i=1, table.getn(t.test_process) do
+            if t.select_status[i] then
+                if "function" == type(t.test_process[i]) then
+                    t.test_process[i](t)
+                end
+            end
+        end
+    end, 
+}
+
 
 table_info = function(t)
     return {

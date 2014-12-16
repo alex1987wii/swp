@@ -7,7 +7,7 @@ require "curses"
 require "posix"
 require "log"
 
-lua_log = lua_log or newlog("front_panel")
+lua_log = lua_log or newlog("/userdata/front_panel")
 
 switch_self_refresh = function(flag)
     if "boolean" ~= type(flag) then
@@ -29,6 +29,7 @@ require "menu_data"
 require "menu_show"
 
 posix.setenv("TERMINFO", "/usr/share/terminfo", 1)
+--posix.setenv("PWD", "/userdata/front_panel", 1)
 os.execute("/usr/bin/unlock /")
 
 curses.initscr()
@@ -36,6 +37,7 @@ curses.cbreak()
 curses.echo(false)  -- not noecho !
 curses.nl(true)    -- not nonl !  
 
+switch_self_refresh(true)
 stdscr = curses.stdscr()
 if nil == stdscr then
     lua_log.e("stdscr", "curses.stdscr return nil")
@@ -49,13 +51,30 @@ if not r.ret then
     os.exit(-1)
 end
 --
-
-local m = create_main_menu(FCC_MODE)
-m:show()
-while true do 
-    switch_self_refresh(true)
-    m:action()
+local load_fpl = loadfile("/userdata/set_fpl_mode.lua")
+if "function" == type(load_fpl) then
+    load_fpl()
 end
 
+lua_log.i("create_main_menu", "MODE_SWITCH")
+local fpm = create_main_menu(MODE_SWITCH)
+while true do
+    
+    while not global_fpl_mode do
+        fpm:show()
+        fpm:action()
+        note_in_window("exit MODE_SWITCH")
+    end
+
+    local m = create_main_menu(global_fpl_mode)
+
+    m:show()
+    m:action()
+    
+    fpm:show()
+    fpm:action()
+    
+    switch_self_refresh(true)
+end
 
 curses.endwin() 

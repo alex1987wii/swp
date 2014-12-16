@@ -1,5 +1,7 @@
+#!/usr/bin/lua
+
 --load_front_panel.lua 
-#!/bin/lua
+
 
 read_bootmode = function()
     local f = assert(io.open("/sys/sysdevs/bootmode", "r"))
@@ -8,6 +10,6 @@ read_bootmode = function()
     return s
 end
 
-print(read_bootmode())
+--print(read_bootmode())
 
 

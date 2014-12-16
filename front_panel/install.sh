@@ -17,8 +17,8 @@ else
     ln -s /usr/bin/lua /usr/bin/lua5.1
 fi
 
-libs_path=/usr/lib/lua/5.1
-lua_module_path=/usr/share/lua/5.1
+libs_path=/usr/local/lib/lua/5.1
+lua_module_path=/usr/local/share/lua/5.1
 
 if [ -d $libs_path ]; then
     echo "$libs_path is exist!"

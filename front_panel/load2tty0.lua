@@ -9,7 +9,16 @@ local bit = require("bit32")
 --local fb = "/dev/lcd"
 local console = "/dev/tty0"
 
-local die = print
+local die = function (s)
+    posix.syslog(posix.LOG_ERR, tostring(s))
+end
+
+require "catbootmode"
+
+if "fpl" ~= read_bootmode() then
+    die("load2tty0.lua call, is not fpl mode")
+    os.exit(-1)
+end
 
 if table.getn(arg) < 1 then
     die("Use: "..arg[0].." program")
@@ -36,7 +45,8 @@ elseif pid == 0 then -- child process
         die ("error dup2-ing STDOUT_FILENO")
     end
     
-    posix.setenv("PATH", "/bin", 1)
+    posix.setenv("PATH", "/bin:/sbin:/usr/bin:/usr/sbin", 1)
+    posix.setenv("PWD", "/userdata/front_panel", 1)
     posix.setenv("TERM", "xterm", 1)
     posix.setenv("TERMINFO", "/usr/share/terminfo", 1)
     posix.setenv( "LD_LIBRARY_PATH", "/lib", 1)
