@@ -4,9 +4,10 @@ require "ldsp"
 require "lnondsp"
 
 local freq_band = {
-    VHF = {start=136 * 1000 * 100, last = 174 * 1000 * 1000}, 
+    VHF = {start=136 * 1000 * 1000, last = 174 * 1000 * 1000}, 
+    U3_2ND = {start=763 * 1000 * 1000, last = 890 * 1000 * 1000}, 
 }
-global_freq_band = freq_band.VHF
+global_freq_band = freq_band.U3_2ND
 
 function check_num_range(num, ...)
     if "number" ~= type(num) then
@@ -248,7 +249,7 @@ RFT_MODE = {
                 end
             end, 
             [5] = function(t)
-                local pic_path = "/root/u4_logo.dat"
+                local pic_path = "/root/u3_logo.dat"
                 local width = 270
                 local height = 220
                 local r, msgid
@@ -1090,7 +1091,7 @@ MODE_SWITCH = {
     test_process = {
         [1] = function (t)
             if t.select_status[1] then
-                if not t.fpl_mode_name then
+                if t.fpl_mode_name then
                     os.execute("echo global_fpl_mode = "..t.fpl_mode_name.." > /userdata/set_fpl_mode.lua")
                     os.execute("/userdata/front_panel/switch_fpl_mode.sh")
                 end

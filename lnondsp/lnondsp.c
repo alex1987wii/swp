@@ -176,19 +176,19 @@ static int lnondsp_get_evt_item(lua_State *L)
                 if (idname->count > 0) {
                     lua_newtable(L);
                     lua_pushstring(L, "id");
-                    for (i=0; i<idname->count; i++) {
+                    for (i=1; i<=idname->count; i++) {
                         memset(id, 0, BLUETOOTH_ID_LEN+1);
-                        memcpy(id, idname->record[i].btId, BLUETOOTH_ID_LEN);
-                        lua_pushintegerkeystring2table(L, i+1, id);
+                        memcpy(id, idname->record[i-1].btId, BLUETOOTH_ID_LEN);
+                        lua_pushintegerkeystring2table(L, i, id);
                     }
                     lua_settable(L, -3);
                     
                     lua_newtable(L);
                     lua_pushstring(L, "name");
-                    for (i=0; i<idname->count; i++) {
+                    for (i=1; i<=idname->count; i++) {
                         memset(btname, 0, 256);
-                        strcpy(btname, idname->record[i].btName);
-                        lua_pushintegerkeystring2table(L, i+1, btname);
+                        strcpy(btname, idname->record[i-1].btName);
+                        lua_pushintegerkeystring2table(L, i, btname);
                     }
                     lua_settable(L, -3);
                 }
