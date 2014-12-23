@@ -1,4 +1,4 @@
-#!/usr/bin/lua
+--#!/usr/bin/lua
 
 -- bluetooth.lua
 --[[
@@ -38,4 +38,4 @@ else
     print("find devices: ", ev2.count)
 end
 
-lnondsp.bt_disable()
+--lnondsp.bt_disable()

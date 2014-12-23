@@ -35,9 +35,16 @@ fi
 chmod +x switch_fpl_mode.sh
 chmod +x front_panel.lua
 chmod +x load2tty0.lua
+chmod +x loadfpl.sh
 
 cp arm-so/*so ${libs_path}/ 
-cp *.lua ${lua_module_path}/ 
+cp switch_fpl_mode.sh front_panel.lua load2tty0.lua loadfpl.sh /usr/bin/
+cp read_attr_file.lua catbootmode.lua log.lua nondsp_event_info.lua curses.lua menu_data.lua menu_show.lua posix.lua ${lua_module_path}/ 
+
+fpl_load=`cat /etc/service.conf |grep loadfpl.sh`
+if [ "/usr/bin/loadfpl.sh" != $fpl_load ]; then
+    echo "/usr/bin/loadfpl.sh" >> /etc/service.conf
+fi
 
 lock /
 

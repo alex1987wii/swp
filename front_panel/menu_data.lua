@@ -2,11 +2,23 @@
 
 require "ldsp"
 require "lnondsp"
+require "read_attr_file"
 
 local freq_band = {
     VHF = {start=136 * 1000 * 1000, last = 174 * 1000 * 1000}, 
     U3_2ND = {start=763 * 1000 * 1000, last = 890 * 1000 * 1000}, 
 }
+
+device_type = read_attr_file("/proc/sys/kernel/hostname")
+
+if "u3" == device_type then
+    global_freq_band = freq_band.VHF
+elseif "u3_2nd" == device_type then
+    global_freq_band = freq_band.U3_2ND
+else
+    posix.syslog(posix.LOG_ERR, "not support device type : "..tostring(device_type))
+end
+
 global_freq_band = freq_band.U3_2ND
 
 function check_num_range(num, ...)
@@ -212,7 +224,7 @@ RFT_MODE = {
             end, 
         }, 
         [3] = "Enable GPS", 
-        [4] = "Enable LCD", 
+        [4] = "Disable LCD", 
         [5] = "Show static image(LCD)", 
         [6] = "Enable slide show", 
         [7] = "Enable LED test", 
@@ -242,16 +254,16 @@ RFT_MODE = {
             [4] = function(t)
                 local r, msgid
                 if t.select_status[4] then
-                    r, msgid = lnondsp.lcd_enable()
+                    r, msgid = lnondsp.lcd_disable()
                     t.report[4] = {ret=r, errno=msgid}
                 else
-                    r, msgid = lnondsp.lcd_disable()
+                    r, msgid = lnondsp.lcd_enable()
                 end
             end, 
             [5] = function(t)
                 local pic_path = "/root/u3_logo.dat"
-                local width = 270
-                local height = 220
+                local width = 220
+                local height = 176
                 local r, msgid
                 if t.select_status[5] then
                     r, msgid = lnondsp.lcd_display_static_image(pic_path, width, height)
@@ -806,7 +818,7 @@ FCC_MODE = {
         end, 
     }, 
     [8] = "Enable GPS", 
-    [9] = "Enable LCD", 
+    [9] = "Disable LCD", 
     [10]= "Show static image(LCD)", 
     [11]= "Enable slide show", 
     [12]= "Enable LED test", 
@@ -836,16 +848,16 @@ FCC_MODE = {
         [9] = function(t)
             local r, msgid
             if t.select_status[9] then
-                r, msgid = lnondsp.lcd_enable()
+                r, msgid = lnondsp.lcd_disable()
                 t.report[9] = {ret=r, errno=msgid}
             else
-                r, msgid = lnondsp.lcd_disable()
+                r, msgid = lnondsp.lcd_enable()
             end
         end, 
         [10] = function(t)
-            local pic_path = "/root/u4_logo.dat"
-            local width = 270
-            local height = 220
+            local pic_path = "/root/u3_logo.dat"
+            local width = 220
+            local height = 176
             local r, msgid
             if t.select_status[10] then
                 r, msgid = lnondsp.lcd_display_static_image(pic_path, width, height)
@@ -937,27 +949,110 @@ FCC_MODE = {
 
 Bluetooth_MODE = {
     title = "Bluetooth", 
-    tips  = "Select the test item, move and space to select", 
+    tips  = "Press * to start and # to end test", 
     multi_select_mode = true, 
     action_map = {
         [1] = function(t)
-            t.freq = t[1].freq
+
         end, 
         [2] = function(t) 
-            t.band_width = t[2].band_width
+
+        end, 
+    }, 
+    action = function (t)
+        init_global_env()
+        if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+            t.action_map[t.select_index](t)
+        end
+    end, 
+    [1] = "Find BT Device",
+    [2] = {
+        title = "Hardware test", 
+        tips  = "Hardware test", 
+        multi_select_mode = false, 
+
+        action = function (t)
+            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                t.action_map[t.select_index](t)
+            end
+        end, 
+        [1] =     {
+            title = "Frequency", 
+            tips  = "Select Frequency", 
+            multi_select_mode = false, 
+            action = function (t)
+                local freq_g = {2402, 2441, 2480}  
+                t.freq = freq_g[t.select_index]
+            end, 
+            "2402 MHz", 
+            "2441 MHz", 
+            "2480 MHz", 
+        }, 
+        [2] = {
+            title = "Data Rate", 
+            tips  = "Select Data Rate(Packet Type)", 
+            multi_select_mode = false, 
+            action = function (t)
+                t.data_rate = t[t.select_index].data_rate
+            end, 
+            [1] = {
+                title = "Basic Data Rate", 
+                tips  = "Select Basic Data Rate", 
+                multi_select_mode = false, 
+                action = function (t)
+                    t.data_rate = t[t.select_index]
+                end, 
+                "DH1", 
+                "DH3", 
+                "DH5", 
+            }, 
+            [2] = {
+                title = "Enhanced Data Rate", 
+                tips  = "Select Enhanced Data Rate(Packet Type)", 
+                multi_select_mode = false, 
+                action = function (t)
+                    t.data_rate = t[t.select_index]
+                end, 
+                "2-DH1", 
+                "2-DH5", 
+                "3-DH1",
+                "3-DH5",  
+            }, 
+        }
+    }, 
+    [3] = "Enable 2way(ch1 Knob settings)", 
+    [4] = "Enable GPS",  
+        --[[ display to user'acquiring GPS signal'.Once acquired display to the user
+              the 'latitude and longitude' of the fixes
+        --]] 
+    [5] = "Disable LCD", 
+    [6] = "Show static image(LCD)", 
+    [7] = "Enable slide show", 
+    [8] = "Enable LED test", 
+}
+
+GPS_MODE = {
+    title = "GPS Test", 
+    tips  = "Press * to start. The test will stop automatically", 
+    multi_select_mode = true, 
+    action_map = {
+        [1] = function(t)
+
+        end, 
+        [2] = function(t) 
+
         end, 
         [3] = function(t)
-            t.power = t[3].power
+
         end, 
         [4] = function(t)
-            t.audio_path = t[4].audio_path
+
         end, 
         [5] = function(t)
-            t.squelch = t[5].squelch
+
         end, 
         [6] = function(t)
-            t.modulation = t[6].modulation
-            t.mod_mode = t[6].mod_mode
+
         end, 
         [7] = function(t) end, 
     }, 
@@ -967,8 +1062,11 @@ Bluetooth_MODE = {
         end
     end, 
     [1] = {
-        title = "Find BT Device", 
-        tips  = "Find BT Device", 
+        --[[ display to user'acquiring GPS signal'.Once acquired display to the user
+            the 'latitude and longitude' of the fixes
+        --]]
+        title = "Functional", 
+        tips  = "", 
         multi_select_mode = false, 
 
         action = function (t)
@@ -979,23 +1077,30 @@ Bluetooth_MODE = {
 
     }, 
     [2] = {
-        title = "Band Width", 
-        tips  = "Select Band Width", 
+        title = "Hardware", 
+        tips  = "Hardware test", 
         multi_select_mode = false, 
+
         action = function (t)
-            local bw_g = {0, 1} -- 0:12.5KHz 1:25KHz 
-            t.band_width = bw_g[t.select_index]
+            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                t.action_map[t.select_index](t)
+            end
         end, 
-        "12.5 KHz", 
-        "25 KHz", 
+        [1] = "Number of measurements", 
+        [2] = "SVID to track", 
+        [3] = "Tracking time", 
+        [4] = "Time between measurements"
     }, 
-
-    [8] = "Enable GPS", 
-    [9] = "Enable LCD", 
-    [10]= "Show static image(LCD)", 
-    [11]= "Enable slide show", 
-    [12]= "Enable LED test", 
-
+    [3] = "Enable 2way(ch1 Knob settings)", 
+    [4] = "Enable Bluetooth",  
+        --[[ Attempt to pair with a previously connected headset.
+            If there is no previous connection, display to the user the Bluetooth device(s)
+            available to pair with.
+        --]] 
+    [5] = "Disable LCD", 
+    [6] = "Show static image(LCD)", 
+    [7] = "Enable slide show", 
+    [8] = "Enable LED test", 
 }
 
 BaseBand_MODE = {
@@ -1027,11 +1132,54 @@ BaseBand_MODE = {
     end, 
 
     [1] = "Enable GPS", 
-    [2] = "Enable LCD", 
+    [2] = "Disable LCD", 
     [3]= "Show static image(LCD)", 
     [4]= "Enable slide show", 
     [5]= "Enable LED test", 
+}
 
+
+Field_MODE = {
+    title = "Bluetooth", 
+    tips  = "Press * to start and # to end test", 
+    multi_select_mode = true, 
+    action_map = {
+        [1] = function(t)
+
+        end, 
+        [2] = function(t) 
+
+        end, 
+        [3] = function(t)
+
+        end, 
+        [4] = function(t)
+
+        end, 
+    }, 
+    action = function (t)
+        if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+            t.action_map[t.select_index](t)
+        end
+    end, 
+    [1] = "Calibrate Radio Oscillator", 
+    [2] = "Restor default Radio Oscillator Calibration", 
+    [3] = {
+        title = "Find BT Device", 
+        tips  = "Find BT Device", 
+        multi_select_mode = false, 
+
+        action = function (t)
+            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                t.action_map[t.select_index](t)
+            end
+        end, 
+
+    }, 
+    [4] = "Enable GPS",  
+        --[[ display to user'acquiring GPS signal'.Once acquired display to the user
+              the 'latitude and longitude' of the fixes
+        --]] 
 }
 
 
@@ -1055,7 +1203,7 @@ MODE_SWITCH = {
     end, 
     
     [1] = {
-        title = "reboot to fpl Mode", 
+        title = "select to fpl Mode", 
         tips  = "select and reboot", 
         multi_select_mode = false, 
         action_map = {
@@ -1072,6 +1220,14 @@ MODE_SWITCH = {
                 t.fpl_mode_name = "Bluetooth_MODE"
             end, 
             [4] = function(t)
+                t.fpl_mode = GPS_MODE
+                t.fpl_mode_name = "GPS_MODE"
+            end, 
+            [5] = function(t)
+                t.fpl_mode = Field_MODE
+                t.fpl_mode_name = "Field_MODE"
+            end, 
+            [6] = function(t)
                 t.fpl_mode = BaseBand_MODE
                 t.fpl_mode_name = "BaseBand_MODE"
             end, 
@@ -1085,23 +1241,25 @@ MODE_SWITCH = {
         [1] = "2Way RF Test", 
         [2] = "FCC Test", 
         [3] = "Bluetooth Test",
-        [4] = "BaseBand Test",
+        [4] = "GPS Test",
+        [5] = "Field Test",
+        [6] = "BaseBand Test",
     }, 
     [2] = "reboot to app Mode", 
     test_process = {
         [1] = function (t)
             if t.select_status[1] then
                 if t.fpl_mode_name then
-                    os.execute("echo global_fpl_mode = "..t.fpl_mode_name.." > /userdata/set_fpl_mode.lua")
-                    os.execute("/userdata/front_panel/switch_fpl_mode.sh")
+                    os.execute("echo global_fpl_mode = "..t.fpl_mode_name.." > /userdata/Settings/set_fpl_mode.lua")
+                    os.execute("/usr/bin/switch_fpl_mode.sh")
                 end
             else
-                os.execute("rm -f /userdata/set_fpl_mode.lua")
+                os.execute("rm -f /userdata/Settings/set_fpl_mode.lua")
             end
         end, 
         [2] = function (t)
             if t.select_status[2] then
-                os.execute("rm -f /userdata/set_fpl_mode.lua")
+                os.execute("rm -f /userdata/Settings/set_fpl_mode.lua")
                 os.execute("/sbin/reboot")
             end
         end, 

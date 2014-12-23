@@ -131,8 +131,8 @@ static int lnondsp_get_evt_item(lua_State *L)
                 lua_pushinteger2table(L, "count", id_cnt);
                 
                 if (id_cnt > 0) {
-                    lua_newtable(L);
                     lua_pushstring(L, "id");
+                    lua_newtable(L);
                     for (i=0; i<id_cnt; i++) {
                         memset(addr, 0, BLUETOOTH_ID_LEN+1);
                         memcpy(addr, pdata[i*BLUETOOTH_ID_LEN], BLUETOOTH_ID_LEN);
@@ -174,8 +174,8 @@ static int lnondsp_get_evt_item(lua_State *L)
                 lua_pushinteger2table(L, "count", idname->count);
                 
                 if (idname->count > 0) {
-                    lua_newtable(L);
                     lua_pushstring(L, "id");
+                    lua_newtable(L);
                     for (i=1; i<=idname->count; i++) {
                         memset(id, 0, BLUETOOTH_ID_LEN+1);
                         memcpy(id, idname->record[i-1].btId, BLUETOOTH_ID_LEN);
@@ -183,8 +183,8 @@ static int lnondsp_get_evt_item(lua_State *L)
                     }
                     lua_settable(L, -3);
                     
-                    lua_newtable(L);
                     lua_pushstring(L, "name");
+                    lua_newtable(L);
                     for (i=1; i<=idname->count; i++) {
                         memset(btname, 0, 256);
                         strcpy(btname, idname->record[i-1].btName);
@@ -280,10 +280,14 @@ static int lnondsp_lcd_display_static_image(lua_State *L)
     int argcnt = 0;
     
 	argcnt = lua_gettop(L);
-	if (argcnt >= 3 && lua_isstring(L, 1)) {
+	if (argcnt == 3 && lua_isstring(L, 1)) {
         pic_path = (char *)lua_tostring(L, 1);
         width = (uint32_t)lua_tointeger(L, 2);
         height = (uint32_t)lua_tointeger(L, 3);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -2);
+        return 2;    
     }
     
     ret = lcdDisplayStaticImage(pic_path, width, height);
@@ -309,12 +313,17 @@ static int lnondsp_lcd_slide_show_test_start(lua_State *L)
     int argcnt = 0;
     
 	argcnt = lua_gettop(L);
-	if (argcnt >= 3 && lua_isstring(L, 1)) {
+	if (argcnt == 2 && lua_isstring(L, 1)) {
         path = (char *)lua_tostring(L, 1);
         path_len = strlen(path);
-        range = (uint32_t)lua_tointeger(L, 3);
+        range = (uint32_t)lua_tointeger(L, 2);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -2);
+        return 2;    
     }
     
+    log_notice("lcd_slide_show_test_start(%s, %d, %d)\n", path, path_len, range);
     ret = lcdSlideShowTestStart(path, path_len, range);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
@@ -1433,6 +1442,75 @@ static int lnondsp_bt_play_stop(lua_State *L)
     }
 }
 
+/* int32_t bt_txdata1_transmitter_start(uint16_t freq, char *packet_type);
+ * start txdata1 transmitter for bluetooth radio test with max tx power.
+ * @freq[in]           transmitter/receive frequency in MHz
+ * @packet_type[in]    string of packet type.For examples:"DH1","DH3","DH5","2-DH1",... 
+ * 
+ * Return:  
+ *    0: success
+ *    -1: failed
+ */
+ static int lnondsp_bt_txdata1_transmitter_start(lua_State *L)
+{
+    uint16_t freq;
+    char *packet_type;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt == 2 && lua_isnumber(L, 1) && lua_isstring(L, 2)) {
+        freq = (uint16_t)lua_tointeger(L, 1);
+        packet_type = (char *)lua_tostring(L, 2);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+    
+    if (!lua_isnumber(L, 2)) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -2);
+        return 2;
+    }
+
+    ret = bt_txdata1_transmitter_start(freq, packet_type);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+
+ 
+ 
+/* int32_t bt_txdata1_transmitter_stop(void);
+ * stop txdata1 transmitter
+ * 
+ * return:
+ * 0: success
+ *  -1: failed
+ */
+static int lnondsp_bt_txdata1_transmitter_stop(lua_State *L)
+{
+    int ret = -1;
+
+    ret = bt_txdata1_transmitter_stop();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+
 /*
  * interface for lua
  */
@@ -1493,6 +1571,8 @@ static const struct luaL_reg nondsp_lib[] =
     NF(bt_record_stop), 
     NF(bt_play_start), 
     NF(bt_play_stop), 
+    NF(bt_txdata1_transmitter_start), 
+    NF(bt_txdata1_transmitter_stop), 
     {NULL, NULL}
 };
 

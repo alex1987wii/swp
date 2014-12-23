@@ -1,19 +1,29 @@
--- bluetooth.lua
---[[
-module("bluetooth")
---]]
-require "lnondsp"
 
---[[
+require "lnondsp"
+require "nondsp_event_info"
+--
 function find_device()
     local 
-    local ret_en, ret_enno = lnondsp.bt_enable_block(lnondsp.BT_POWER_ON_ONLY)
-    if not ret_en then
-        posix.syslog(posix.LOG_ERR, "bt_enable_block fail, return "..ret_enno)
+    local r_en, r_enno = lnondsp.bt_enable_block(lnondsp.BT_DUT_MODE)
+    if not r_en then
+        posix.syslog(posix.LOG_ERR, "bt_enable_block fail, return "..tostring(r_enno))
         return nil
     end
+    
+    local r_scan = lnondsp.bt_scan_block()
+    local evt_cnt = lnondsp.get_evt_number()                       
+    local ev = lnondsp.get_evt_item(evt_cnt)
+    if ev.count > 0 then
+        for i=1, ev2.count do 
+            print("find bt device["..i.."]: ", ev2.id[i], ev2.name[i])
+        end
+    else
+        print("find devices: ", ev2.count)
+    end
 end 
---]]
+--
+
+lnondsp.register_callbacks()
 
 r = lnondsp.bt_enable_block(lnondsp.BT_DUT_MODE)
 print("press any key to continue")                          

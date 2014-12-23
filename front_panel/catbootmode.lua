@@ -1,13 +1,10 @@
-#!/usr/bin/lua
 
---load_front_panel.lua 
+--catbootmode.lua 
 
+require "read_attr_file"
 
 read_bootmode = function()
-    local f = assert(io.open("/sys/sysdevs/bootmode", "r"))
-    local s = f:read("*all")
-    f:close()
-    return s
+    return read_attr_file("/sys/sysdevs/bootmode")
 end
 
 --print(read_bootmode())

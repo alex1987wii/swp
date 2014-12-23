@@ -7,7 +7,7 @@ require "curses"
 require "posix"
 require "log"
 
-lua_log = lua_log or newlog("/userdata/front_panel")
+lua_log = lua_log or newlog("/userdata/SysLog/front_panel")
 
 switch_self_refresh = function(flag)
     if "boolean" ~= type(flag) then
@@ -51,7 +51,7 @@ if not r.ret then
     os.exit(-1)
 end
 --
-local load_fpl = loadfile("/userdata/set_fpl_mode.lua")
+local load_fpl = loadfile("/userdata/Settings/set_fpl_mode.lua")
 if "function" == type(load_fpl) then
     load_fpl()
 end

@@ -1,4 +1,4 @@
 #!/bin/sh
 
-/userdata/front_panel/load2tty0.lua /userdata/front_panel/front_panel.lua
+/usr/bin/load2tty0.lua /usr/bin/front_panel.lua
 
