@@ -93,6 +93,10 @@ note_in_window = function(note)
 end
 
 create_main_menu = function(main_menu_table)
+    if "function" == type(main_menu_table.init_env) then
+        main_menu_table.init_env()
+    end
+    
     return {
         main_table = main_menu_table, 
         show = function(self, ...)

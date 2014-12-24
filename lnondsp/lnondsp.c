@@ -115,7 +115,7 @@ static int lnondsp_get_evt_item(lua_State *L)
     lua_pushinteger2table(L, "evt", evt.evt);
     lua_pushinteger2table(L, "evi", evt.evi);
     lua_pushinteger2table(L, "bufsize", evt.bufsize);
-    #if 1
+
     if (NONDSP_EVT_BT == evt.evt) {
         switch(evt.evi) {
             case NONDSP_EVT_BT_ENABLE_STATE:
@@ -196,7 +196,7 @@ static int lnondsp_get_evt_item(lua_State *L)
                 break;
         }
     }
-    #endif
+
     
     return 1;
 }

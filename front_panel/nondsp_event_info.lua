@@ -92,15 +92,15 @@ NONDSP_EVT = {
         local tt = self:get_type(t)
         if tt == nil then
             posix.syslog(posix.LOG_ERR, "NONDSP_EVT get_id no such evt type "..t)
-            return nil, nil
+            return nil
         end
         if "number" == type(tt) then
             tt = self:get_type(tt)
         end
         
         if nil == self[tt] then
-            posix.syslog(posix.LOG_ERR, "NONDSP_EVT "..tt.." no such evt id "..tostring(id))
-            return nil, nil
+            posix.syslog(posix.LOG_ERR, "NONDSP_EVT "..tt.." no such evt type table "..tostring(tt))
+            return nil
         end
         
         if "number" == type(id) then
@@ -108,14 +108,14 @@ NONDSP_EVT = {
         elseif "string" == type(id) then
             for i=1, table.getn(self[tt]) do
                 if self[tt][i] == id then
-                    return tt, i
+                    return i
                 end
             end
             posix.syslog(posix.LOG_ERR, "NONDSP_EVT get_id no such evt id "..id)
-            return nil, nil
+            return nil
         else
             posix.syslog(posix.LOG_ERR, "NONDSP_EVT get_id evt id type wrong: "..type(id))
-            return nil, nil
+            return nil
         end
     end
 }

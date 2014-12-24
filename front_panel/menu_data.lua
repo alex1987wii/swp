@@ -3,6 +3,7 @@
 require "ldsp"
 require "lnondsp"
 require "read_attr_file"
+require "bluetooth"
 
 local freq_band = {
     VHF = {start=136 * 1000 * 1000, last = 174 * 1000 * 1000}, 
@@ -109,15 +110,17 @@ RFT_MODE = {
     tips  = "select and test", 
     multi_select_mode = false, 
     action = function (t)
-        init_global_env()
+
     end, 
 
     [1] = {
         title = "Rx Desense Test", 
         tips  = "Rx Desense Test", 
         multi_select_mode = true, 
-        new_main_menu = function (t)
+        init_env = function ()
             init_global_env()
+        end, 
+        new_main_menu = function (t)
             local m_sub = create_main_menu(t)
             m_sub:show()
             m_sub:action()
@@ -147,12 +150,7 @@ RFT_MODE = {
             title = "Rx Desense Scan", 
             tips  = "Rx Desense Scan", 
             multi_select_mode = true, 
-            new_main_menu = function (t)
-                init_global_env()
-                local m_sub = create_main_menu(t)
-                m_sub:show()
-                m_sub:action()
-            end, 
+
             action_map = {
                 [1] = get_para_func("freq", "Freq(Hz)"), 
                 [2] = function(t) 
@@ -349,8 +347,10 @@ RFT_MODE = {
         title = "Rx Antenna Gain Test", 
         tips  = "* start; up down key move to config", 
         multi_select_mode = true, 
-        new_main_menu = function (t)
+        init_env = function ()
             init_global_env()
+        end, 
+        new_main_menu = function (t)
             local m_sub = create_main_menu(t)
             m_sub:show()
             m_sub:action()
@@ -407,8 +407,10 @@ RFT_MODE = {
         title = "Tx with a duty cycle", 
         tips  = "Tx only with a settable duty cycle", 
         multi_select_mode = true, 
-        new_main_menu = function (t)
+        init_env = function ()
             init_global_env()
+        end, 
+        new_main_menu = function (t)
             local m_sub = create_main_menu(t)
             m_sub:show()
             m_sub:action()
@@ -558,8 +560,10 @@ RFT_MODE = {
         title = "Tx Antenna Gain Test", 
         tips  = "Tx Antenna Gain Test", 
         multi_select_mode = true, 
-        new_main_menu = function (t)
+        init_env = function ()
             init_global_env()
+        end, 
+        new_main_menu = function (t)
             local m_sub = create_main_menu(t)
             m_sub:show()
             m_sub:action()
@@ -658,6 +662,9 @@ FCC_MODE = {
     title = "Front Panel", 
     tips  = "Select the test item, move and space to select", 
     multi_select_mode = true, 
+    init_env = function ()
+        init_global_env()
+    end, 
 
     action_map = {
         [1] = function(t)
@@ -920,7 +927,6 @@ FCC_MODE = {
 
     }, 
     test_process_start = function(t)
-        init_global_env()
         if "function" == type(t.test_process[1]) then
             t.test_process[1](t)
         end
@@ -951,6 +957,9 @@ Bluetooth_MODE = {
     title = "Bluetooth", 
     tips  = "Press * to start and # to end test", 
     multi_select_mode = true, 
+    init_env = function ()
+        init_global_env()
+    end, 
     action_map = {
         [1] = function(t)
 
@@ -960,7 +969,7 @@ Bluetooth_MODE = {
         end, 
     }, 
     action = function (t)
-        init_global_env()
+        
         if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
             t.action_map[t.select_index](t)
         end
@@ -1035,6 +1044,9 @@ GPS_MODE = {
     title = "GPS Test", 
     tips  = "Press * to start. The test will stop automatically", 
     multi_select_mode = true, 
+    init_env = function ()
+        init_global_env()
+    end, 
     action_map = {
         [1] = function(t)
 
@@ -1107,6 +1119,9 @@ BaseBand_MODE = {
     title = "BaseBand Test", 
     tips  = "Select the test item, move and space to select", 
     multi_select_mode = true, 
+    init_env = function ()
+        init_global_env()
+    end, 
     action_map = {
         [1] = function(t)
             
@@ -1143,6 +1158,9 @@ Field_MODE = {
     title = "Bluetooth", 
     tips  = "Press * to start and # to end test", 
     multi_select_mode = true, 
+    init_env = function ()
+        init_global_env()
+    end, 
     action_map = {
         [1] = function(t)
 
