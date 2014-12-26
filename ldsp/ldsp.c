@@ -658,6 +658,117 @@ static int ldsp_fcc_stop(lua_State *L)
     }
 }
 
+/* field test interface
+int calibrate_radio_oscillator_start(void);
+int get_original_afc_val(unsigned short *current_afc_val);
+int calibrate_radio_oscillator_set_val(unsigned short afc_val);
+int save_radio_oscillator_calibration(void);
+int calibrate_radio_oscillator_stop(void);
+ */
+static int ldsp_calibrate_radio_oscillator_start(lua_State *L)
+{
+    int ret = -1;
+
+    ret = calibrate_radio_oscillator_start();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+static int ldsp_get_original_afc_val(lua_State *L)
+{
+    unsigned short current_afc_val;
+    int ret = -1;
+
+    ret = get_original_afc_val(&current_afc_val);
+    if (ret < 0) {
+        lua_newtable(L);
+        lua_pushboolean2table(L, "ret", FALSE);
+        lua_pushinteger2table(L, "errno", ret);
+        lua_pushstring2table(L, "errmsg", "function call error");
+        return 1;
+    }
+    
+    lua_newtable(L);
+    lua_pushboolean2table(L, "ret", TRUE);
+    lua_pushinteger2table(L, "afc_val", current_afc_val);
+    return 1;
+}
+
+static int ldsp_calibrate_radio_oscillator_set_val(lua_State *L)
+{
+    unsigned short afc_val;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+    if (argcnt != 0) {
+        log_err("ldsp_calibrate_radio_oscillator_set_val argcnt != 1\n");
+        lua_newtable(L);
+        lua_pushboolean2table(L, "ret", FALSE);
+        lua_pushinteger2table(L, "errno", -1);
+        lua_pushstring2table(L, "errmsg", "argcnt != 1");
+        return 1;
+    }
+    
+    if (!lua_isnumber(L, 1)) {
+        lua_newtable(L);
+        lua_pushboolean2table(L, "ret", FALSE);
+        lua_pushinteger2table(L, "errno", -1);
+        lua_pushstring2table(L, "errmsg", "arg[1] is not number\n");
+        return 1;
+    }
+    afc_val = (unsigned short)lua_tointeger(L, 1);
+
+    ret = calibrate_radio_oscillator_set_val(afc_val);
+    if (ret < 0) {
+        lua_newtable(L);
+        lua_pushboolean2table(L, "ret", FALSE);
+        lua_pushinteger2table(L, "errno", -1);
+        lua_pushstring2table(L, "errmsg", "function call error");
+        return 1;
+    }
+
+    lua_newtable(L);
+    lua_pushboolean2table(L, "ret", TRUE);
+    return 1;
+}
+
+static int ldsp_save_radio_oscillator_calibration(lua_State *L)
+{
+    int ret = -1;
+
+    ret = save_radio_oscillator_calibration();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+static int ldsp_calibrate_radio_oscillator_stop(lua_State *L)
+{
+    int ret = -1;
+
+    ret = calibrate_radio_oscillator_stop();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
 
 #if ( defined (CONFIG_PROJECT_U4) || defined (CONFIG_PROJECT_G3) || defined (CONFIG_PROJECT_M1) || defined (CONFIG_PROJECT_M1RU) )
 /* read/write DSP audio samples data interface, only use in u4/g3/g4
@@ -1077,6 +1188,13 @@ static const struct luaL_reg dsp_lib[] =
     
     NF(fcc_start),
     NF(fcc_stop),
+
+    /* field test interface */
+    NF(calibrate_radio_oscillator_start), 
+    NF(get_original_afc_val), 
+    NF(calibrate_radio_oscillator_set_val), 
+    NF(save_radio_oscillator_calibration), 
+    NF(calibrate_radio_oscillator_stop), 
     
 #if ( defined (CONFIG_PROJECT_U4) || defined (CONFIG_PROJECT_G3) || defined (CONFIG_PROJECT_M1) || defined (CONFIG_PROJECT_M1RU) )
     NF(read_dsp_audio_samples_data), 

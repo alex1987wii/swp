@@ -206,7 +206,7 @@ static int lnondsp_register_callbacks(lua_State *L)
     registerNonDspEvtCb(nondsp_handle_event);
     return 0;
 }
-
+#if 0
 /* GPS test interface */
 static int lnondsp_gps_enable(lua_State *L)
 {
@@ -237,6 +237,7 @@ static int lnondsp_gps_disable(lua_State *L)
         return 1;
     }
 }
+#endif
 
 #if 1
 /* LCD test interface */
@@ -1467,12 +1468,6 @@ static int lnondsp_bt_play_stop(lua_State *L)
         lua_pushinteger(L, -1);
         return 2;
     }
-    
-    if (!lua_isnumber(L, 2)) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, -2);
-        return 2;
-    }
 
     ret = bt_txdata1_transmitter_start(freq, packet_type);
     if (ret < 0) {
@@ -1522,8 +1517,10 @@ static const struct luaL_reg nondsp_lib[] =
     NF(get_evt_number),
     NF(get_evt_item),
     
+    #if 0
     NF(gps_enable), 
     NF(gps_disable), 
+    #endif
     
     #if 1
     NF(lcd_enable), 

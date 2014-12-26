@@ -2,7 +2,8 @@
 require "lnondsp"
 require "nondsp_event_info"
 
-note_in_window = note_in_window or print
+note_in_window = note_in_window or function(s) posix.syslog(posix.LOG_NOTICE, "call note_in_window:"..tostring(s)) end
+switch_self_refresh = switch_self_refresh or function(s) posix.syslog(posix.LOG_NOTICE, "call switch_self_refresh:"..tostring(s)) end
 --
 
 bt_init = function()
@@ -14,6 +15,14 @@ bt_init = function()
     
     return {
         find_devices = function(t)
+            local wait_menu = {
+                title = "BT devices Scan", 
+                tips  = "scanning devices ..., plaease wait", 
+                multi_select_mode = false, 
+                [1] = "Scanning ..."
+            }
+            create_main_menu(wait_menu):show()
+            
             local r_scan = lnondsp.bt_scan_block()
             local evt_cnt = lnondsp.get_evt_number()                       
             local ev = lnondsp.get_evt_item(evt_cnt)
@@ -44,40 +53,66 @@ bt_init = function()
         
         get_devices_table = function(t)
             if not t.devices or t.devices.count < 1 then
-                posix.syslog(posix.LOG_ERR, "get_devices_table, can not scan devices")
-                note_in_window("get_devices_table, can not scan devices")
                 return nil
             end
             
-            local menu_t = {
+            t.menu_tab = t.menu_tab or {
                 title = "BT devices", 
-                tips  = "select and keyin ENTER to connect device", 
+                tips  = "select and keyin ENTER to connect device, * to scan again", 
                 multi_select_mode = false, 
             }
             
-            menu_t.devices_connect_status = {}
-            menu_t.devices_count = t.devices.count
-            menu_t.dev_id = {}
+            t.menu_tab.devices_connect_status = {}
+            t.menu_tab.devices_count = t.devices.count
+            t.menu_tab.dev_id = {}
             for d=1, t.devices.count do
-                menu_t[d] = t.devices[d].name
-                menu_t.dev_id[d] = t.devices[d].id
-                menu_t.devices_connect_status[d] = false
+                t.menu_tab[d] = t.devices[d].name
+                t.menu_tab.dev_id[d] = t.devices[d].id
+                t.menu_tab.devices_connect_status[d] = false
+            end
+            t.menu_tab.new_main_menu = function(tab)
+                local m_sub = create_main_menu(tab)
+                m_sub:show()
+                m_sub:action()
             end
             
-            menu_t.action = function(tab)
+            t.menu_tab.action = function(tab)
                 for i=1, tab.devices_count do 
                     if tab.devices_connect_status[i] then
                         lnondsp.bt_disconnect_sco(tab.dev_id[i])
                         tab.devices_connect_status[i] = false
                     end
+                end
                     
-                    if tab.select_index ~= nil and tab.select_status[tab.select_index] then
-                        lnondsp.bt_establish_sco_block(tab.dev_id[tab.select_index])
-                    end
+                if tab.select_index ~= nil and tab.select_status[tab.select_index] then
+                    lnondsp.bt_establish_sco_block(tab.dev_id[tab.select_index])
                 end
             end
             
-            return menu_t
+            t.menu_tab.test_process_start = function(tab)
+                switch_self_refresh(true)
+                g_bt = g_bt or bt_init()
+                
+                for i=1, tab.devices_count do 
+                    if tab.devices_connect_status[i] then
+                        lnondsp.bt_disconnect_sco(tab.dev_id[i])
+                        tab.devices_connect_status[i] = false
+                    end
+                end
+                
+                g_bt:find_devices()
+                
+                tab.devices_count = t.devices.count
+                tab.dev_id = {}
+                for d=1, g_bt.devices.count do
+                    tab[d] = g_bt.devices[d].name
+                    tab.dev_id[d] = g_bt.devices[d].id
+                    tab.devices_connect_status[d] = false
+                end
+                
+            end
+            
+            return t.menu_tab
         end, 
 
         disable = function(t)
@@ -86,3 +121,33 @@ bt_init = function()
     }
 end
 
+defunc_enable_bt = function(list_index)
+    return function(t)
+        if "nil" == type(t[list_index]) then
+            posix.syslog(posix.LOG_ERR, "bt device find item nil")
+            note_in_window("bt device find item nil")
+            t[list_index] = "Find Bt Devices"
+        elseif "string" == type(t[list_index]) then
+            g_bt = g_bt or bt_init()
+
+            g_bt:find_devices()
+            local bt_menu = g_bt:get_devices_table()
+            if nil == bt_menu then
+                posix.syslog(posix.LOG_ERR, "get_devices_table, can not scan devices")
+                note_in_window("get_devices_table, can not scan devices")
+                return false
+            end
+            
+            t[list_index] = bt_menu
+            local m = create_main_menu(t[list_index])
+            m:show()
+            m:action()
+        end
+    end
+end
+
+def_disable_bt = function()
+    g_bt = g_bt or bt_init()
+    
+    g_bt:disable()
+end

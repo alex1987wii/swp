@@ -5,6 +5,9 @@ require "lnondsp"
 require "read_attr_file"
 require "bluetooth"
 
+lnondsp.gps_enable = lnondsp.gps_enable or function (...) posix.syslog(posix.LOG_NOTICE, "call gps_enable") end
+lnondsp.gps_disable = lnondsp.gps_disable or function (...) posix.syslog(posix.LOG_NOTICE, "call gps_disable") end
+
 local freq_band = {
     VHF = {start=136 * 1000 * 1000, last = 174 * 1000 * 1000}, 
     U3_2ND = {start=763 * 1000 * 1000, last = 890 * 1000 * 1000}, 
@@ -43,9 +46,9 @@ function check_num_range(num, ...)
 end
 
 function check_num_parameters(...)
-    posix.syslog(posix.LOG_ERR, "check_num_parameters arg.n: "..arg.n)
+    posix.syslog(posix.LOG_NOTICE, "check_num_parameters arg.n: "..arg.n)
     for i=1, arg.n do
-        posix.syslog(posix.LOG_ERR, "check_num_parameters arg["..i.."]: "..tostring(arg[i]))
+        posix.syslog(posix.LOG_NOTICE, "check_num_parameters arg["..i.."]: "..tostring(arg[i]))
         if nil == arg[i] then
             return {ret = false, errno = i, errmsg="arg["..i.."] nil"}
         end
@@ -58,7 +61,7 @@ function check_num_parameters(...)
     return {ret = true}
 end
 
-thread_do = function(func)
+thread_do = function (func)
     local pid = posix.fork()
     
     if pid == 0 then
@@ -73,12 +76,13 @@ thread_do = function(func)
 end
 
 function get_para_func(pname, pinfo)
-    return function(t)
+    return function (t)
         local r = get_string_in_window(t[t.select_index])
         if r.ret then
             t[pname] =  tonumber(r.str)
             if nil == t[pname] then
-                posix.syslog(posix.LOG_ERR, "get string in window is not number: "..r.str)
+                posix.syslog(posix.LOG_ERR, "get string in window is not number: "..tostring(r.str))
+                note_in_window("get string in window is not number: "..tostring(r.str))
                 t.select_status[t.select_index] = false
                 return false
             end
@@ -104,6 +108,134 @@ function init_global_env()
         global_env_init = true
     end
 end
+
+defunc_enable_gps = function (list_index)
+    return function (t)
+        local r, msgid
+        if t.select_status[list_index] then
+            r, msgid = lnondsp.gps_enable()
+            t.report[list_index] = {ret=r, errno=msgid}
+        else
+            r, msgid = lnondsp.gps_disable()
+        end
+    end
+end
+
+defunc_disable_lcd = function (list_index)
+    return function (t)
+        if t.select_status[list_index] then
+            r, msgid = lnondsp.lcd_disable()
+            t.report[list_index] = {ret=r, errno=msgid}
+        else
+            r, msgid = lnondsp.lcd_enable()
+        end
+    end
+end
+
+defunc_lcd_display_static_image = function (list_index)
+    return function (t)
+        local pic_path = "/root/u3_logo.dat"
+        local width = 220
+        local height = 176
+        local r, msgid
+        if t.select_status[list_index] then
+            r, msgid = lnondsp.lcd_display_static_image(pic_path, width, height)
+            t.report[list_index] = {ret=r, errno=msgid}
+        end
+    end
+end
+
+defunc_lcd_slide_show_test = {
+    start = function (list_index)
+        return function (t)
+            local pic_path = "/usr/slideshow_dat_for_fcc"
+            local range = 1  -- The time interval of showing two different images. 
+            local r, msgid
+            if t.select_status[list_index] then
+                r, msgid = lnondsp.lcd_slide_show_test_start(pic_path, range)
+                t.report[list_index] = {ret=r, errno=msgid}
+            else
+                r, msgid = lnondsp.lcd_slide_show_test_stop()
+            end
+        end
+    end, 
+    stop = function (list_index)
+        return function (t)
+            if t.select_status[list_index] then
+                lnondsp.lcd_slide_show_test_stop()
+            end
+        end
+    end
+}
+
+defunc_led_selftest = {
+    start = function (list_index)
+        return function (t)
+            local r, msgid
+            if t.select_status[list_index] then
+                r, msgid = lnondsp.led_selftest_start()
+                t.report[list_index] = {ret=r, errno=msgid}
+            else
+                r, msgid = lnondsp.led_selftest_stop()
+            end
+        end
+    end, 
+    
+    stop = function (list_index)
+        return function (t)
+            if t.select_status[list_index] then
+                lnondsp.led_selftest_stop()
+            end
+        end
+    end
+}
+
+defunc_bt_txdata1_transmitter = {
+    start = function (list_index) 
+        return function (t)
+            local r, msgid
+            if t.select_status[list_index] then
+                r, msgid = lnondsp.bt_txdata1_transmitter_start(t.freq, t.data_rate)
+                t.report[list_index] = {ret=r, errno=msgid}
+            else
+                r, msgid = lnondsp.bt_txdata1_transmitter_stop()
+            end
+        end
+    end, 
+    
+    stop = function (list_index)
+        return function (t)
+            lnondsp.bt_txdata1_transmitter_stop()
+        end
+    end
+}
+
+defunc_2way_ch1_knob_settings = {
+    start = function (list_index) 
+        return function (t)
+            local tab = {
+                freq = global_freq_band.start + 125000, 
+                band_width = 1, 
+                power = 1, 
+                audio_path = 1, 
+                squelch = 1, 
+                modulation = 1, 
+            }
+            local r_des, msgid_des
+            if t.select_status[list_index] then
+                r_des, msgid_des = ldsp.fcc_start(t.freq, t.band_width, t.power, t.audio_path, t.squelch, t.modulation)
+                t.report[list_index] = {ret=r, errno=msgid}
+            end
+        end
+    end, 
+    
+    stop = function (list_index)
+        return function (t)
+            ldsp.fcc_stop()
+        end
+    end
+}
+
 
 RFT_MODE = {
     title = "2Way RF Test", 
@@ -135,11 +267,7 @@ RFT_MODE = {
                 t.samples = t[1].samples
                 t.delaytime = t[1].delaytime
             end, 
-            [2] = function (t)
-                if nil == t.bluetooth then
-                    t.bluetooth = t[2].bluetooth
-                end
-            end
+            [2] = defunc_enable_bt(2), 
         }, 
         action = function (t)
             if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
@@ -153,10 +281,10 @@ RFT_MODE = {
 
             action_map = {
                 [1] = get_para_func("freq", "Freq(Hz)"), 
-                [2] = function(t) 
+                [2] = function (t) 
                     t.band_width = t[2].band_width
                 end, 
-                [3] = function(t) 
+                [3] = function (t) 
                     t.step_size = t[3].step_size
                 end, 
                 [4] = get_para_func("step_num", "Step Num(0~1500)"), 
@@ -213,14 +341,7 @@ RFT_MODE = {
             [6] = "samples(10~5000)", -- 测量的samples值 
             [7] = "delaytime(0~100s)", -- 每个波段measure的间隔时间，有效值范围 
         }, 
-        [2] = {
-            title = "Enable Bluetooth", 
-            tips  = "Setting up bluetooth device", 
-            multi_select_mode = false, 
-            action = function (t)
-                
-            end, 
-        }, 
+        [2] = "Enable Bluetooth", 
         [3] = "Enable GPS", 
         [4] = "Disable LCD", 
         [5] = "Show static image(LCD)", 
@@ -228,7 +349,7 @@ RFT_MODE = {
         [7] = "Enable LED test", 
 
         test_process = {
-            [1] = function(t)
+            [1] = function (t)
                 local cr = check_num_parameters(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime)
                 if cr.ret then
                     local r_des, msgid_des = ldsp.start_rx_desense_scan(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime)
@@ -237,93 +358,28 @@ RFT_MODE = {
                 end
 
             end, 
-            [2] = function(t)
+            [2] = function (t)
             
             end, 
-            [3] = function(t)
-                local r, msgid
-                if t.select_status[3] then
-                    r, msgid = lnondsp.gps_enable()
-                    t.report[3] = {ret=r, errno=msgid}
-                else
-                    r, msgid = lnondsp.gps_disable()
-                end
-            end, 
-            [4] = function(t)
-                local r, msgid
-                if t.select_status[4] then
-                    r, msgid = lnondsp.lcd_disable()
-                    t.report[4] = {ret=r, errno=msgid}
-                else
-                    r, msgid = lnondsp.lcd_enable()
-                end
-            end, 
-            [5] = function(t)
-                local pic_path = "/root/u3_logo.dat"
-                local width = 220
-                local height = 176
-                local r, msgid
-                if t.select_status[5] then
-                    r, msgid = lnondsp.lcd_display_static_image(pic_path, width, height)
-                    t.report[5] = {ret=r, errno=msgid}
-                end
-            end, 
-            [6] = function(t)
-                local pic_path = "/usr/slideshow_dat_for_fcc"
-                local range = 1  -- The time interval of showing two different images. 
-                local r, msgid
-                if t.select_status[6] then
-                    r, msgid = lnondsp.lcd_slide_show_test_start(pic_path, range)
-                    t.report[6] = {ret=r, errno=msgid}
-                else
-                    r, msgid = lnondsp.lcd_slide_show_test_stop()
-                end
-            end, 
-            [7] = function(t)
-                local r, msgid
-                if t.select_status[7] then
-                    r, msgid = lnondsp.led_selftest_start()
-                    t.report[7] = {ret=r, errno=msgid}
-                else
-                    r, msgid = lnondsp.led_selftest_stop()
-                end
-            end, 
+            [3] = defunc_enable_gps(3), 
+            [4] = defunc_disable_lcd(4), 
+            [5] = defunc_lcd_display_static_image(5), 
+            [6] = defunc_lcd_slide_show_test.start(6), 
+            [7] = defunc_led_selftest.start(7), 
         }, 
         stop_process = {
-            [1] = function(t)
+            [1] = function (t)
                 local r_des, msgid_des = ldsp.stop_rx_desense_scan()
             end, 
-            [2] = function(t)
-            
-            end, 
-            [3] = function(t)
-                local r, msgid
-                if t.select_status[3] then
-                    r, msgid = lnondsp.gps_disable()
-                end
-            end, 
-            [4] = function(t)
-                local r, msgid
-                if t.select_status[4] then
-                    r, msgid = lnondsp.lcd_disable()
-                end
-            end, 
-            [5] = function(t)  end, 
-            [6] = function(t)
-                local r, msgid
-                if t.select_status[6] then
-                    r, msgid = lnondsp.lcd_slide_show_test_stop()
-                end
-            end, 
-            [7] = function(t)
-                local r, msgid
-                if t.select_status[7] then
-                    r, msgid = lnondsp.led_selftest_stop()
-                end
-            end, 
+            [2] = function (t) end, 
+            [3] = function (t) end, 
+            [4] = function (t) end, 
+            [5] = function (t) end, 
+            [6] = defunc_lcd_slide_show_test.stop(6), 
+            [7] = defunc_led_selftest.stop(7), 
 
         }, 
-        test_process_start = function(t)
+        test_process_start = function (t)
             t.report = {}
             for i=1, table.getn(t) do
 				lua_log.i("test", "tx duty test start "..i)
@@ -332,14 +388,14 @@ RFT_MODE = {
                 end
             end
         end, 
-        test_process_stop = function(t)
+        test_process_stop = function (t)
             for i=1, table.getn(t) do
                 if "function" == type(t.stop_process[i]) then
                     t.stop_process[i](t)
                 end
             end
         end, 
-        test_process_report = function(t)
+        test_process_report = function (t)
             
         end, 
     }, 
@@ -359,7 +415,7 @@ RFT_MODE = {
         step_size = 0, 
         action_map = {
             [1] = get_para_func("freq", "Start freq(Hz)"), 
-            [2] = function(t) 
+            [2] = function (t) 
                 t.band_width = t[2].band_width
             end, 
             [3] = get_para_func("msr_step_num", "msr_step_num(0~50)"), 
@@ -389,7 +445,7 @@ RFT_MODE = {
         [4] = "samples(10~5000)", -- 测量的samples值 
         [5] = "delaytime(0~100s)", -- 每个波段measure的间隔时间，有效值范围 
         
-        test_process_start = function(t)
+        test_process_start = function (t)
             local cr = check_num_parameters(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime)
             if cr.ret then
                 local r_des, msgid_des = ldsp.start_rx_desense_scan(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime)
@@ -399,7 +455,7 @@ RFT_MODE = {
             
         end, 
         
-        test_process_stop = function(t)
+        test_process_stop = function (t)
             local r_des, msgid_des = ldsp.stop_rx_desense_scan()
         end
     }, 
@@ -416,22 +472,22 @@ RFT_MODE = {
             m_sub:action()
         end, 
         action_map = {
-            [1] = function(t)
+            [1] = function (t)
                 t.freq = t[1].freq
             end, 
-            [2] = function(t) 
+            [2] = function (t) 
                 t.band_width = t[2].band_width
             end, 
-            [3] = function(t)
+            [3] = function (t)
                 t.power = t[3].power
             end, 
-            [4] = function(t)
+            [4] = function (t)
                 t.audio_path = t[4].audio_path
             end, 
-            [5] = function(t)
+            [5] = function (t)
                 t.modulation = t[5].modulation
             end, 
-            [6] = function(t)
+            [6] = function (t)
                 t.trans_on_time = t[6].trans_on_time
                 t.trans_off_time = t[6].trans_off_time
             end, 
@@ -447,13 +503,13 @@ RFT_MODE = {
             tips  = "Select Freq", 
             multi_select_mode = false, 
             action_map = {
-                [1] = function(t)
+                [1] = function (t)
                     t.freq =  global_freq_band.start + 125 * 1000
                 end, 
-                [2] = function(t)
+                [2] = function (t)
                     t.freq =  (global_freq_band.start + global_freq_band.last) / 2 + 125 * 1000
                 end, 
-                [3] = function(t)
+                [3] = function (t)
                     t.freq =  global_freq_band.last - 875 * 1000
                 end, 
                 [4] = get_para_func("freq", "Freq(Hz)"), 
@@ -537,22 +593,18 @@ RFT_MODE = {
             "Tx off time(s)", 
         }, 
         
-        test_process_start = function(t)
+        test_process_start = function (t)
             local cr = check_num_parameters(t.freq, t.band_width, t.power, t.audio_path, t.modulation, t.trans_on_time, t.trans_off_time)
             if cr.ret then
-                posix.syslog(posix.LOG_ERR, "before call tx_duty_cycle_test_start ")
                 local r_des, msgid_des = ldsp.tx_duty_cycle_test_start(t.freq, t.band_width, t.power, t.audio_path, t.modulation, t.trans_on_time, t.trans_off_time)
-                posix.syslog(posix.LOG_ERR, "end of call tx_duty_cycle_test_start ")
             else
-                note_in_window("parameter error: check "..cr.errno.." "..cr.errmsg)
+                note_in_window("parameter error: check "..tostring(cr.errno).." "..tostring(cr.errmsg))
             end
             
         end, 
         
-        test_process_stop = function(t)
-                posix.syslog(posix.LOG_ERR, "before call tx_duty_cycle_test_stop ")
+        test_process_stop = function (t)
             local r_des, msgid_des = ldsp.tx_duty_cycle_test_stop()
-                posix.syslog(posix.LOG_ERR, "end of call tx_duty_cycle_test_stop ")
         end
         
     }, 
@@ -570,16 +622,16 @@ RFT_MODE = {
         end, 
         action_map = {
             [1] = get_para_func("freq", "Start freq(Hz)"), 
-            [2] = function(t) 
+            [2] = function (t) 
                 t.band_width = t[2].band_width
             end, 
-            [3] = function(t)
+            [3] = function (t)
                 t.power_level = t[3].power_level
             end, 
             [4] = get_para_func("start_delay", "Start delay(s)"), 
             [5] = get_para_func("step_size", "Step size"),  
             [6] = get_para_func("step_num", "Step num"), 
-            [7] = function(t)
+            [7] = function (t)
                 t.on_time = t[7].on_time
                 t.off_time = t[7].off_time
             end, 
@@ -635,24 +687,18 @@ RFT_MODE = {
             "Off time(s)", 
         }, 
         
-        test_process_start = function(t)
+        test_process_start = function (t)
             local cr = check_num_parameters(t.freq, t.band_width, t.power_level, t.start_delay, t.step_num, t.on_time, t.off_time)
             if cr.ret then
-                posix.syslog(posix.LOG_ERR, "before call two_way_transmit_start ")
                 local r_des, msgid_des = ldsp.two_way_transmit_start(t.freq, t.band_width, t.power_level, t.start_delay, t.step_num, t.on_time, t.off_time)
-                posix.syslog(posix.LOG_ERR, "end of call two_way_transmit_start ")
             else
-                posix.syslog(posix.LOG_ERR, "before note_in_window ")
                 note_in_window("parameter error: check "..cr.errno.." "..cr.errmsg)
-                posix.syslog(posix.LOG_ERR, "end of call note_in_window ")
             end
             
         end, 
         
-        test_process_stop = function(t)
-            posix.syslog(posix.LOG_ERR, "before call two_way_transmit_stop ")
+        test_process_stop = function (t)
             local r_des, msgid_des = ldsp.two_way_transmit_stop()
-            posix.syslog(posix.LOG_ERR, "end of call two_way_transmit_stop ")
         end
         
     }, 
@@ -667,29 +713,37 @@ FCC_MODE = {
     end, 
 
     action_map = {
-        [1] = function(t)
+        [1] = function (t)
             t.freq = t[1].freq
         end, 
-        [2] = function(t) 
+        [2] = function (t) 
             t.band_width = t[2].band_width
         end, 
-        [3] = function(t)
+        [3] = function (t)
             t.power = t[3].power
         end, 
-        [4] = function(t)
+        [4] = function (t)
             t.audio_path = t[4].audio_path
         end, 
-        [5] = function(t)
+        [5] = function (t)
             t.squelch = t[5].squelch
         end, 
-        [6] = function(t)
+        [6] = function (t)
             t.modulation = t[6].modulation
         end, 
-        [7] = function(t) end, 
+        [7] = defunc_enable_bt(7), 
     }, 
     action = function (t)
         if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
             t.action_map[t.select_index](t)
+        end
+        
+        if nil ~= g_bt or "table" == type(g_bt.menu_tab) then
+            for i=1, g_bt.menu_tab.devices_count do 
+                if g_bt.menu_tab.devices_connect_status[i] then
+                    t[4][3] = g_bt.menu_tab[i]
+                end
+            end
         end
     end, 
     [1] = {
@@ -697,13 +751,13 @@ FCC_MODE = {
         tips  = "Select Freq", 
         multi_select_mode = false, 
         action_map = {
-            [1] = function(t)
+            [1] = function (t)
                 t.freq =  global_freq_band.start + 125 * 1000
             end, 
-            [2] = function(t)
+            [2] = function (t)
                 t.freq =  (global_freq_band.start + global_freq_band.last) / 2 + 125 * 1000
             end, 
-            [3] = function(t)
+            [3] = function (t)
                 t.freq =  global_freq_band.last - 875 * 1000
             end, 
             [4] = get_para_func("freq", "Freq(Hz)"), 
@@ -752,7 +806,7 @@ FCC_MODE = {
         end, 
         "Internal speaker / mic", 
         "External speaker / mic", 
-        "BlueTooth (attempt to auto pair)", 
+        "BT device(show if pair)", 
     }, 
     [5] = {
         title = "Squelch", 
@@ -771,13 +825,13 @@ FCC_MODE = {
         tips  = "Select Modulation", 
         multi_select_mode = false, 
         action_map = {
-            [1] = function(t)
+            [1] = function (t)
                 t.modulation = 1
             end, 
-            [2] = function(t)
+            [2] = function (t)
                 t.modulation = t[2].analog
             end, 
-            [3] = function(t)
+            [3] = function (t)
                 t.modulation = t[3].digital
             end
         }, 
@@ -816,14 +870,7 @@ FCC_MODE = {
             "P25 Data", 
         }, 
     },  
-    [7] = {
-        title = "Enable Bluetooth", 
-        tips  = "Setting up bluetooth device", 
-        multi_select_mode = false, 
-        action = function (t)
-            
-        end, 
-    }, 
+    [7] = "Enable Bluetooth",
     [8] = "Enable GPS", 
     [9] = "Disable LCD", 
     [10]= "Show static image(LCD)", 
@@ -831,7 +878,7 @@ FCC_MODE = {
     [12]= "Enable LED test", 
 
     test_process = {
-        [1] = function(t)
+        [1] = function (t)
             local cr = check_num_parameters(t.freq, t.band_width, t.power, t.audio_path, t.squelch, t.modulation)
             if cr.ret then
                 local r_des, msgid_des = ldsp.fcc_start(t.freq, t.band_width, t.power, t.audio_path, t.squelch, t.modulation)
@@ -840,105 +887,39 @@ FCC_MODE = {
             end
 
         end, 
-        [7] = function(t)
+        [7] = function (t)
         
         end, 
-        [8] = function(t)
-            local r, msgid
-            if t.select_status[8] then
-                r, msgid = lnondsp.gps_enable()
-                t.report[8] = {ret=r, errno=msgid}
-            else
-                r, msgid = lnondsp.gps_disable()
-            end
-        end, 
-        [9] = function(t)
-            local r, msgid
-            if t.select_status[9] then
-                r, msgid = lnondsp.lcd_disable()
-                t.report[9] = {ret=r, errno=msgid}
-            else
-                r, msgid = lnondsp.lcd_enable()
-            end
-        end, 
-        [10] = function(t)
-            local pic_path = "/root/u3_logo.dat"
-            local width = 220
-            local height = 176
-            local r, msgid
-            if t.select_status[10] then
-                r, msgid = lnondsp.lcd_display_static_image(pic_path, width, height)
-                t.report[10] = {ret=r, errno=msgid}
-            end
-        end, 
-        [11] = function(t)
-            local pic_path = "/usr/slideshow_dat_for_fcc"
-            local range = 1  -- The time interval of showing two different images. 
-            local r, msgid
-            if t.select_status[11] then
-                r, msgid = lnondsp.lcd_slide_show_test_start(pic_path, range)
-                t.report[11] = {ret=r, errno=msgid}
-            else
-                r, msgid = lnondsp.lcd_slide_show_test_stop()
-            end
-        end, 
-        [12] = function(t)
-            local r, msgid
-            if t.select_status[12] then
-                r, msgid = lnondsp.led_selftest_start()
-                t.report[12] = {ret=r, errno=msgid}
-            else
-                r, msgid = lnondsp.led_selftest_stop()
-            end
-        end, 
+        [8] = defunc_enable_gps(8), 
+        [9] = defunc_disable_lcd(9), 
+        [10] = defunc_lcd_display_static_image(10), 
+        [11] = defunc_lcd_slide_show_test.start(11), 
+        [12] = defunc_led_selftest.start(12), 
     }, 
     stop_process = {
-        [1] = function(t)
+        [1] = function (t)
             local r_des, msgid_des = ldsp.fcc_stop()
         end, 
-        [7] = function(t)
-        
-        end, 
-        [8] = function(t)
-            local r, msgid
-            if t.select_status[8] then
-                r, msgid = lnondsp.gps_disable()
-            end
-        end, 
-        [9] = function(t)
-            local r, msgid
-            if t.select_status[9] then
-                r, msgid = lnondsp.lcd_disable()
-            end
-        end, 
-        [10] = function(t)  end, 
-        [11] = function(t)
-            local r, msgid
-            if t.select_status[11] then
-                r, msgid = lnondsp.lcd_slide_show_test_stop()
-            end
-        end, 
-        [12] = function(t)
-            local r, msgid
-            if t.select_status[12] then
-                r, msgid = lnondsp.led_selftest_stop()
-            end
-        end, 
+        [7] = function (t) end, 
+        [8] = function (t) end, 
+        [9] = function (t) end, 
+        [10] = function (t) end, 
+        [11] = defunc_lcd_slide_show_test.stop(11), 
+        [12] = defunc_led_selftest.stop(12), 
 
     }, 
-    test_process_start = function(t)
+    test_process_start = function (t)
         if "function" == type(t.test_process[1]) then
             t.test_process[1](t)
         end
         t.report = {}
         for i=7, 12 do
-            lua_log.i("test", "tx duty test start "..i)
             if "function" == type(t.test_process[i]) then
                 t.test_process[i](t)
             end
         end
     end, 
-    test_process_stop = function(t)
+    test_process_stop = function (t)
         if "function" == type(t.stop_process[1]) then
             t.stop_process[1](t)
         end
@@ -948,7 +929,8 @@ FCC_MODE = {
             end
         end
     end, 
-    test_process_report = function(t)
+
+    test_process_report = function (t)
         
     end, 
 }
@@ -961,15 +943,13 @@ Bluetooth_MODE = {
         init_global_env()
     end, 
     action_map = {
-        [1] = function(t)
-
-        end, 
-        [2] = function(t) 
-
+        [1] = defunc_enable_bt(1), 
+        [2] = function (t) 
+            t.freq = t[2].freq
+            t.data_rate = t[2].data_rate
         end, 
     }, 
     action = function (t)
-        
         if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
             t.action_map[t.select_index](t)
         end
@@ -981,9 +961,8 @@ Bluetooth_MODE = {
         multi_select_mode = false, 
 
         action = function (t)
-            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
-                t.action_map[t.select_index](t)
-            end
+            t.freq = t[1].freq
+            t.data_rate = t[2].data_rate
         end, 
         [1] =     {
             title = "Frequency", 
@@ -1029,7 +1008,7 @@ Bluetooth_MODE = {
             }, 
         }
     }, 
-    [3] = "Enable 2way(ch1 Knob settings)", 
+    [3] = "Enable 2way(ch1 Knob)", 
     [4] = "Enable GPS",  
         --[[ display to user'acquiring GPS signal'.Once acquired display to the user
               the 'latitude and longitude' of the fixes
@@ -1038,6 +1017,46 @@ Bluetooth_MODE = {
     [6] = "Show static image(LCD)", 
     [7] = "Enable slide show", 
     [8] = "Enable LED test", 
+    
+    test_process = {
+        [1] = function (t) end, 
+        [2] = defunc_bt_txdata1_transmitter.start(2), 
+        [3] = defunc_2way_ch1_knob_settings.start(3), 
+        [4] = defunc_enable_gps(4), 
+        [5] = defunc_disable_lcd(5), 
+        [6] = defunc_lcd_display_static_image(6), 
+        [7] = defunc_lcd_slide_show_test.start(7), 
+        [8] = defunc_led_selftest.start(8), 
+    }, 
+    stop_process = {
+        [1] = function (t) end, 
+        [2] = function (t)
+            lnondsp.bt_txdata1_transmitter_stop()
+        end, 
+        [3] = defunc_2way_ch1_knob_settings.stop(3), 
+        [4] = function (t) end, 
+        [5] = function (t) end, 
+        [6] = function (t) end, 
+        [7] = defunc_lcd_slide_show_test.stop(7), 
+        [8] = defunc_led_selftest.stop(8), 
+
+    }, 
+    test_process_start = function (t)
+        t.report = {}
+        for i=1, 8 do
+            if "function" == type(t.test_process[i]) then
+                t.test_process[i](t)
+            end
+        end
+    end, 
+    test_process_stop = function (t)
+        for i=1, 8 do
+            if "function" == type(t.stop_process[i]) then
+                t.stop_process[i](t)
+            end
+        end
+    end, 
+
 }
 
 GPS_MODE = {
@@ -1048,25 +1067,13 @@ GPS_MODE = {
         init_global_env()
     end, 
     action_map = {
-        [1] = function(t)
-
-        end, 
-        [2] = function(t) 
-
-        end, 
-        [3] = function(t)
-
-        end, 
-        [4] = function(t)
-
-        end, 
-        [5] = function(t)
-
-        end, 
-        [6] = function(t)
-
-        end, 
-        [7] = function(t) end, 
+        [1] = function (t) end, 
+        [2] = function (t) end, 
+        [3] = function (t) end, 
+        [4] = defunc_enable_bt(4), 
+        [5] = function (t) end, 
+        [6] = function (t) end, 
+        [7] = function (t) end, 
     }, 
     action = function (t)
         if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
@@ -1080,6 +1087,12 @@ GPS_MODE = {
         title = "Functional", 
         tips  = "", 
         multi_select_mode = false, 
+        action_map = {
+            [1] = function (t) end, 
+            [2] = function (t) end, 
+            [3] = function (t) end, 
+            [4] = function (t) end, 
+        }, 
 
         action = function (t)
             if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
@@ -1092,7 +1105,12 @@ GPS_MODE = {
         title = "Hardware", 
         tips  = "Hardware test", 
         multi_select_mode = false, 
-
+        action_map = {
+            [1] = function (t) end, 
+            [2] = function (t) end, 
+            [3] = function (t) end, 
+            [4] = function (t) end, 
+        }, 
         action = function (t)
             if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
                 t.action_map[t.select_index](t)
@@ -1103,7 +1121,7 @@ GPS_MODE = {
         [3] = "Tracking time", 
         [4] = "Time between measurements"
     }, 
-    [3] = "Enable 2way(ch1 Knob settings)", 
+    [3] = "Enable 2way(ch1 Knob)", 
     [4] = "Enable Bluetooth",  
         --[[ Attempt to pair with a previously connected headset.
             If there is no previous connection, display to the user the Bluetooth device(s)
@@ -1113,6 +1131,44 @@ GPS_MODE = {
     [6] = "Show static image(LCD)", 
     [7] = "Enable slide show", 
     [8] = "Enable LED test", 
+
+    test_process = {
+        [1] = function (t) end, 
+        [2] = function (t) end, 
+        [3] = defunc_2way_ch1_knob_settings.start(3), 
+        [4] = function (t) end, 
+        [5] = defunc_disable_lcd(5), 
+        [6] = defunc_lcd_display_static_image(6), 
+        [7] = defunc_lcd_slide_show_test.start(7), 
+        [8] = defunc_led_selftest.start(8), 
+    }, 
+    stop_process = {
+        [1] = function (t) end, 
+        [2] = function (t) end, 
+        [3] = defunc_2way_ch1_knob_settings.stop(3), 
+        [4] = function (t) end, 
+        [5] = function (t) end, 
+        [6] = function (t) end, 
+        [7] = defunc_lcd_slide_show_test.stop(7), 
+        [8] = defunc_led_selftest.stop(8), 
+
+    }, 
+    test_process_start = function (t)
+        t.report = {}
+        for i=1, 8 do
+            lua_log.i("test", "tx duty test start "..i)
+            if "function" == type(t.test_process[i]) then
+                t.test_process[i](t)
+            end
+        end
+    end, 
+    test_process_stop = function (t)
+        for i=1, 8 do
+            if "function" == type(t.stop_process[i]) then
+                t.stop_process[i](t)
+            end
+        end
+    end, 
 }
 
 BaseBand_MODE = {
@@ -1123,22 +1179,11 @@ BaseBand_MODE = {
         init_global_env()
     end, 
     action_map = {
-        [1] = function(t)
-            
-        end, 
-        [2] = function(t) 
-            
-        end, 
-        [3] = function(t)
-            
-        end, 
-        [4] = function(t)
-            
-        end, 
-        [5] = function(t)
-            
-        end, 
-
+        [1] = function (t) end, 
+        [2] = function (t) end, 
+        [3] = function (t) end, 
+        [4] = function (t) end, 
+        [5] = function (t) end, 
     }, 
     action = function (t)
         if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
@@ -1153,27 +1198,18 @@ BaseBand_MODE = {
     [5]= "Enable LED test", 
 }
 
-
 Field_MODE = {
-    title = "Bluetooth", 
+    title = "Field test", 
     tips  = "Press * to start and # to end test", 
     multi_select_mode = true, 
     init_env = function ()
         init_global_env()
     end, 
     action_map = {
-        [1] = function(t)
-
-        end, 
-        [2] = function(t) 
-
-        end, 
-        [3] = function(t)
-
-        end, 
-        [4] = function(t)
-
-        end, 
+        [1] = function (t) end, 
+        [2] = function (t) end, 
+        [3] = defunc_enable_bt(3), 
+        [4] = function (t) end, 
     }, 
     action = function (t)
         if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
@@ -1182,35 +1218,53 @@ Field_MODE = {
     end, 
     [1] = "Calibrate Radio Oscillator", 
     [2] = "Restor default Radio Oscillator Calibration", 
-    [3] = {
-        title = "Find BT Device", 
-        tips  = "Find BT Device", 
-        multi_select_mode = false, 
-
-        action = function (t)
-            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
-                t.action_map[t.select_index](t)
-            end
-        end, 
-
-    }, 
+    [3] = "Find BT Device", 
     [4] = "Enable GPS",  
         --[[ display to user'acquiring GPS signal'.Once acquired display to the user
               the 'latitude and longitude' of the fixes
         --]] 
-}
+    
+    test_process = {
+        [1] = function (t) end, 
+        [2] = function (t) end, 
+        [3] = function (t) end,  
+        [4] = defunc_enable_gps(4), 
+    }, 
+    stop_process = {
+        [1] = function (t) end, 
+        [2] = function (t) end, 
+        [3] = function (t) end, 
+        [4] = function (t) end, 
 
+    }, 
+    test_process_start = function (t)
+        t.report = {}
+        for i=1, 4 do
+            if "function" == type(t.test_process[i]) then
+                t.test_process[i](t)
+            end
+        end
+    end, 
+    test_process_stop = function (t)
+        for i=1, 4 do
+            if "function" == type(t.stop_process[i]) then
+                t.stop_process[i](t)
+            end
+        end
+    end, 
+
+}
 
 MODE_SWITCH = {
     title = "Front Panel Mode Ctl", 
     tips  = "select mode, and * to switch", 
     multi_select_mode = false, 
     action_map = {
-        [1] = function(t)
+        [1] = function (t)
             global_fpl_mode = t[1].fpl_mode
             t.fpl_mode_name = t[1].fpl_mode_name
         end, 
-        [2] = function(t) 
+        [2] = function (t) 
             t.reboot_mode = "app"
         end, 
     }, 
@@ -1225,30 +1279,32 @@ MODE_SWITCH = {
         tips  = "select and reboot", 
         multi_select_mode = false, 
         action_map = {
-            [1] = function(t)
+            [1] = function (t)
                 t.fpl_mode = RFT_MODE
                 t.fpl_mode_name = "RFT_MODE"
             end, 
-            [2] = function(t) 
+            [2] = function (t) 
                 t.fpl_mode = FCC_MODE
                 t.fpl_mode_name = "FCC_MODE"
             end, 
-            [3] = function(t)
+            [3] = function (t)
                 t.fpl_mode = Bluetooth_MODE
                 t.fpl_mode_name = "Bluetooth_MODE"
             end, 
-            [4] = function(t)
+            [4] = function (t)
                 t.fpl_mode = GPS_MODE
                 t.fpl_mode_name = "GPS_MODE"
             end, 
-            [5] = function(t)
+            [5] = function (t)
                 t.fpl_mode = Field_MODE
                 t.fpl_mode_name = "Field_MODE"
             end, 
-            [6] = function(t)
+            --[[
+            [6] = function (t)
                 t.fpl_mode = BaseBand_MODE
                 t.fpl_mode_name = "BaseBand_MODE"
-            end, 
+            end,
+            --]] 
         }, 
         action = function (t)
             if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
@@ -1282,7 +1338,7 @@ MODE_SWITCH = {
             end
         end, 
     }, 
-    test_process_start = function(t)
+    test_process_start = function (t)
         switch_self_refresh(true)
         for i=1, table.getn(t.test_process) do
             if t.select_status[i] then
@@ -1295,10 +1351,10 @@ MODE_SWITCH = {
 }
 
 
-table_info = function(t)
+table_info = function (t)
     return {
         num = table.getn(t), 
-        get_item = function(n)
+        get_item = function (n)
             if "string" == type(n) then
                 for k, v in pairs(t) do
                     if v == n then
@@ -1315,7 +1371,7 @@ table_info = function(t)
                 lua_log.e("table_info", "get_item() type err: "..type(n))
             end
         end, 
-        get_group = function()
+        get_group = function ()
             local num = table.getn(t)
             local gp = {}
             for k, v in ipairs(t) do

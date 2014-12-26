@@ -6,7 +6,7 @@ require "posix"
 ldsp.bit_launch_dsp()
 ldsp.register_callbacks()
 ldsp.start_dsp_service()
-
+--[[
 ldsp.start_rx_desense_scan(148012500,1,6250,6,6,10,2)
 posix.sleep(100)
 ldsp.stop_rx_desense_scan()
@@ -45,3 +45,6 @@ posix.sleep(60)
 ldsp.two_way_transmit_start(148012500,1,1,2,6250,10,2,2)
 posix.sleep(100)
 ldsp.two_way_transmit_stop()
+--]]
+
+ldsp.fcc_test(136000000, 1, 0, 1, 2, 8)

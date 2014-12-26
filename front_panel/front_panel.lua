@@ -63,7 +63,6 @@ while true do
     while not global_fpl_mode do
         fpm:show()
         fpm:action()
-        note_in_window("exit MODE_SWITCH")
     end
 
     local m = create_main_menu(global_fpl_mode)
