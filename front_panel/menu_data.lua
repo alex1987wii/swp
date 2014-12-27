@@ -194,6 +194,16 @@ defunc_bt_txdata1_transmitter = {
     start = function (list_index) 
         return function (t)
             local r, msgid
+            if nil == t.freq or "number" ~= type(t.freq) then
+                posix.syslog(posix.LOG_ERR, "bt_txdata1_transmitter freq error")
+                note_in_window("bt_txdata1_transmitter freq error")
+                return false
+            end
+            if nil == t.data_rate or "string" ~= type(t.data_rate) then
+                posix.syslog(posix.LOG_ERR, "bt_txdata1_transmitter data_rate error")
+                note_in_window("bt_txdata1_transmitter data_rate error")
+                return false
+            end
             if t.select_status[list_index] then
                 r, msgid = lnondsp.bt_txdata1_transmitter_start(t.freq, t.data_rate)
                 t.report[list_index] = {ret=r, errno=msgid}
@@ -235,6 +245,63 @@ defunc_2way_ch1_knob_settings = {
         end
     end
 }
+
+defunc_calibrate_radio_oscillator_test = function(list_index)
+    ldsp.calibrate_radio_oscillator_start()
+    
+    local menu_tab = {
+        title = "Cal radiooscillator", 
+        tips  = "Enter the afc value to setting, * to save it", 
+        multi_select_mode = false, 
+    }
+
+    local r = ldsp.get_original_afc_val()
+    if r.ret then
+        menu_tab.afc_val = r.afc_val
+    end
+    menu_tab[1] = "AFC Value: "..tostring(menu_tab.afc_val)
+    
+    menu_tab.new_main_menu = function(tab)
+        local m_sub = create_main_menu(tab)
+        m_sub:show()
+        m_sub:action()
+    end
+    
+    menu_tab.action_map = {
+        [1] = get_para_func("afc_val", "keyin afc_val")
+    }
+    menu_tab.action = function (tab)
+        if ((tab.select_index ~= nil) and ("function" == type(tab.action_map[tab.select_index]))) then
+            tab.action_map[tab.select_index](tab)
+        end
+        
+        if nil == tab.afc_val or "number" ~= type(tab.afc_val) then
+            posix.syslog(posix.LOG_ERR, "calibrate_radio_oscillator_test, afc_val "..tostring(tab.afc_val))
+            note_in_window("calibrate_radio_oscillator_test, afc_val "..tostring(tab.afc_val))
+            return false
+        end
+        ldsp.calibrate_radio_oscillator_set_val(tab.afc_val)
+        tab[1] = "AFC Value: "..tostring(menu_tab.afc_val)
+    end
+    
+    menu_tab.test_process_start = function (tab)
+        ldsp.save_radio_oscillator_calibration()
+        tab.test_process_start_call = false
+    end
+
+    return function(t)
+        if "nil" == type(t[list_index]) then
+            posix.syslog(posix.LOG_ERR, "calibrate_radio_oscillator_test item nil")
+            note_in_window("calibrate_radio_oscillator_test item nil")
+            t[list_index] = "Cal radiooscillator"
+        elseif "string" == type(t[list_index]) then
+            t[list_index] = menu_tab
+            local m = create_main_menu(t[list_index])
+            m:show()
+            m:action()
+        end
+    end
+end
 
 
 RFT_MODE = {
@@ -887,9 +954,7 @@ FCC_MODE = {
             end
 
         end, 
-        [7] = function (t)
-        
-        end, 
+        [7] = function (t) end, 
         [8] = defunc_enable_gps(8), 
         [9] = defunc_disable_lcd(9), 
         [10] = defunc_lcd_display_static_image(10), 
@@ -1171,33 +1236,6 @@ GPS_MODE = {
     end, 
 }
 
-BaseBand_MODE = {
-    title = "BaseBand Test", 
-    tips  = "Select the test item, move and space to select", 
-    multi_select_mode = true, 
-    init_env = function ()
-        init_global_env()
-    end, 
-    action_map = {
-        [1] = function (t) end, 
-        [2] = function (t) end, 
-        [3] = function (t) end, 
-        [4] = function (t) end, 
-        [5] = function (t) end, 
-    }, 
-    action = function (t)
-        if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
-            t.action_map[t.select_index](t)
-        end
-    end, 
-
-    [1] = "Enable GPS", 
-    [2] = "Disable LCD", 
-    [3]= "Show static image(LCD)", 
-    [4]= "Enable slide show", 
-    [5]= "Enable LED test", 
-}
-
 Field_MODE = {
     title = "Field test", 
     tips  = "Press * to start and # to end test", 
@@ -1206,8 +1244,11 @@ Field_MODE = {
         init_global_env()
     end, 
     action_map = {
-        [1] = function (t) end, 
-        [2] = function (t) end, 
+        [1] = defunc_calibrate_radio_oscillator_test(1), 
+        [2] = function (t) 
+            ldsp.restore_default_radio_oscillator_calibration()
+            note_in_window("Restore default radio oscillator calibration, any key exit")
+        end, 
         [3] = defunc_enable_bt(3), 
         [4] = function (t) end, 
     }, 
@@ -1216,8 +1257,8 @@ Field_MODE = {
             t.action_map[t.select_index](t)
         end
     end, 
-    [1] = "Calibrate Radio Oscillator", 
-    [2] = "Restor default Radio Oscillator Calibration", 
+    [1] = "Cal Radio Oscillator", 
+    [2] = "Restore default Radio Oscillator Calibration", 
     [3] = "Find BT Device", 
     [4] = "Enable GPS",  
         --[[ display to user'acquiring GPS signal'.Once acquired display to the user
@@ -1253,6 +1294,33 @@ Field_MODE = {
         end
     end, 
 
+}
+
+BaseBand_MODE = {
+    title = "BaseBand Test", 
+    tips  = "Select the test item, move and space to select", 
+    multi_select_mode = true, 
+    init_env = function ()
+        init_global_env()
+    end, 
+    action_map = {
+        [1] = function (t) end, 
+        [2] = function (t) end, 
+        [3] = function (t) end, 
+        [4] = function (t) end, 
+        [5] = function (t) end, 
+    }, 
+    action = function (t)
+        if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+            t.action_map[t.select_index](t)
+        end
+    end, 
+
+    [1] = "Enable GPS", 
+    [2] = "Disable LCD", 
+    [3]= "Show static image(LCD)", 
+    [4]= "Enable slide show", 
+    [5]= "Enable LED test", 
 }
 
 MODE_SWITCH = {

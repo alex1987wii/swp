@@ -659,11 +659,12 @@ static int ldsp_fcc_stop(lua_State *L)
 }
 
 /* field test interface
-int calibrate_radio_oscillator_start(void);
-int get_original_afc_val(unsigned short *current_afc_val);
-int calibrate_radio_oscillator_set_val(unsigned short afc_val);
-int save_radio_oscillator_calibration(void);
-int calibrate_radio_oscillator_stop(void);
+ * int calibrate_radio_oscillator_start(void);
+ * int get_original_afc_val(unsigned short *current_afc_val);
+ * int calibrate_radio_oscillator_set_val(unsigned short afc_val);
+ * int save_radio_oscillator_calibration(void);
+ * int calibrate_radio_oscillator_stop(void);
+ * int restore_default_radio_oscillator_calibration(void);
  */
 static int ldsp_calibrate_radio_oscillator_start(lua_State *L)
 {
@@ -759,6 +760,21 @@ static int ldsp_calibrate_radio_oscillator_stop(lua_State *L)
     int ret = -1;
 
     ret = calibrate_radio_oscillator_stop();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+static int ldsp_restore_default_radio_oscillator_calibration(lua_State *L)
+{
+    int ret = -1;
+
+    ret = restore_default_radio_oscillator_calibration();
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -1195,6 +1211,7 @@ static const struct luaL_reg dsp_lib[] =
     NF(calibrate_radio_oscillator_set_val), 
     NF(save_radio_oscillator_calibration), 
     NF(calibrate_radio_oscillator_stop), 
+    NF(restore_default_radio_oscillator_calibration), 
     
 #if ( defined (CONFIG_PROJECT_U4) || defined (CONFIG_PROJECT_G3) || defined (CONFIG_PROJECT_M1) || defined (CONFIG_PROJECT_M1RU) )
     NF(read_dsp_audio_samples_data), 

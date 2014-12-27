@@ -112,3 +112,15 @@ function newlog(logbasename)
 		name = logfname
 	}
 end
+
+slog = {
+    notice = function (s)
+        posix.syslog(posix.LOG_NOTICE, s)
+        note_in_window(s)
+    end, 
+    
+    err = function (...)
+        posix.syslog(posix.LOG_NOTICE, s)
+        note_in_window(s)
+    end
+}
