@@ -17,8 +17,12 @@ NONDSP_EVT = {
     [13] = "ECOMPASSSENSOR", 
     [14] = "GSM", 
     GPS = {
-        [1] = "EVENT_REPORT", 
-        [2] = "RCD_STORAGE_DATA_OK", 
+        [1] = "REQ_RESULT", 
+        [2] = "FIRM_VER", 
+        [3] = "GPS_FIXED", 
+        [4] = "PACKET_DUMP", 
+        [5] = "CURRENT_MODE", 
+        [6] = "TEST_MODE_INFO", 
     }, 
     BT = {
         [1]  = "ENABLE_STATE",

@@ -13,17 +13,15 @@ local freq_band = {
     U3_2ND = {start=763 * 1000 * 1000, last = 890 * 1000 * 1000}, 
 }
 
-device_type = read_attr_file("/proc/sys/kernel/hostname")
+device_type = read_config_mk_file("/etc/sconfig.mk", "Project")
 
-if "u3" == device_type then
+if "u3" == tostring(device_type) then
     global_freq_band = freq_band.VHF
-elseif "u3_2nd" == device_type then
+elseif "u3_2nd" == tostring(device_type) then
     global_freq_band = freq_band.U3_2ND
 else
     posix.syslog(posix.LOG_ERR, "not support device type : "..tostring(device_type))
 end
-
-global_freq_band = freq_band.U3_2ND
 
 function check_num_range(num, ...)
     if "number" ~= type(num) then
@@ -247,7 +245,6 @@ defunc_2way_ch1_knob_settings = {
 }
 
 defunc_calibrate_radio_oscillator_test = function(list_index)
-    ldsp.calibrate_radio_oscillator_start()
     
     local menu_tab = {
         title = "Cal radiooscillator", 
@@ -255,14 +252,20 @@ defunc_calibrate_radio_oscillator_test = function(list_index)
         multi_select_mode = false, 
     }
 
-    local r = ldsp.get_original_afc_val()
-    if r.ret then
-        menu_tab.afc_val = r.afc_val
+    menu_tab.init_env = function (tab) 
+        ldsp.calibrate_radio_oscillator_start()
+        local r = ldsp.get_original_afc_val()
+        if r.ret then
+            tab.afc_val = r.afc_val
+            posix.syslog(posix.LOG_ERR, "get_original_afc_val, afc_val "..tostring(tab.afc_val))
+        end
+        posix.syslog(posix.LOG_NOTICE, "get_original_afc_val, afc_val "..tostring(tab.afc_val))
+        tab[1] = "AFC Value: "..tostring(tab.afc_val)
     end
-    menu_tab[1] = "AFC Value: "..tostring(menu_tab.afc_val)
     
     menu_tab.new_main_menu = function(tab)
         local m_sub = create_main_menu(tab)
+
         m_sub:show()
         m_sub:action()
     end
@@ -293,7 +296,7 @@ defunc_calibrate_radio_oscillator_test = function(list_index)
         if "nil" == type(t[list_index]) then
             posix.syslog(posix.LOG_ERR, "calibrate_radio_oscillator_test item nil")
             note_in_window("calibrate_radio_oscillator_test item nil")
-            t[list_index] = "Cal radiooscillator"
+            t[list_index] = "Cal radio oscillator"
         elseif "string" == type(t[list_index]) then
             t[list_index] = menu_tab
             local m = create_main_menu(t[list_index])
@@ -316,7 +319,7 @@ RFT_MODE = {
         title = "Rx Desense Test", 
         tips  = "Rx Desense Test", 
         multi_select_mode = true, 
-        init_env = function ()
+        init_env = function (t)
             init_global_env()
         end, 
         new_main_menu = function (t)
@@ -470,7 +473,7 @@ RFT_MODE = {
         title = "Rx Antenna Gain Test", 
         tips  = "* start; up down key move to config", 
         multi_select_mode = true, 
-        init_env = function ()
+        init_env = function (t)
             init_global_env()
         end, 
         new_main_menu = function (t)
@@ -530,7 +533,7 @@ RFT_MODE = {
         title = "Tx with a duty cycle", 
         tips  = "Tx only with a settable duty cycle", 
         multi_select_mode = true, 
-        init_env = function ()
+        init_env = function (t)
             init_global_env()
         end, 
         new_main_menu = function (t)
@@ -679,7 +682,7 @@ RFT_MODE = {
         title = "Tx Antenna Gain Test", 
         tips  = "Tx Antenna Gain Test", 
         multi_select_mode = true, 
-        init_env = function ()
+        init_env = function (t)
             init_global_env()
         end, 
         new_main_menu = function (t)
@@ -775,7 +778,7 @@ FCC_MODE = {
     title = "Front Panel", 
     tips  = "Select the test item, move and space to select", 
     multi_select_mode = true, 
-    init_env = function ()
+    init_env = function (t)
         init_global_env()
     end, 
 
@@ -1004,7 +1007,7 @@ Bluetooth_MODE = {
     title = "Bluetooth", 
     tips  = "Press * to start and # to end test", 
     multi_select_mode = true, 
-    init_env = function ()
+    init_env = function (t)
         init_global_env()
     end, 
     action_map = {
@@ -1128,7 +1131,7 @@ GPS_MODE = {
     title = "GPS Test", 
     tips  = "Press * to start. The test will stop automatically", 
     multi_select_mode = true, 
-    init_env = function ()
+    init_env = function (t)
         init_global_env()
     end, 
     action_map = {
@@ -1240,7 +1243,7 @@ Field_MODE = {
     title = "Field test", 
     tips  = "Press * to start and # to end test", 
     multi_select_mode = true, 
-    init_env = function ()
+    init_env = function (t)
         init_global_env()
     end, 
     action_map = {
@@ -1300,7 +1303,7 @@ BaseBand_MODE = {
     title = "BaseBand Test", 
     tips  = "Select the test item, move and space to select", 
     multi_select_mode = true, 
-    init_env = function ()
+    init_env = function (t)
         init_global_env()
     end, 
     action_map = {
@@ -1325,7 +1328,7 @@ BaseBand_MODE = {
 
 MODE_SWITCH = {
     title = "Front Panel Mode Ctl", 
-    tips  = "select mode, and * to switch", 
+    tips  = "select mode, <- to switch and * reboot to switch", 
     multi_select_mode = false, 
     action_map = {
         [1] = function (t)

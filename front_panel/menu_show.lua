@@ -93,8 +93,8 @@ note_in_window = function(note)
 end
 
 create_main_menu = function(main_menu_table)
-    if "function" == type(main_menu_table.init_env) then
-        main_menu_table.init_env()
+    if nil ~= main_menu_table.init_env and "function" == type(main_menu_table.init_env) then
+        main_menu_table:init_env()
     end
     
     return {
@@ -207,7 +207,7 @@ create_main_menu = function(main_menu_table)
                         end
                     end
                     
-                    if "function" == type(menu_table.action) then
+                    if nil ~= menu_table.action and "function" == type(menu_table.action) then
                          menu_table:action()
                     end
                     

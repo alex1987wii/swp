@@ -708,7 +708,7 @@ static int ldsp_calibrate_radio_oscillator_set_val(lua_State *L)
     int argcnt = 0;
     
 	argcnt = lua_gettop(L);
-    if (argcnt != 0) {
+    if (argcnt != 1) {
         log_err("ldsp_calibrate_radio_oscillator_set_val argcnt != 1\n");
         lua_newtable(L);
         lua_pushboolean2table(L, "ret", FALSE);

@@ -34,7 +34,7 @@
 #include <bitnondsp_adapter.h>
 #include <bitnondsp_struct.h>
 #include <led.h>
-#include <gps.h>
+#include <bit_gps.h>
 #include <lcd.h>
 #include <bluetooth.h>
 
@@ -46,6 +46,12 @@
 
 #define LUA_LNONDSP_LIBNAME "lnondsp"
 LUALIB_API int luaopen_lnondsp(lua_State *L);
+
+#define lua_pushnumber2table(L,key,val) do{\
+	lua_pushstring(L, key);\
+	lua_pushnumber(L, val);\
+	lua_settable(L, -3);\
+}while(0)
 
 #define lua_pushinteger2table(L,key,val) do{\
 	lua_pushstring(L, key);\

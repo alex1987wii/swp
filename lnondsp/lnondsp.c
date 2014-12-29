@@ -195,8 +195,78 @@ static int lnondsp_get_evt_item(lua_State *L)
             }
                 break;
         }
-    }
+    } else if (NONDSP_EVT_GPS == evt.evt){
+        switch(evt.evi) {
 
+            case NONDSP_EVT_GPS_REQ_RESULT:
+            {
+                gps_request_result_t *req_result = (gps_request_result_t *)evt.buf;
+                lua_pushinteger2table(L, "state", req_result->state);
+            }
+                break; 
+
+            case NONDSP_EVT_GPS_FIRM_VER:
+            {
+                gps_event_firmware_version_t *fw = (gps_event_firmware_version_t *)evt.buf;
+                fw ++; 
+                lua_pushstring2table(L, "fw_version", (unsigned char *)fw);
+            }
+                break; 
+
+            case NONDSP_EVT_GPS_FIXED:
+            {
+                gps_event_ttff_t *ttff = (gps_event_ttff_t *)evt.buf;
+                lua_pushinteger2table(L, "fixed", ttff->fixed);         /* 1: fixed, other: no fixed */
+                lua_pushinteger2table(L, "TTFF", ttff->TTFF);           /* unit: second */
+                lua_pushnumber2table(L, "latitude", ttff->latitude);   /* unit: degree */
+                lua_pushnumber2table(L, "longitude", ttff->longitude); /* unit: degree */
+                lua_pushnumber2table(L, "altitude", ttff->altitude);   /* unit: meters */
+                
+            }
+                break; 
+
+            case NONDSP_EVT_GPS_PACKET_DUMP:
+            {
+                gps_event_packet_dump_t *packet = (gps_event_packet_dump_t *)evt.buf;
+                lua_pushinteger2table(L, "len", (int)packet->len); 
+                lua_pushinteger2table(L, "type", (int)packet->type); /* 1: NMEA, 0: SIRF */
+                if (packet->type == GPS_NMEA_PROTOCOL) {
+                    packet ++;
+                    lua_pushstring2table(L, "msg", (unsigned char *)packet);
+                }
+            }
+                break; 
+
+            case NONDSP_EVT_GPS_CURRENT_MODE:
+            {
+                gps_event_current_mode_t *cur_mode = (gps_event_current_mode_t *)evt.buf;
+                lua_pushinteger2table(L, "mode", cur_mode->mode);
+            }
+                break; 
+
+            case NONDSP_EVT_GPS_TEST_MODE_INFO:
+            {
+                gps_event_hw_test_mode_info_t *hw_test_info = (gps_event_hw_test_mode_info_t *)evt.buf;
+                lua_pushinteger2table(L, "SVid", hw_test_info->SVid);
+                lua_pushinteger2table(L, "Period", hw_test_info->Period);
+                lua_pushinteger2table(L, "bit_sync_time", (unsigned int)hw_test_info->bit_sync_time);
+                lua_pushnumber2table(L, "CNo_mean", hw_test_info->CNo_mean);
+                lua_pushnumber2table(L, "CNo_sigma", hw_test_info->CNo_sigma);
+                lua_pushnumber2table(L, "clock_drift", hw_test_info->clock_drift);
+                lua_pushnumber2table(L, "clock_offset", hw_test_info->clock_offset);
+                lua_pushinteger2table(L, "Abs_I20ms", hw_test_info->Abs_I20ms);
+                lua_pushinteger2table(L, "Abs_Q20ms", hw_test_info->Abs_Q20ms);
+                lua_pushnumber2table(L, "phase_lock_indicator", hw_test_info->phase_lock_indicator);
+                lua_pushinteger2table(L, "rtc_freq", (unsigned int)hw_test_info->rtc_freq);
+                lua_pushinteger2table(L, "agc", (unsigned int)hw_test_info->agc);
+                lua_pushnumber2table(L, "noise_figure", hw_test_info->noise_figure);
+                lua_pushnumber2table(L, "drift_rate_in_ppb", hw_test_info->drift_rate_in_ppb);
+                lua_pushnumber2table(L, "clock_offset_in_ppm", hw_test_info->clock_offset_in_ppm);
+                lua_pushnumber2table(L, "Q_I_ratio", hw_test_info->Q_I_ratio);
+            }
+                break; 
+        }
+    }
     
     return 1;
 }
@@ -206,13 +276,29 @@ static int lnondsp_register_callbacks(lua_State *L)
     registerNonDspEvtCb(nondsp_handle_event);
     return 0;
 }
-#if 0
+
 /* GPS test interface */
+static int lnondsp_bit_gps_thread_creat(lua_State *L)
+{
+    int ret = -1;
+
+    ret = bit_gps_thread_creat();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/*  */
 static int lnondsp_gps_enable(lua_State *L)
 {
     int ret = -1;
 
-    ret = gps_enable();
+    ret = target_enableGPS(0);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -227,7 +313,7 @@ static int lnondsp_gps_disable(lua_State *L)
 {
     int ret = -1;
 
-    ret = gps_disable();
+    ret = target_disableGPS(0);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -237,7 +323,51 @@ static int lnondsp_gps_disable(lua_State *L)
         return 1;
     }
 }
-#endif
+
+/* extern int target_GPSHardwareTestReq(unsigned char socId, unsigned short SvID, unsigned short period); */
+static int lnondsp_gps_hardware_test(lua_State *L)
+{
+    unsigned short SvID;
+    unsigned short period;
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt == 2 && lua_isnumber(L, 1) && lua_isnumber(L, 2)) {
+        SvID = (unsigned short)lua_tointeger(L, 1);
+        period = (unsigned short)lua_tointeger(L, 2);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+
+    ret = target_GPSHardwareTestReq(0, SvID, period);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* extern int target_FrontpanelGetPositionFixReq(unsigned char socId); */
+static int lnondsp_gps_get_position_fix(lua_State *L)
+{
+    int ret = -1;
+
+    ret = target_FrontpanelGetPositionFixReq(0);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
 
 #if 1
 /* LCD test interface */
@@ -1479,9 +1609,6 @@ static int lnondsp_bt_play_stop(lua_State *L)
         return 1;
     }
 }
-
-
- 
  
 /* int32_t bt_txdata1_transmitter_stop(void);
  * stop txdata1 transmitter
@@ -1505,7 +1632,6 @@ static int lnondsp_bt_txdata1_transmitter_stop(lua_State *L)
     }
 }
 
-
 /*
  * interface for lua
  */
@@ -1517,10 +1643,11 @@ static const struct luaL_reg nondsp_lib[] =
     NF(get_evt_number),
     NF(get_evt_item),
     
-    #if 0
+    NF(bit_gps_thread_creat), 
     NF(gps_enable), 
     NF(gps_disable), 
-    #endif
+    NF(gps_get_position_fix), 
+    NF(gps_hardware_test), 
     
     #if 1
     NF(lcd_enable), 
