@@ -2,11 +2,9 @@
 
 require "ldsp"
 require "lnondsp"
+require "log"
 require "read_attr_file"
 require "bluetooth"
-
-lnondsp.gps_enable = lnondsp.gps_enable or function (...) posix.syslog(posix.LOG_NOTICE, "call gps_enable") end
-lnondsp.gps_disable = lnondsp.gps_disable or function (...) posix.syslog(posix.LOG_NOTICE, "call gps_disable") end
 
 local freq_band = {
     VHF = {start=136 * 1000 * 1000, last = 174 * 1000 * 1000}, 
@@ -20,7 +18,7 @@ if "u3" == tostring(device_type) then
 elseif "u3_2nd" == tostring(device_type) then
     global_freq_band = freq_band.U3_2ND
 else
-    posix.syslog(posix.LOG_ERR, "not support device type : "..tostring(device_type))
+    slog:err("not support device type : "..tostring(device_type))
 end
 
 function check_num_range(num, ...)
@@ -44,9 +42,9 @@ function check_num_range(num, ...)
 end
 
 function check_num_parameters(...)
-    posix.syslog(posix.LOG_NOTICE, "check_num_parameters arg.n: "..arg.n)
+    slog:notice("check_num_parameters arg.n: "..tostring(arg.n))
     for i=1, arg.n do
-        posix.syslog(posix.LOG_NOTICE, "check_num_parameters arg["..i.."]: "..tostring(arg[i]))
+        slog:notice("check_num_parameters arg["..i.."]: "..tostring(arg[i]))
         if nil == arg[i] then
             return {ret = false, errno = i, errmsg="arg["..i.."] nil"}
         end
@@ -79,19 +77,18 @@ function get_para_func(pname, pinfo)
         if r.ret then
             t[pname] =  tonumber(r.str)
             if nil == t[pname] then
-                posix.syslog(posix.LOG_ERR, "get string in window is not number: "..tostring(r.str))
-                note_in_window("get string in window is not number: "..tostring(r.str))
+                slog:err("get string in window is not number: "..tostring(r.str))
                 t.select_status[t.select_index] = false
                 return false
             end
             if not check_num_range(t[pname]) then
-                lua_log.i(t[t.select_index], "enter is not number")
+                slog:err("enter is not number")
                 return false
             end
 
             t[t.select_index] = pinfo.." "..tostring(r.str)
         else
-            lua_log.i(t[t.select_index], "enter "..r.errmsg)
+            slog:err("enter "..r.errmsg)
         end
     end
 end 
@@ -103,6 +100,7 @@ function init_global_env()
         ldsp.start_dsp_service()
         
         lnondsp.register_callbacks()
+        lnondsp.bit_gps_thread_create()
         global_env_init = true
     end
 end
@@ -193,13 +191,11 @@ defunc_bt_txdata1_transmitter = {
         return function (t)
             local r, msgid
             if nil == t.freq or "number" ~= type(t.freq) then
-                posix.syslog(posix.LOG_ERR, "bt_txdata1_transmitter freq error")
-                note_in_window("bt_txdata1_transmitter freq error")
+                slog:err("bt_txdata1_transmitter freq error")
                 return false
             end
             if nil == t.data_rate or "string" ~= type(t.data_rate) then
-                posix.syslog(posix.LOG_ERR, "bt_txdata1_transmitter data_rate error")
-                note_in_window("bt_txdata1_transmitter data_rate error")
+                slog:err("bt_txdata1_transmitter data_rate error")
                 return false
             end
             if t.select_status[list_index] then
@@ -257,9 +253,9 @@ defunc_calibrate_radio_oscillator_test = function(list_index)
         local r = ldsp.get_original_afc_val()
         if r.ret then
             tab.afc_val = r.afc_val
-            posix.syslog(posix.LOG_ERR, "get_original_afc_val, afc_val "..tostring(tab.afc_val))
+            slog:err("get_original_afc_val, afc_val "..tostring(tab.afc_val))
         end
-        posix.syslog(posix.LOG_NOTICE, "get_original_afc_val, afc_val "..tostring(tab.afc_val))
+        slog:notice("get_original_afc_val, afc_val "..tostring(tab.afc_val))
         tab[1] = "AFC Value: "..tostring(tab.afc_val)
     end
     
@@ -279,9 +275,13 @@ defunc_calibrate_radio_oscillator_test = function(list_index)
         end
         
         if nil == tab.afc_val or "number" ~= type(tab.afc_val) then
-            posix.syslog(posix.LOG_ERR, "calibrate_radio_oscillator_test, afc_val "..tostring(tab.afc_val))
-            note_in_window("calibrate_radio_oscillator_test, afc_val "..tostring(tab.afc_val))
+            slog:err("calibrate_radio_oscillator_test, afc_val "..tostring(tab.afc_val))
             return false
+        end
+        
+        if tab.afc_val > 65535 then
+            slog:win("The range the Effective AFC DAC Calibration=(0 to 65535), used max value")
+            tab.afc_val = 65535
         end
         ldsp.calibrate_radio_oscillator_set_val(tab.afc_val)
         tab[1] = "AFC Value: "..tostring(menu_tab.afc_val)
@@ -294,8 +294,7 @@ defunc_calibrate_radio_oscillator_test = function(list_index)
 
     return function(t)
         if "nil" == type(t[list_index]) then
-            posix.syslog(posix.LOG_ERR, "calibrate_radio_oscillator_test item nil")
-            note_in_window("calibrate_radio_oscillator_test item nil")
+            slog:err("calibrate_radio_oscillator_test item nil")
             t[list_index] = "Cal radio oscillator"
         elseif "string" == type(t[list_index]) then
             t[list_index] = menu_tab
@@ -424,7 +423,7 @@ RFT_MODE = {
                 if cr.ret then
                     local r_des, msgid_des = ldsp.start_rx_desense_scan(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime)
                 else
-                    note_in_window("parameter error: check "..cr.errno.." "..cr.errmsg)
+                    slog:err("parameter error: check "..cr.errno.." "..cr.errmsg)
                 end
 
             end, 
@@ -452,7 +451,6 @@ RFT_MODE = {
         test_process_start = function (t)
             t.report = {}
             for i=1, table.getn(t) do
-				lua_log.i("test", "tx duty test start "..i)
                 if "function" == type(t.test_process[i]) then
                     t.test_process[i](t)
                 end
@@ -520,7 +518,7 @@ RFT_MODE = {
             if cr.ret then
                 local r_des, msgid_des = ldsp.start_rx_desense_scan(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime)
             else
-                note_in_window("parameter error: check "..cr.errno.." "..cr.errmsg)
+                slog:err("parameter error: check "..cr.errno.." "..cr.errmsg)
             end
             
         end, 
@@ -668,7 +666,7 @@ RFT_MODE = {
             if cr.ret then
                 local r_des, msgid_des = ldsp.tx_duty_cycle_test_start(t.freq, t.band_width, t.power, t.audio_path, t.modulation, t.trans_on_time, t.trans_off_time)
             else
-                note_in_window("parameter error: check "..tostring(cr.errno).." "..tostring(cr.errmsg))
+                slog:err("parameter error: check "..tostring(cr.errno).." "..tostring(cr.errmsg))
             end
             
         end, 
@@ -762,7 +760,7 @@ RFT_MODE = {
             if cr.ret then
                 local r_des, msgid_des = ldsp.two_way_transmit_start(t.freq, t.band_width, t.power_level, t.start_delay, t.step_num, t.on_time, t.off_time)
             else
-                note_in_window("parameter error: check "..cr.errno.." "..cr.errmsg)
+                slog:err("parameter error: check "..cr.errno.." "..cr.errmsg)
             end
             
         end, 
@@ -953,7 +951,7 @@ FCC_MODE = {
             if cr.ret then
                 local r_des, msgid_des = ldsp.fcc_start(t.freq, t.band_width, t.power, t.audio_path, t.squelch, t.modulation)
             else
-                note_in_window("parameter error: check "..cr.errno.." "..cr.errmsg)
+                slog:err("parameter error: check "..cr.errno.." "..cr.errmsg)
             end
 
         end, 
@@ -1159,7 +1157,6 @@ GPS_MODE = {
             [1] = function (t) end, 
             [2] = function (t) end, 
             [3] = function (t) end, 
-            [4] = function (t) end, 
         }, 
 
         action = function (t)
@@ -1167,7 +1164,9 @@ GPS_MODE = {
                 t.action_map[t.select_index](t)
             end
         end, 
-
+        [1] = {}, 
+        [2] = {}, 
+        [3] = {}, 
     }, 
     [2] = {
         title = "Hardware", 
@@ -1184,7 +1183,6 @@ GPS_MODE = {
                 t.action_map[t.select_index](t)
             end
         end, 
-        [1] = "Number of measurements", 
         [2] = "SVID to track", 
         [3] = "Tracking time", 
         [4] = "Time between measurements"
@@ -1224,7 +1222,6 @@ GPS_MODE = {
     test_process_start = function (t)
         t.report = {}
         for i=1, 8 do
-            lua_log.i("test", "tx duty test start "..i)
             if "function" == type(t.test_process[i]) then
                 t.test_process[i](t)
             end
@@ -1250,7 +1247,7 @@ Field_MODE = {
         [1] = defunc_calibrate_radio_oscillator_test(1), 
         [2] = function (t) 
             ldsp.restore_default_radio_oscillator_calibration()
-            note_in_window("Restore default radio oscillator calibration, any key exit")
+            slog:notice("Restore default radio oscillator calibration")
         end, 
         [3] = defunc_enable_bt(3), 
         [4] = function (t) end, 
@@ -1261,7 +1258,7 @@ Field_MODE = {
         end
     end, 
     [1] = "Cal Radio Oscillator", 
-    [2] = "Restore default Radio Oscillator Calibration", 
+    [2] = "Restore Oscillator Cal", 
     [3] = "Find BT Device", 
     [4] = "Enable GPS",  
         --[[ display to user'acquiring GPS signal'.Once acquired display to the user
@@ -1370,12 +1367,10 @@ MODE_SWITCH = {
                 t.fpl_mode = Field_MODE
                 t.fpl_mode_name = "Field_MODE"
             end, 
-            --[[
             [6] = function (t)
                 t.fpl_mode = BaseBand_MODE
                 t.fpl_mode_name = "BaseBand_MODE"
             end,
-            --]] 
         }, 
         action = function (t)
             if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
@@ -1386,9 +1381,9 @@ MODE_SWITCH = {
         [1] = "2Way RF Test", 
         [2] = "FCC Test", 
         [3] = "Bluetooth Test",
-        [4] = "GPS Test",
+        [4] = "GPS Test(nonsupport)",
         [5] = "Field Test",
-        [6] = "BaseBand Test",
+        --[6] = "BaseBand Test",
     }, 
     [2] = "reboot to app Mode", 
     test_process = {
@@ -1439,7 +1434,7 @@ table_info = function (t)
             elseif "number" == type(n) then
                 return t[n]
             else
-                lua_log.e("table_info", "get_item() type err: "..type(n))
+                slog:err("table_info:get_item() type err: "..type(n))
             end
         end, 
         get_group = function ()
@@ -1452,11 +1447,11 @@ table_info = function (t)
                     if type(v.title) == "string" then
                         gp[k] = v.title
                     else
-                        lua_log.e("table_info", t.title.." "..k..".title type:"..type(v.title))
+                        slog:err("table_info: "..t.title.." "..k..".title type:"..type(v.title))
                         gp[k] = "unknown item["..k.."]"
                     end
                 else
-                    lua_log.e("table_info", t.title.." "..k.." type:"..type(v))
+                    slog:err("table_info: "..t.title.." "..k.." type:"..type(v))
                     gp[k] = "unknown item["..k.."]"
                 end
             end

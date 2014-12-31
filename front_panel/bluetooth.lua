@@ -1,58 +1,62 @@
 
+require "menu_show"
 require "lnondsp"
 require "nondsp_event_info"
+require "log"
 
-note_in_window = note_in_window or function(s) posix.syslog(posix.LOG_NOTICE, "call note_in_window:"..tostring(s)) end
-switch_self_refresh = switch_self_refresh or function(s) posix.syslog(posix.LOG_NOTICE, "call switch_self_refresh:"..tostring(s)) end
---
+slog.win_note_en = true
 
 bt_init = function()
-    local r_en, r_enno = lnondsp.bt_enable_block(lnondsp.BT_DUT_MODE)
+    
+    local wait_menu = {
+        title = "BT devices Scan", 
+        tips  = "Enable devices ..., plaease wait", 
+        multi_select_mode = false, 
+        [1] = "Enable BT ..."
+    }
+    
+    create_main_menu(wait_menu):show()
+    
+    local r_en, r_enno = lnondsp.bt_enable_block(lnondsp.BT_HIGH_SPEED)
     if not r_en then
-        posix.syslog(posix.LOG_ERR, "bt_enable_block fail, return "..tostring(r_enno))
+        slog:err("bt_enable_block fail, return "..tostring(r_enno))
         return nil
     end
     
     return {
         find_devices = function(t)
-            local wait_menu = {
-                title = "BT devices Scan", 
-                tips  = "scanning devices ..., plaease wait", 
-                multi_select_mode = false, 
-                [1] = "Scanning ..."
-            }
+            wait_menu.tips  = "scanning devices ..., plaease wait"
+            wait_menu[1] = "Scanning ..."
             create_main_menu(wait_menu):show()
-            
             local r_scan = lnondsp.bt_scan_block()
-            local evt_cnt = lnondsp.get_evt_number()                       
-            local ev = lnondsp.get_evt_item(evt_cnt)
-            note_in_window("get evt item: evt:"..ev.evt.." evi:"..ev.evi)
+            posix.sleep(1)
+            local ev = lnondsp.get_evt_item(lnondsp.get_evt_number())
             local e_id = NONDSP_EVT:get_id(ev.evt, ev.evi)
-            note_in_window("e_id:"..e_id)
             if e_id ~= "SCAN_ID_NAME" then
-                posix.syslog(posix.LOG_ERR, "find_devices, can not get the event SCAN_ID_NAME")
-                note_in_window("find_devices, can not get the event SCAN_ID_NAME")
+                slog:err("find_devices, can not get the event SCAN_ID_NAME")
                 return nil
             end
-
-            if ev.count > 0 then
+            slog:notice("find devices "..tostring(ev.ret)..":"..tostring(ev.evt)..":"..tostring(ev.evi)..":"..tostring(ev.count))
+            
+            if (ev.count > 0) and (ev.count < 10) then
                 t.devices = {}
                 t.devices.count = ev.count
                 for i=1, ev.count do 
                     t.devices[i] = {}
                     t.devices[i].id = ev.id[i]
                     t.devices[i].name = ev.name[i]
+                    slog:notice("BT dev["..i.."]: "..tostring(ev.name[i]).." : "..tostring(ev.id[i]))
                 end
                 return t.devices
             else
-                posix.syslog(posix.LOG_ERR, "find_devices, can not scan devices(count:"..tostring(ev.count)..")")
-                note_in_window("find_devices, can not scan devices(count:"..tostring(ev.count)..")")
+                slog:win("find_devices error, scan devices(count:"..tostring(ev.count)..")")
                 return nil
             end
         end, 
         
         get_devices_table = function(t)
-            if not t.devices or t.devices.count < 1 then
+            if (nil == t.devices) or (nil == t.devices.count) or (t.devices.count < 1) then
+                slog:err("t.devices or t.devices.count null")
                 return nil
             end
             
@@ -70,6 +74,7 @@ bt_init = function()
                 t.menu_tab.dev_id[d] = t.devices[d].id
                 t.menu_tab.devices_connect_status[d] = false
             end
+            
             t.menu_tab.new_main_menu = function(tab)
                 local m_sub = create_main_menu(tab)
                 m_sub:show()
@@ -83,8 +88,8 @@ bt_init = function()
                         tab.devices_connect_status[i] = false
                     end
                 end
-                    
-                if tab.select_index ~= nil and tab.select_status[tab.select_index] then
+
+                if (tab.select_index ~= nil) and (tab.select_status ~= nil) and tab.select_status[tab.select_index] then
                     lnondsp.bt_establish_sco_block(tab.dev_id[tab.select_index])
                 end
             end
@@ -94,7 +99,7 @@ bt_init = function()
                 g_bt = g_bt or bt_init()
                 
                 for i=1, tab.devices_count do 
-                    if tab.devices_connect_status[i] then
+                    if (tab.select_status ~= nil) and tab.devices_connect_status[i] then
                         lnondsp.bt_disconnect_sco(tab.dev_id[i])
                         tab.devices_connect_status[i] = false
                     end
@@ -102,7 +107,7 @@ bt_init = function()
                 
                 g_bt:find_devices()
                 
-                tab.devices_count = t.devices.count
+                tab.devices_count = g_bt.devices.count
                 tab.dev_id = {}
                 for d=1, g_bt.devices.count do
                     tab[d] = g_bt.devices[d].name
@@ -124,8 +129,7 @@ end
 defunc_enable_bt = function(list_index)
     return function(t)
         if "nil" == type(t[list_index]) then
-            posix.syslog(posix.LOG_ERR, "bt device find item nil")
-            note_in_window("bt device find item nil")
+            slog:err("bt device find item nil")
             t[list_index] = "Find Bt Devices"
         elseif "string" == type(t[list_index]) then
             g_bt = g_bt or bt_init()
@@ -133,8 +137,7 @@ defunc_enable_bt = function(list_index)
             g_bt:find_devices()
             local bt_menu = g_bt:get_devices_table()
             if nil == bt_menu then
-                posix.syslog(posix.LOG_ERR, "get_devices_table, can not scan devices")
-                note_in_window("get_devices_table, can not scan devices")
+                slog:err("bt:get_devices_table, can not scan devices")
                 return false
             end
             

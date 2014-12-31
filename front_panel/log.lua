@@ -18,6 +18,7 @@
   log.d = function (tag, msg) end
   通过log.dump(type)　可以把不同类型的日志数据分类提取到另一个文件
 --]]
+require "posix"
 
 function newlog(logbasename)
 	local createtime = os.date("%Y-%m-%d_%H-%M-%S", os.time())
@@ -114,13 +115,45 @@ function newlog(logbasename)
 end
 
 slog = {
-    notice = function (s)
-        posix.syslog(posix.LOG_NOTICE, s)
-        note_in_window(s)
+    syslog_en = true, 
+    win_note_en = false, 
+    notice = function (t, s)
+        if t.syslog_en then
+            posix.syslog(posix.LOG_NOTICE, s)
+        end
+        
+        if win_note_en and nil ~= note_in_window then 
+            note_in_window("NOTICE: "..s.."\n Any key exit")
+        end
     end, 
     
-    err = function (...)
-        posix.syslog(posix.LOG_NOTICE, s)
-        note_in_window(s)
+    debug = function (t, s)
+        if t.syslog_en then
+            posix.syslog(posix.LOG_DEBUG, s)
+        end
+        
+        if win_note_en and nil ~= note_in_window then 
+            note_in_window("DEBUG: "..s.."\n Any key exit")
+        end
+    end, 
+    
+    err = function (t, s)
+        if t.syslog_en then
+            posix.syslog(posix.LOG_NOTICE, s)
+        end
+        
+        if win_note_en and nil ~= note_in_window then 
+            note_in_window("ERR: "..s.."\n Any key exit")
+        end
+    end, 
+    
+    win = function (t, s)
+        if t.syslog_en then
+            posix.syslog(posix.LOG_NOTICE, s)
+        end
+        
+        if nil ~= note_in_window then 
+            note_in_window("NOTICE: "..s.."\n Any key exit")
+        end
     end
 }

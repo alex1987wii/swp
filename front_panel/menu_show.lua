@@ -1,4 +1,5 @@
 -- menu show 
+require "log"
 
 init_menu = function()
     local lines = curses.lines()
@@ -100,8 +101,6 @@ create_main_menu = function(main_menu_table)
     return {
         main_table = main_menu_table, 
         show = function(self, ...)
-            local info = function(s) lua_log.i("show", s) end
-
             local menu_table = arg[1] or self.main_table
             title_win:clear()
             if "string" == type(menu_table.title) then
@@ -146,8 +145,6 @@ create_main_menu = function(main_menu_table)
         end, 
         
         action = function(self, ...)
-            local info = function(s) lua_log.i("action", s) end
-            
             local menu_table = arg[1] or self.main_table
             while true do
                 local ch = list_win:getch()
@@ -216,7 +213,7 @@ create_main_menu = function(main_menu_table)
                 elseif ch == 0x2a then   -- * start test process 
                     if menu_table == self.main_table then
                         if "function" == type(menu_table.test_process_start) then
-                            posix.syslog(posix.LOG_ERR, "call test_process_start in")
+                            slog:notice("call test_process_start in")
                             if not menu_table.test_process_start_call then
                                 switch_self_refresh(false)
                                 menu_table:test_process_start()
@@ -226,8 +223,8 @@ create_main_menu = function(main_menu_table)
                     end
                 elseif ch == 0x23 then  -- # stop test process
                     if menu_table == self.main_table then
-                        if "function" == type(menu_table.test_process_start) then
-                            posix.syslog(posix.LOG_ERR, "call test_process_stop in")
+                        if "function" == type(menu_table.test_process_stop) then
+                            slog:notice("call test_process_stop in")
                             if menu_table.test_process_start_call then
                                 switch_self_refresh(true)
                                 menu_table:test_process_stop()

@@ -7,8 +7,6 @@ require "curses"
 require "posix"
 require "log"
 
-lua_log = lua_log or newlog("/userdata/SysLog/front_panel")
-
 switch_self_refresh = function(flag)
     if "boolean" ~= type(flag) then
         posix.syslog(posix.LOG_ERR, "switch_self_refresh: flag type error")
@@ -40,14 +38,14 @@ curses.nl(true)    -- not nonl !
 switch_self_refresh(true)
 stdscr = curses.stdscr()
 if nil == stdscr then
-    lua_log.e("stdscr", "curses.stdscr return nil")
+    slog:err("stdscr: curses.stdscr return nil")
     os.exit(-1)
 end
 
 --
 local r = init_menu()
 if not r.ret then
-    lua_log.e("stdscr", r.errmsg)
+    slog:err("stdscr: "..r.errmsg)
     os.exit(-1)
 end
 --
@@ -56,7 +54,6 @@ if "function" == type(load_fpl) then
     load_fpl()
 end
 
-lua_log.i("create_main_menu", "MODE_SWITCH")
 local fpm = create_main_menu(MODE_SWITCH)
 while true do
     
