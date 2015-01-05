@@ -236,7 +236,7 @@ defunc_2way_ch1_knob_settings = {
             }
             local r_des, msgid_des
             if t.select_status[list_index] then
-                r_des, msgid_des = ldsp.fcc_start(t.freq, t.band_width, t.power, t.audio_path, t.squelch, t.modulation)
+                r_des, msgid_des = ldsp.fcc_start(tab.freq, tab.band_width, tab.power, tab.audio_path, tab.squelch, tab.modulation)
                 t.report[list_index] = {ret=r, errno=msgid}
             end
         end
@@ -299,6 +299,7 @@ defunc_calibrate_radio_oscillator_test = function(list_index)
     menu_tab.test_process_start = function (tab)
         switch_self_refresh(true)
         ldsp.save_radio_oscillator_calibration()
+        tab.test_process_start_call = false
     end
     
     menu_tab.test_process_stop = function (tab) end
