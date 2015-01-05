@@ -225,7 +225,7 @@ static int lnondsp_get_evt_item(lua_State *L)
             case NONDSP_EVT_GPS_FIXED:
             {
                 gps_event_ttff_t *ttff = (gps_event_ttff_t *)pbuf;
-                lua_pushinteger2table(L, "fixed", ttff->fixed);         /* 1: fixed, other: no fixed */
+                lua_pushboolean2table(L, "fixed", ttff->fixed);         /* 1: fixed, other: no fixed */
                 lua_pushinteger2table(L, "TTFF", ttff->TTFF);           /* unit: second */
                 lua_pushnumber2table(L, "latitude", ttff->latitude);   /* unit: degree */
                 lua_pushnumber2table(L, "longitude", ttff->longitude); /* unit: degree */
@@ -416,7 +416,7 @@ static int lnondsp_lcd_enable(lua_State *L)
 {
     int ret = -1;
 
-    ret = enableLcdModule();
+    ret = lcd_enable();
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -431,7 +431,34 @@ static int lnondsp_lcd_disable(lua_State *L)
 {
     int ret = -1;
 
-    ret = disableLcdModule();
+    ret = lcd_disable();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+static int lnondsp_lcd_set_backlight_level(lua_State *L)
+{
+    uint32_t level = 0;
+    
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt == 1 && lua_isnumber(L, 1)) {
+        level = (uint32_t)lua_tointeger(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -2);
+        return 2;    
+    }
+    
+    ret = lcd_set_bklight_level(level);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -462,7 +489,7 @@ static int lnondsp_lcd_display_static_image(lua_State *L)
         return 2;    
     }
     
-    ret = lcdDisplayStaticImage(pic_path, width, height);
+    ret = lcd_display_image_file(pic_path, width, height);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -479,7 +506,7 @@ static int lnondsp_lcd_slide_show_test_start(lua_State *L)
     uint8_t path_len = 0;
     
     /* The time interval of showing two different images. */
-    uint32_t range = 0; 
+    uint32_t interval = 0; 
     
     int ret = -1;
     int argcnt = 0;
@@ -488,15 +515,15 @@ static int lnondsp_lcd_slide_show_test_start(lua_State *L)
 	if (argcnt == 2 && lua_isstring(L, 1)) {
         path = (char *)lua_tostring(L, 1);
         path_len = strlen(path);
-        range = (uint32_t)lua_tointeger(L, 2);
+        interval = (uint32_t)lua_tointeger(L, 2);
     } else {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, -2);
         return 2;    
     }
     
-    log_notice("lcd_slide_show_test_start(%s, %d, %d)\n", path, path_len, range);
-    ret = lcdSlideShowTestStart(path, path_len, range);
+    log_notice("lcd_slide_show_test_start(%s, %d, %d)\n", path, path_len, interval);
+    ret = lcd_slideshow_start(path, path_len, interval);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -511,7 +538,7 @@ static int lnondsp_lcd_slide_show_test_stop(lua_State *L)
 {
     int ret = -1;
 
-    ret = lcdSlideShowTestStop();
+    ret = lcd_slideshow_stop();
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -526,7 +553,7 @@ static int lnondsp_lcd_pattern_test(lua_State *L)
 {
     int ret = -1;
 
-    ret = lcdPatternTest();
+    ret = lcd_pattern_test();
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -537,35 +564,6 @@ static int lnondsp_lcd_pattern_test(lua_State *L)
     }
 }
 
-static int lnondsp_lcd_backlight_enable(lua_State *L)
-{
-    int ret = -1;
-
-    ret = enableLcdBacklight();
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
-static int lnondsp_lcd_backlight_disable(lua_State *L)
-{
-    int ret = -1;
-
-    ret = disableLcdBacklight();
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
 #endif
 
 /* LED test interface */
@@ -1694,9 +1692,8 @@ static const struct luaL_reg nondsp_lib[] =
     #if 1
     NF(lcd_enable), 
     NF(lcd_disable), 
+    NF(lcd_set_backlight_level), 
     NF(lcd_pattern_test), 
-    NF(lcd_backlight_enable), 
-    NF(lcd_backlight_disable), 
     NF(lcd_slide_show_test_start), 
     NF(lcd_slide_show_test_stop), 
     NF(lcd_display_static_image), 

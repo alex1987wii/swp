@@ -13,7 +13,7 @@ local die = function (s)
     posix.syslog(posix.LOG_ERR, tostring(s))
 end
 
-require "catbootmode"
+require "utility"
 
 if "fpl" ~= read_bootmode() then
     die("load2tty0.lua call, is not fpl mode")

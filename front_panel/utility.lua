@@ -1,11 +1,15 @@
 
---read_attr_file.lua 
+--utility.lua 
 
 read_attr_file = function(f)
     local f = assert(io.open(f, "r"))
     local s = f:read("*all")
     f:close()
     return s
+end
+
+read_bootmode = function()
+    return read_attr_file("/sys/sysdevs/bootmode")
 end
 
 read_config_mk_file = function (fname, key)
@@ -19,4 +23,14 @@ read_config_mk_file = function (fname, key)
     end
 
     return nil
+end
+
+function time_counter()
+	local t_start = os.date("*t", os.time())
+	local s_tmp = t_start.hour * 60 * 60 +t_start.min*60 + t_start.sec 
+	return function ()
+		local t_end = os.date("*t", os.time())
+		local e_tmp = t_end.hour * 60 * 60 +t_end.min*60 + t_end.sec
+		return (e_tmp - s_tmp)
+	end
 end

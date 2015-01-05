@@ -114,8 +114,9 @@ bt_init = function()
                     tab.dev_id[d] = g_bt.devices[d].id
                     tab.devices_connect_status[d] = false
                 end
-                
             end
+            
+            t.menu_tab.test_process_stop = function(tab) end
             
             return t.menu_tab
         end, 

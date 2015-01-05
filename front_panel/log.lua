@@ -115,9 +115,15 @@ function newlog(logbasename)
 end
 
 slog = {
-    syslog_en = true, 
-    win_note_en = false, 
+	notice_en    = true, 
+	debug_en     = true, 
+	error_en     = true, 
+    syslog_en    = true, 
+    win_note_en  = false, 
     notice = function (t, s)
+		if not t.notice_en then
+			return false
+		end
         if t.syslog_en then
             posix.syslog(posix.LOG_NOTICE, s)
         end
@@ -128,6 +134,9 @@ slog = {
     end, 
     
     debug = function (t, s)
+		if not t.debug_en then
+			return false
+		end
         if t.syslog_en then
             posix.syslog(posix.LOG_DEBUG, s)
         end
@@ -138,6 +147,9 @@ slog = {
     end, 
     
     err = function (t, s)
+		if not t.error_en then
+			return false
+		end
         if t.syslog_en then
             posix.syslog(posix.LOG_NOTICE, s)
         end

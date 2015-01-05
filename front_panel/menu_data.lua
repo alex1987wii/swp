@@ -3,7 +3,7 @@
 require "ldsp"
 require "lnondsp"
 require "log"
-require "read_attr_file"
+require "utility"
 require "bluetooth"
 
 local freq_band = {
@@ -806,7 +806,7 @@ FCC_MODE = {
             t.action_map[t.select_index](t)
         end
         
-        if nil ~= g_bt or "table" == type(g_bt.menu_tab) then
+        if nil ~= g_bt and "table" == type(g_bt.menu_tab) then
             for i=1, g_bt.menu_tab.devices_count do 
                 if g_bt.menu_tab.devices_connect_status[i] then
                     t[4][3] = g_bt.menu_tab[i]
@@ -1024,7 +1024,7 @@ Bluetooth_MODE = {
     [2] = {
         title = "Hardware test", 
         tips  = "Hardware test", 
-        multi_select_mode = false, 
+        multi_select_mode = true, 
 
         action = function (t)
             t.freq = t[1].freq
@@ -1152,7 +1152,12 @@ GPS_MODE = {
         --]]
         title = "Functional", 
         tips  = "", 
-        multi_select_mode = false, 
+        multi_select_mode = true, 
+        new_main_menu = function (t)
+            local m_sub = create_main_menu(t)
+            m_sub:show()
+            m_sub:action()
+        end, 
         action_map = {
             [1] = function (t) end, 
             [2] = function (t) end, 
