@@ -809,7 +809,7 @@ static int lnondsp_bt_disable(lua_State *L)
 {
     int ret = -1;
 
-    ret = disableBluetooth();
+    ret = bt_disable();
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);

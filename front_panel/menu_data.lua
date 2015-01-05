@@ -117,16 +117,25 @@ defunc_enable_gps = function (list_index)
     end
 end
 
-defunc_disable_lcd = function (list_index)
-    return function (t)
-        if t.select_status[list_index] then
-            r, msgid = lnondsp.lcd_disable()
-            t.report[list_index] = {ret=r, errno=msgid}
-        else
-            r, msgid = lnondsp.lcd_enable()
+defunc_disable_lcd = {
+    start = function (list_index)
+        return function (t)
+            if t.select_status[list_index] then
+                lnondsp.lcd_set_backlight_level(0)
+                lnondsp.lcd_disable()
+            else
+                lnondsp.lcd_enable()
+            end
+        end
+    end, 
+    
+    stop = function (list_index)
+        return function(t)
+            lnondsp.lcd_enable()
+            lnondsp.lcd_set_backlight_level(70)
         end
     end
-end
+}
 
 defunc_lcd_display_static_image = function (list_index)
     return function (t)
@@ -431,7 +440,7 @@ RFT_MODE = {
             
             end, 
             [3] = defunc_enable_gps(3), 
-            [4] = defunc_disable_lcd(4), 
+            [4] = defunc_disable_lcd.start(4), 
             [5] = defunc_lcd_display_static_image(5), 
             [6] = defunc_lcd_slide_show_test.start(6), 
             [7] = defunc_led_selftest.start(7), 
@@ -442,7 +451,7 @@ RFT_MODE = {
             end, 
             [2] = function (t) end, 
             [3] = function (t) end, 
-            [4] = function (t) end, 
+            [4] = defunc_disable_lcd.stop(4), 
             [5] = function (t) end, 
             [6] = defunc_lcd_slide_show_test.stop(6), 
             [7] = defunc_led_selftest.stop(7), 
@@ -957,7 +966,7 @@ FCC_MODE = {
         end, 
         [7] = function (t) end, 
         [8] = defunc_enable_gps(8), 
-        [9] = defunc_disable_lcd(9), 
+        [9] = defunc_disable_lcd.start(9), 
         [10] = defunc_lcd_display_static_image(10), 
         [11] = defunc_lcd_slide_show_test.start(11), 
         [12] = defunc_led_selftest.start(12), 
@@ -968,7 +977,7 @@ FCC_MODE = {
         end, 
         [7] = function (t) end, 
         [8] = function (t) end, 
-        [9] = function (t) end, 
+        [9] = defunc_disable_lcd.stop(9), 
         [10] = function (t) end, 
         [11] = defunc_lcd_slide_show_test.stop(11), 
         [12] = defunc_led_selftest.stop(12), 
@@ -1089,7 +1098,7 @@ Bluetooth_MODE = {
         [2] = defunc_bt_txdata1_transmitter.start(2), 
         [3] = defunc_2way_ch1_knob_settings.start(3), 
         [4] = defunc_enable_gps(4), 
-        [5] = defunc_disable_lcd(5), 
+        [5] = defunc_disable_lcd.start(5), 
         [6] = defunc_lcd_display_static_image(6), 
         [7] = defunc_lcd_slide_show_test.start(7), 
         [8] = defunc_led_selftest.start(8), 
@@ -1101,7 +1110,7 @@ Bluetooth_MODE = {
         end, 
         [3] = defunc_2way_ch1_knob_settings.stop(3), 
         [4] = function (t) end, 
-        [5] = function (t) end, 
+        [5] = defunc_disable_lcd.stop(5), 
         [6] = function (t) end, 
         [7] = defunc_lcd_slide_show_test.stop(7), 
         [8] = defunc_led_selftest.stop(8), 
@@ -1208,7 +1217,7 @@ GPS_MODE = {
         [2] = function (t) end, 
         [3] = defunc_2way_ch1_knob_settings.start(3), 
         [4] = function (t) end, 
-        [5] = defunc_disable_lcd(5), 
+        [5] = defunc_disable_lcd.start(5), 
         [6] = defunc_lcd_display_static_image(6), 
         [7] = defunc_lcd_slide_show_test.start(7), 
         [8] = defunc_led_selftest.start(8), 
@@ -1218,7 +1227,7 @@ GPS_MODE = {
         [2] = function (t) end, 
         [3] = defunc_2way_ch1_knob_settings.stop(3), 
         [4] = function (t) end, 
-        [5] = function (t) end, 
+        [5] = defunc_disable_lcd.stop(5), 
         [6] = function (t) end, 
         [7] = defunc_lcd_slide_show_test.stop(7), 
         [8] = defunc_led_selftest.stop(8), 

@@ -36,6 +36,7 @@
 #include <led.h>
 #include <bit_gps.h>
 #include <lcd.h>
+#include <key.h>
 #include <bluetooth.h>
 
 #define TRUE  1
