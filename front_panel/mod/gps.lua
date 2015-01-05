@@ -99,6 +99,14 @@ gps =  {
 		return {ret=false, errmsg="gps get_hw_info time out("..tostring(wait_time).." s)"} 
 	end, 
 	
+	hw_test_start = function(t, svid, period)
+		lnondsp.gps_hardware_test(svid, period)
+	end, 
+	
+	hw_test_stop = function(t, svid, period)
+		lnondsp.gps_enable()
+	end, 
+	
 	hw_test = function(t, svid, period, num)
 		lnondsp.gps_hardware_test(svid, period)
 		for i=1, num do

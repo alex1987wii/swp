@@ -139,7 +139,7 @@ defunc_disable_lcd = {
 
 defunc_lcd_display_static_image = function (list_index)
     return function (t)
-        local pic_path = "/root/u3_logo.dat"
+        local pic_path = "/root/"..device_type.."_logo.dat"
         local width = 220
         local height = 176
         local r, msgid
@@ -297,9 +297,11 @@ defunc_calibrate_radio_oscillator_test = function(list_index)
     end
     
     menu_tab.test_process_start = function (tab)
+        switch_self_refresh(true)
         ldsp.save_radio_oscillator_calibration()
-        tab.test_process_start_call = false
     end
+    
+    menu_tab.test_process_stop = function (tab) end
 
     return function(t)
         if "nil" == type(t[list_index]) then
@@ -313,7 +315,6 @@ defunc_calibrate_radio_oscillator_test = function(list_index)
         end
     end
 end
-
 
 RFT_MODE = {
     title = "2Way RF Test", 
@@ -1185,21 +1186,25 @@ GPS_MODE = {
     [2] = {
         title = "Hardware", 
         tips  = "Hardware test", 
-        multi_select_mode = false, 
+        multi_select_mode = true, 
+        new_main_menu = function (t)
+            local m_sub = create_main_menu(t)
+            m_sub:show()
+            m_sub:action()
+        end, 
         action_map = {
             [1] = function (t) end, 
             [2] = function (t) end, 
             [3] = function (t) end, 
-            [4] = function (t) end, 
         }, 
         action = function (t)
             if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
                 t.action_map[t.select_index](t)
             end
         end, 
-        [2] = "SVID to track", 
-        [3] = "Tracking time", 
-        [4] = "Time between measurements"
+        [2] = "SVID", 
+        [3] = "Period", 
+        [4] = "measurements interval"
     }, 
     [3] = "Enable 2way(ch1 Knob)", 
     [4] = "Enable Bluetooth",  
@@ -1396,7 +1401,7 @@ MODE_SWITCH = {
         [2] = "FCC Test", 
         [3] = "Bluetooth Test",
         [4] = "GPS Test(nonsupport)",
-        [5] = "Field Test",
+        --[5] = "Field Test",
         --[6] = "BaseBand Test",
     }, 
     [2] = "reboot to app Mode", 

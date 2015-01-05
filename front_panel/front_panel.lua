@@ -6,22 +6,7 @@ front panel main
 require "curses"
 require "posix"
 require "log"
-
-switch_self_refresh = function(flag)
-    if "boolean" ~= type(flag) then
-        posix.syslog(posix.LOG_ERR, "switch_self_refresh: flag type error")
-        return false
-    end
-    if flag then
-        os.execute("echo 1 > /sys/devices/platform/ad6900-lcd/self_refresh")
-    else
-        os.execute("echo 0 > /sys/devices/platform/ad6900-lcd/self_refresh")
-    end
-    
-    return true
-end
-
-sleep = function (t) os.execute("sleep "..t) end
+require "utility"
 
 require "menu_data"
 require "menu_show"
