@@ -445,6 +445,21 @@ static int ldsp_start_rx_desense_scan(lua_State *L)
     }
 }
 
+/* 
+ * int rx_desense_scan_flag_get(void);
+ * 
+ * */
+
+static int ldsp_rx_desense_scan_flag_get(lua_State *L)
+{
+    uint8_t state;
+    int ret = -1;
+    
+    ret = rx_desense_scan_flag_get();
+    lua_pushboolean(L, ret);
+    return 1;
+}
+
 static int ldsp_stop_rx_desense_scan(lua_State *L)
 {
     int ret = -1;
@@ -1192,6 +1207,7 @@ static const struct luaL_reg dsp_lib[] =
     
     /* DSP RX desense scan interface */
     NF(start_rx_desense_scan), 
+    NF(rx_desense_scan_flag_get),
     NF(stop_rx_desense_scan),
     
     /* DSP two way transmit interface */

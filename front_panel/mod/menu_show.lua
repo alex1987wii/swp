@@ -4,6 +4,7 @@ require "log"
 init_menu = function()
     local lines = curses.lines()
     local cols  = curses.cols()
+    slog:notice("curses: lines->"..tostring(lines).." : cols->"..tostring(cols))
     
     stdscr:clear()
     stdscr:box(0, 0)
@@ -216,8 +217,8 @@ create_main_menu = function(main_menu_table)
                             slog:notice("call test_process_start in")
                             if not menu_table.test_process_start_call then
                                 switch_self_refresh(false)
-                                menu_table:test_process_start()
                                 menu_table.test_process_start_call = true
+                                menu_table:test_process_start()
                             end
                         end
                     end
@@ -227,8 +228,8 @@ create_main_menu = function(main_menu_table)
                             slog:notice("call test_process_stop in")
                             if menu_table.test_process_start_call then
                                 switch_self_refresh(true)
-                                menu_table:test_process_stop()
                                 menu_table.test_process_start_call = false
+                                menu_table:test_process_stop()
                                 --menu_table:test_process_report()
                             end
                         end

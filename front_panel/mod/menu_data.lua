@@ -6,6 +6,8 @@ require "log"
 require "utility"
 require "bluetooth"
 
+require "curses"
+
 local freq_band = {
     VHF = {start=136 * 1000 * 1000, last = 174 * 1000 * 1000}, 
     U3_2ND = {start=763 * 1000 * 1000, last = 890 * 1000 * 1000}, 
@@ -21,56 +23,6 @@ else
     slog:err("not support device type : "..tostring(device_type))
 end
 
-function check_num_range(num, ...)
-    if "number" ~= type(num) then
-        return false
-    end
-    local upper, low
-    if arg.n == 2 then
-        upper = arg[1]
-        low = arg[2]
-        if upper < low then
-            upper, low = low, upper
-        end
-        
-        if (num > upper) or (num < low) then
-            return false
-        end
-    end
-    
-    return true
-end
-
-function check_num_parameters(...)
-    slog:notice("check_num_parameters arg.n: "..tostring(arg.n))
-    for i=1, arg.n do
-        slog:notice("check_num_parameters arg["..i.."]: "..tostring(arg[i]))
-        if nil == arg[i] then
-            return {ret = false, errno = i, errmsg="arg["..i.."] nil"}
-        end
-        
-        if "number" ~= type(arg[i]) then
-            return {ret = false, errno = i, errmsg="arg["..i.."] wrong type, not number"}
-        end
-    end
-    
-    return {ret = true}
-end
-
-thread_do = function (func)
-    local pid = posix.fork()
-    
-    if pid == 0 then
-        if "function" == type(func) then
-            func()
-        end
-        
-        posix._exit(0)
-    end
-    
-    return pid
-end
-
 function get_para_func(pname, pinfo)
     return function (t)
         local r = get_string_in_window(t[t.select_index])
@@ -81,12 +33,17 @@ function get_para_func(pname, pinfo)
                 t.select_status[t.select_index] = false
                 return false
             end
+
             if not check_num_range(t[pname]) then
                 slog:err("enter is not number")
                 return false
             end
-
-            t[t.select_index] = pinfo.." "..tostring(r.str)
+            
+            if string.len(pinfo) > (curses.cols() - 9) then
+                t[t.select_index] = pinfo
+            else
+                t[t.select_index] = pinfo.." "..tostring(r.str)
+            end
         else
             slog:err("enter "..r.errmsg)
         end
@@ -107,12 +64,10 @@ end
 
 defunc_enable_gps = function (list_index)
     return function (t)
-        local r, msgid
         if t.select_status[list_index] then
-            r, msgid = lnondsp.gps_enable()
-            t.report[list_index] = {ret=r, errno=msgid}
+            gps:enable()
         else
-            r, msgid = lnondsp.gps_disable()
+            gps:disable()
         end
     end
 end
@@ -317,6 +272,12 @@ defunc_calibrate_radio_oscillator_test = function(list_index)
     end
 end
 
+wait_for_rx_desense_scan_stop = function ()
+    repeat
+        posix.sleep(1)
+    until ldsp.rx_desense_scan_flag_get()
+end
+
 RFT_MODE = {
     title = "2Way RF Test", 
     tips  = "select and test", 
@@ -466,6 +427,12 @@ RFT_MODE = {
                     t.test_process[i](t)
                 end
             end
+            
+            wait_for_rx_desense_scan_stop()
+            
+            t:test_process_stop()
+            t.test_process_start_call = false
+            switch_self_refresh(true)
         end, 
         test_process_stop = function (t)
             for i=1, table.getn(t) do
@@ -532,6 +499,11 @@ RFT_MODE = {
                 slog:err("parameter error: check "..cr.errno.." "..cr.errmsg)
             end
             
+            wait_for_rx_desense_scan_stop()
+            
+            t:test_process_stop()
+            t.test_process_start_call = false
+            switch_self_refresh(true)
         end, 
         
         test_process_stop = function (t)
@@ -1041,7 +1013,7 @@ Bluetooth_MODE = {
             t.freq = t[1].freq
             t.data_rate = t[2].data_rate
         end, 
-        [1] =     {
+        [1] = {
             title = "Frequency", 
             tips  = "Select Frequency", 
             multi_select_mode = false, 
@@ -1144,8 +1116,16 @@ GPS_MODE = {
         init_global_env()
     end, 
     action_map = {
-        [1] = function (t) end, 
-        [2] = function (t) end, 
+        [1] = function (t)
+            t.restart_mode = t[1].restart_mode
+            t.measurement_num = t[1].measurement_num
+        end, 
+        [2] = function (t)
+            t.svid = t[2].svid
+            t.trancking_time = t[2].trancking_time
+            t.interval = t[2].interval
+            t.measurement_num = t[2].measurement_num
+        end, 
         [3] = function (t) end, 
         [4] = defunc_enable_bt(4), 
         [5] = function (t) end, 
@@ -1170,9 +1150,10 @@ GPS_MODE = {
             m_sub:action()
         end, 
         action_map = {
-            [1] = function (t) end, 
-            [2] = function (t) end, 
-            [3] = function (t) end, 
+            [1] = function (t) 
+                t.restart_mode = t[1].restart_mode
+            end, 
+            [2] = get_para_func("measurement_num", "Num of measurements"), 
         }, 
 
         action = function (t)
@@ -1180,9 +1161,22 @@ GPS_MODE = {
                 t.action_map[t.select_index](t)
             end
         end, 
-        [1] = {}, 
-        [2] = {}, 
-        [3] = {}, 
+        [1] = {
+            title = "Restart mode", 
+            tips  = "Select restart mode", 
+            multi_select_mode = false, 
+            action = function (t)
+                local restart_mode_t = {"cold_start", "warm_start", "hot_start"}  
+                t.restart_mode = restart_mode_t[t.select_index]
+            end, 
+            "cold start mode",
+            "warn start mode",
+            "hot  start mode",
+        }, 
+        [2] = "Num of measurements", 
+        
+        test_process_start = defunc_gps_functional_test(1), 
+        test_process_stop = function (t) end
     }, 
     [2] = {
         title = "Hardware", 
@@ -1194,18 +1188,23 @@ GPS_MODE = {
             m_sub:action()
         end, 
         action_map = {
-            [1] = function (t) end, 
-            [2] = function (t) end, 
-            [3] = function (t) end, 
+            [1] = get_para_func("svid", "SVID"),  
+            [2] = get_para_func("trancking_time", "Tracking time"),  
+            [3] = get_para_func("interval", "Measurement interval"),  
+            [4] = get_para_func("measurement_num", "Num of measurements"),  
         }, 
         action = function (t)
             if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
                 t.action_map[t.select_index](t)
             end
         end, 
-        [2] = "SVID", 
-        [3] = "Period", 
-        [4] = "measurements interval"
+        [1] = "SVID", 
+        [2] = "Tracking time", 
+        [3] = "Measurement interval", 
+        [4] = "Num of measurements", 
+        
+        test_process_start = defunc_gps_hw_test(1), 
+        test_process_stop = function (t) end
     }, 
     [3] = "Enable 2way(ch1 Knob)", 
     [4] = "Enable Bluetooth",  
@@ -1247,6 +1246,7 @@ GPS_MODE = {
             end
         end
     end, 
+    
     test_process_stop = function (t)
         for i=1, 8 do
             if "function" == type(t.stop_process[i]) then
