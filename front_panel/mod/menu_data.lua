@@ -1,12 +1,12 @@
 -- menu data 
 
+require "curses"
 require "ldsp"
 require "lnondsp"
 require "log"
 require "utility"
 require "bluetooth"
-
-require "curses"
+require "gps"
 
 local freq_band = {
     VHF = {start=136 * 1000 * 1000, last = 174 * 1000 * 1000}, 
@@ -22,6 +22,7 @@ elseif "u3_2nd" == tostring(device_type) then
 else
     slog:err("not support device type : "..tostring(device_type))
 end
+slog:notice("front panel running -> device type : "..tostring(device_type))
 
 function get_para_func(pname, pinfo)
     return function (t)
@@ -62,15 +63,24 @@ function init_global_env()
     end
 end
 
-defunc_enable_gps = function (list_index)
-    return function (t)
-        if t.select_status[list_index] then
-            gps:enable()
-        else
-            gps:disable()
+defunc_enable_gps = {
+    start = function (list_index)
+        return function (t)
+            if t.select_status[list_index] then
+                gps:enable()
+
+            end
+        end
+    end, 
+    
+    stop = function (list_index)
+        return function (t)
+            if t.select_status[list_index] then
+                gps:disable()
+            end
         end
     end
-end
+}
 
 defunc_disable_lcd = {
     start = function (list_index)
@@ -100,7 +110,6 @@ defunc_lcd_display_static_image = function (list_index)
         local r, msgid
         if t.select_status[list_index] then
             r, msgid = lnondsp.lcd_display_static_image(pic_path, width, height)
-            t.report[list_index] = {ret=r, errno=msgid}
         end
     end
 end
@@ -134,9 +143,6 @@ defunc_led_selftest = {
             local r, msgid
             if t.select_status[list_index] then
                 r, msgid = lnondsp.led_selftest_start()
-                t.report[list_index] = {ret=r, errno=msgid}
-            else
-                r, msgid = lnondsp.led_selftest_stop()
             end
         end
     end, 
@@ -173,7 +179,9 @@ defunc_bt_txdata1_transmitter = {
     
     stop = function (list_index)
         return function (t)
-            lnondsp.bt_txdata1_transmitter_stop()
+            if t.select_status[list_index] then
+                lnondsp.bt_txdata1_transmitter_stop()
+            end
         end
     end
 }
@@ -199,7 +207,9 @@ defunc_2way_ch1_knob_settings = {
     
     stop = function (list_index)
         return function (t)
-            ldsp.fcc_stop()
+            if t.select_status[list_index] then
+                ldsp.fcc_stop()
+            end
         end
     end
 }
@@ -272,10 +282,12 @@ defunc_calibrate_radio_oscillator_test = function(list_index)
     end
 end
 
-wait_for_rx_desense_scan_stop = function ()
-    repeat
-        posix.sleep(1)
-    until ldsp.rx_desense_scan_flag_get()
+wait_for_rx_desense_scan_stop = function (t, list_index)
+    if t.select_status[list_index] then
+        repeat
+            posix.sleep(1)
+        until ldsp.rx_desense_scan_flag_get()
+    end
 end
 
 RFT_MODE = {
@@ -402,7 +414,7 @@ RFT_MODE = {
             [2] = function (t)
             
             end, 
-            [3] = defunc_enable_gps(3), 
+            [3] = defunc_enable_gps.start(3), 
             [4] = defunc_disable_lcd.start(4), 
             [5] = defunc_lcd_display_static_image(5), 
             [6] = defunc_lcd_slide_show_test.start(6), 
@@ -413,7 +425,7 @@ RFT_MODE = {
                 local r_des, msgid_des = ldsp.stop_rx_desense_scan()
             end, 
             [2] = function (t) end, 
-            [3] = function (t) end, 
+            [3] = defunc_enable_gps.stop(3), 
             [4] = defunc_disable_lcd.stop(4), 
             [5] = function (t) end, 
             [6] = defunc_lcd_slide_show_test.stop(6), 
@@ -428,7 +440,7 @@ RFT_MODE = {
                 end
             end
             
-            wait_for_rx_desense_scan_stop()
+            wait_for_rx_desense_scan_stop(t, 1)
             
             t:test_process_stop()
             t.test_process_start_call = false
@@ -497,9 +509,10 @@ RFT_MODE = {
                 local r_des, msgid_des = ldsp.start_rx_desense_scan(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime)
             else
                 slog:err("parameter error: check "..cr.errno.." "..cr.errmsg)
+                return false
             end
             
-            wait_for_rx_desense_scan_stop()
+            wait_for_rx_desense_scan_stop(t, 1)
             
             t:test_process_stop()
             t.test_process_start_call = false
@@ -648,6 +661,9 @@ RFT_MODE = {
             local cr = check_num_parameters(t.freq, t.band_width, t.power, t.audio_path, t.modulation, t.trans_on_time, t.trans_off_time)
             if cr.ret then
                 local r_des, msgid_des = ldsp.tx_duty_cycle_test_start(t.freq, t.band_width, t.power, t.audio_path, t.modulation, t.trans_on_time, t.trans_off_time)
+                if not r_des then
+                    slog:err("call ldsp.two_way_transmit_start fail: "..tostring(msgid_des))
+                end
             else
                 slog:err("parameter error: check "..tostring(cr.errno).." "..tostring(cr.errmsg))
             end
@@ -739,11 +755,14 @@ RFT_MODE = {
         }, 
         
         test_process_start = function (t)
-            local cr = check_num_parameters(t.freq, t.band_width, t.power_level, t.start_delay, t.step_num, t.on_time, t.off_time)
+            local cr = check_num_parameters(t.freq, t.band_width, t.power_level, t.start_delay, t.step_size, t.step_num, t.on_time, t.off_time)
             if cr.ret then
-                local r_des, msgid_des = ldsp.two_way_transmit_start(t.freq, t.band_width, t.power_level, t.start_delay, t.step_num, t.on_time, t.off_time)
+                local r, errno = ldsp.two_way_transmit_start(t.freq, t.band_width, t.power_level, t.start_delay, t.step_size, t.step_num, t.on_time, t.off_time)
+                if not r then
+                    slog:err("call ldsp.two_way_transmit_start fail: "..tostring(errno))
+                end
             else
-                slog:err("parameter error: check "..cr.errno.." "..cr.errmsg)
+                slog:err("call ldsp.two_way_transmit_start parameter error: check "..cr.errno.." "..cr.errmsg)
             end
             
         end, 
@@ -939,7 +958,7 @@ FCC_MODE = {
 
         end, 
         [7] = function (t) end, 
-        [8] = defunc_enable_gps(8), 
+        [8] = defunc_enable_gps.start(8), 
         [9] = defunc_disable_lcd.start(9), 
         [10] = defunc_lcd_display_static_image(10), 
         [11] = defunc_lcd_slide_show_test.start(11), 
@@ -950,7 +969,7 @@ FCC_MODE = {
             local r_des, msgid_des = ldsp.fcc_stop()
         end, 
         [7] = function (t) end, 
-        [8] = function (t) end, 
+        [8] = defunc_enable_gps.stop(8), 
         [9] = defunc_disable_lcd.stop(9), 
         [10] = function (t) end, 
         [11] = defunc_lcd_slide_show_test.stop(11), 
@@ -1071,7 +1090,7 @@ Bluetooth_MODE = {
         [1] = function (t) end, 
         [2] = defunc_bt_txdata1_transmitter.start(2), 
         [3] = defunc_2way_ch1_knob_settings.start(3), 
-        [4] = defunc_enable_gps(4), 
+        [4] = defunc_enable_gps.start(4), 
         [5] = defunc_disable_lcd.start(5), 
         [6] = defunc_lcd_display_static_image(6), 
         [7] = defunc_lcd_slide_show_test.start(7), 
@@ -1083,7 +1102,7 @@ Bluetooth_MODE = {
             lnondsp.bt_txdata1_transmitter_stop()
         end, 
         [3] = defunc_2way_ch1_knob_settings.stop(3), 
-        [4] = function (t) end, 
+        [4] = defunc_enable_gps.stop(4),  
         [5] = defunc_disable_lcd.stop(5), 
         [6] = function (t) end, 
         [7] = defunc_lcd_slide_show_test.stop(7), 
@@ -1168,6 +1187,7 @@ GPS_MODE = {
             action = function (t)
                 local restart_mode_t = {"cold_start", "warm_start", "hot_start"}  
                 t.restart_mode = restart_mode_t[t.select_index]
+                slog:notice("set restart mode: "..tostring(t.restart_mode))
             end, 
             "cold start mode",
             "warn start mode",
@@ -1175,7 +1195,7 @@ GPS_MODE = {
         }, 
         [2] = "Num of measurements", 
         
-        test_process_start = defunc_gps_functional_test(1), 
+        test_process_start = defunc_gps_functional_test.start(1), 
         test_process_stop = function (t) end
     }, 
     [2] = {
@@ -1203,7 +1223,7 @@ GPS_MODE = {
         [3] = "Measurement interval", 
         [4] = "Num of measurements", 
         
-        test_process_start = defunc_gps_hw_test(1), 
+        test_process_start = defunc_gps_hw_test.start(1), 
         test_process_stop = function (t) end
     }, 
     [3] = "Enable 2way(ch1 Knob)", 
@@ -1218,8 +1238,8 @@ GPS_MODE = {
     [8] = "Enable LED test", 
 
     test_process = {
-        [1] = function (t) end, 
-        [2] = function (t) end, 
+        [1] = defunc_gps_functional_test.start(1), 
+        [2] = defunc_gps_hw_test.start(2), 
         [3] = defunc_2way_ch1_knob_settings.start(3), 
         [4] = function (t) end, 
         [5] = defunc_disable_lcd.start(5), 
@@ -1289,13 +1309,13 @@ Field_MODE = {
         [1] = function (t) end, 
         [2] = function (t) end, 
         [3] = function (t) end,  
-        [4] = defunc_enable_gps(4), 
+        [4] = defunc_enable_gps.start(4), 
     }, 
     stop_process = {
         [1] = function (t) end, 
         [2] = function (t) end, 
         [3] = function (t) end, 
-        [4] = function (t) end, 
+        [4] = defunc_enable_gps.stop(4), 
 
     }, 
     test_process_start = function (t)
@@ -1402,7 +1422,7 @@ MODE_SWITCH = {
         [2] = "FCC Test", 
         [3] = "Bluetooth Test",
         [4] = "GPS Test(nonsupport)",
-        --[5] = "Field Test",
+        [5] = "Field Test",
         --[6] = "BaseBand Test",
     }, 
     [2] = "reboot to app Mode", 

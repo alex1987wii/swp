@@ -67,7 +67,6 @@ function check_num_range(num, ...)
         end
     end
     
-    slog:notice("end of check_num_range")
     return true
 end
 

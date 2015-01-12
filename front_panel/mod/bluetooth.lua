@@ -4,7 +4,7 @@ require "lnondsp"
 require "nondsp_event_info"
 require "log"
 
-slog.win_note_en = true
+--slog.win_note_en = true
 
 bt_init = function()
     
@@ -97,6 +97,10 @@ bt_init = function()
             t.menu_tab.test_process_start = function(tab)
                 switch_self_refresh(true)
                 g_bt = g_bt or bt_init()
+                if nil == g_bt then
+                    slog:win("bt enable fail, please check the error msg")
+                    return false
+                end
                 
                 for i=1, tab.devices_count do 
                     if (tab.select_status ~= nil) and tab.devices_connect_status[i] then
@@ -134,6 +138,10 @@ defunc_enable_bt = function(list_index)
             t[list_index] = "Find Bt Devices"
         elseif "string" == type(t[list_index]) then
             g_bt = g_bt or bt_init()
+            if nil == g_bt then
+                slog:win("bt enable fail, please check the error msg")
+                return false
+            end
 
             g_bt:find_devices()
             local bt_menu = g_bt:get_devices_table()
@@ -152,6 +160,10 @@ end
 
 def_disable_bt = function()
     g_bt = g_bt or bt_init()
+    if nil == g_bt then
+        slog:win("bt enable fail, please check the error msg")
+        return false
+    end
     
     g_bt:disable()
 end

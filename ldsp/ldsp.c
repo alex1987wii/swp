@@ -475,7 +475,10 @@ static int ldsp_stop_rx_desense_scan(lua_State *L)
     }
 }
 
-/* DSP two way transmit interface */
+/* DSP two way transmit interface
+ * int two_way_transmit_start(unsigned int start_freq, unsigned char  band_width, short  power_level,
+        unsigned int  start_delay, unsigned int  step_size, unsigned int  step_num, unsigned int on_time, unsigned int off_time);
+ *  */
 static int ldsp_two_way_transmit_start(lua_State *L)
 {
     unsigned int start_freq;    /* Transmit freq, value range in UHF, VHF or WLB */
@@ -484,7 +487,7 @@ static int ldsp_two_way_transmit_start(lua_State *L)
                             For example,” -20.50 dBm” is specified as -2050. */
     unsigned int start_delay;
     unsigned int step_size;
-    int repeat_num;
+    unsigned int repeat_num;
     unsigned int on_time; 
     unsigned int off_time;
     
@@ -510,9 +513,9 @@ static int ldsp_two_way_transmit_start(lua_State *L)
     start_freq = (unsigned int)lua_tointeger(L, 1);
     band_width = (unsigned char)lua_tointeger(L, 2);
     power_level = (int16_t)lua_tointeger(L, 3);
-    start_delay = (int16_t)lua_tointeger(L, 4);
-    step_size = (int16_t)lua_tointeger(L, 5);
-    repeat_num = (int)lua_tointeger(L, 6);
+    start_delay = (unsigned int)lua_tointeger(L, 4);
+    step_size = (unsigned int)lua_tointeger(L, 5);
+    repeat_num = (unsigned int)lua_tointeger(L, 6);
     on_time = (unsigned int)lua_tointeger(L, 7);
     off_time = (unsigned int)lua_tointeger(L, 8);
     

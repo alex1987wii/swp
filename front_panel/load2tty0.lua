@@ -17,6 +17,7 @@ require "utility"
 
 if "fpl" ~= read_bootmode() then
     die("load2tty0.lua call, is not fpl mode")
+    --os.execute("/usr/bin/switch_fpl_mode.sh")
     os.exit(-1)
 end
 
@@ -46,7 +47,6 @@ elseif pid == 0 then -- child process
     end
     
     posix.setenv("PATH", "/bin:/sbin:/usr/bin:/usr/sbin", 1)
-    posix.setenv("PWD", "/userdata/front_panel", 1)
     posix.setenv("TERM", "xterm", 1)
     posix.setenv("TERMINFO", "/usr/share/terminfo", 1)
     posix.setenv( "LD_LIBRARY_PATH", "/lib", 1)
