@@ -114,6 +114,15 @@ function newlog(logbasename)
 	}
 end
 
+--[[
+slog:verbose("A verbose message, usually useful when working on a specific problem")
+slog:debug("A debug message")
+slog:info("An info message, probably useful to power users looking in console.app")
+slog:warning("A warning message, may indicate a possible error")
+slog:error("An error occurred, but it's recoverable, just info about what happened")
+slog:severe("A severe error occurred, we are likely about to crash now")
+--]]
+
 slog = {
 	notice_en    = true, 
 	debug_en     = true, 

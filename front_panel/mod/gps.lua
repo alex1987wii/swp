@@ -31,17 +31,15 @@ gps =  {
 				end
 				
 				local e_id = NONDSP_EVT:get_id(evt.evt, evt.evi)
-				if nil == e_id then
-                    slog:notice("not gps event, get event: "..tostring(evt.evt).." <-> "..tostring(evt.evi))
-				elseif e_id == "GPS_REQ_RESULT" then
-					slog:notice("GPS_REQ_RESULT state: "..tostring(evt.state))
+				if nil ~= e_id and e_id == "REQ_RESULT" then
+					--slog:notice("REQ_RESULT state: "..tostring(evt.state))
                     if evt.state then
                         return {ret=true, state=evt.state}
                     else
                         return {ret=false, errmsg="req state -> "..tostring(evt.state)}
                     end
 				end
-				slog:notice("gps get_req_state, get event: "..tostring(e_id))
+				--slog:notice("gps:get_req_state, get event: "..tostring(e_id))
 			end
 		end
 		
@@ -112,7 +110,7 @@ gps =  {
 			local evt_index = lnondsp.get_evt_number()
 			local evt = {}
 			if 0 == evt_index then
-				slog:notice("event cnt: 0, wait 1s and retry")
+				--slog:notice("event cnt: 0, wait 1s and retry")
 				posix.sleep(1)
 			else
 				evt = lnondsp.get_evt_item(1)
@@ -123,6 +121,7 @@ gps =  {
 				
 				local e_id = NONDSP_EVT:get_id(evt.evt, evt.evi)
 				if nil ~= e_id and e_id == "GPS_FIXED" then
+                    --[[
                     if evt.fixed then
                         for k, v in pairs(evt) do
                             if "number" == type(v) then
@@ -132,9 +131,10 @@ gps =  {
                     end
                     
                     slog:notice("gps get_fixed event done")
+                    --]]
 					return evt
 				end
-				slog:notice("gps get_fixed, get event: "..tostring(e_id)..", wait 1s")
+				--slog:notice("gps get_fixed, get event: "..tostring(e_id)..", wait 1s")
 				posix.sleep(1)
 			end
 		end
@@ -150,14 +150,14 @@ gps =  {
             return true
         end
         
-        slog:err("gps:gps_hardware_test req error -> "..r.errmsg)
+        slog:err("gps:hw_test_start req error -> "..r.errmsg)
         return false
 	end, 
 	
 	hw_test_stop = function(t)
 		lnondsp.gps_enable()
         
-        local r = t:get_req_state(5)
+        local r = t:get_req_state(10)
         if not r.ret then
             slog:err("gps:hw_test_stop -> gps_enable req error -> "..r.errmsg)
             return false
@@ -177,7 +177,7 @@ gps =  {
 			local evt_index = lnondsp.get_evt_number()
 			local evt
 			if 0 == evt_index then
-				slog:notice("event cnt: 0, wait 1s and retry")
+				--slog:notice("event cnt: 0, wait 1s and retry")
 				posix.sleep(1)
 			else
 				evt = lnondsp.get_evt_item(evt_index)
@@ -188,14 +188,16 @@ gps =  {
 				
 				local e_id = NONDSP_EVT:get_id(evt.evt, evt.evi)
 				if nil ~= e_id and e_id == "TEST_MODE_INFO" then
+                    --[[
 					for k, v in pairs(evt) do
                         if "number" == type(v) then
                             slog:notice("gps hw info: "..k.." : "..tostring(v))
                         end
 					end
+                    --]]
 					return evt
 				end
-				slog:notice("gps get_hw_info, get event: "..tostring(e_id))
+				--slog:notice("gps get_hw_info, get event: "..tostring(e_id))
                 posix.sleep(1)
 			end
 		end
@@ -254,7 +256,7 @@ update_list_defunc = function (tab, menu_list, val_list, index_num)
             val = val_list[v]
         end
         tab[k+1] = v..": "..tostring(val)
-        slog:notice("update_list: "..(k+1).." -> "..tostring(val))
+        --slog:notice("update_list: "..(k+1).." -> "..tostring(val))
     end
 end
 --
@@ -296,7 +298,7 @@ defunc_gps_functional_test = {
             
             local unity_time_cnt = time_counter()
             for index=1, t.measurement_num do
-                slog:notice("index "..index)
+                --slog:notice("index "..index)
                 local time_cnt = time_counter()
                 if not gps:restart(t.restart_mode) then
                     slog:win("index "..index.." restart error: <- "..tostring(t.restart_mode))
@@ -320,7 +322,7 @@ defunc_gps_functional_test = {
                 slog:notice("gps:get_fixed info to update menu list("..unity_time_cnt()..")")
                 menu_tab:update_list(show_list, info, index)
                 menu_tab.title = "GPS functional test ("..unity_time_cnt()..")"
-                menu_tab.tips = "GPS functional fixed ("..index..")("..time_cnt()..")"
+                menu_tab.tips = "GPS functional fixed ("..index.."): ("..time_cnt()..")"
                 create_main_menu(menu_tab):show()
                 posix.sleep(1)
             end
@@ -350,19 +352,15 @@ defunc_gps_hw_test = {
             end
             
             local show_list = {
-                [1] = "index num: ", 
-                [2] = "SVid", 
-                [3] = "bit_sync_time",  
-                [4] = "CNo_mean",  
-                [5] = "CNo_sigma",  
-                [6] = "clock_drift", 
-                [7] = "clock_offset", 
-                [8] = "Abs_I20ms", 
-                [9] = "Abs_Q20ms", 
-                [10] = "rtc_freq", 
-                [11] = "agc", 
-                [12] = "noise_figure", 
-                [13] = "Q_I_ratio",  
+                [1] = "SVid", 
+                [2] = "bit_sync_time",  
+                [3] = "CNo_mean",  
+                [4] = "CNo_sigma",  
+                [5] = "clock_drift", 
+                [6] = "clock_offset", 
+                [7] = "Abs_I20ms", 
+                [8] = "Abs_Q20ms", 
+                [9] = "rtc_freq",  
             }
             local menu_tab = {
                 title = "GPS Hardware test", 
@@ -377,27 +375,23 @@ defunc_gps_hw_test = {
             local unity_time_cnt = time_counter()
             
             if not gps:hw_test_start(t.svid, t.trancking_time) then
-                menu_tab.title = "GPS HW test ("..unity_time_cnt()..")"
-                menu_tab.tips = "GPS HW test req start fail, wait 3s and auto exit"
-                menu_tab:update_list(show_list, nil, index)
-                create_main_menu(menu_tab):show()
-                posix.sleep(3)
+                slog:win("GPS HW test req start fail")
                 return false
             end
 
             for index=1, t.measurement_num do
-                slog:notice("index "..index)
+                --slog:notice("index "..index)
                 local time_cnt = time_counter()
                 local info = {}
                 repeat
                     info = gps:get_hw_info (t.trancking_time + 30)
                     if not info.ret then
                         menu_tab.title = "GPS HW test ("..unity_time_cnt()..")"
-                        menu_tab.tips = "GPS HW test check event ("..time_cnt()..")"
+                        menu_tab.tips = "GPS HW test faile, check event ("..time_cnt()..")"
                         
                         create_main_menu(menu_tab):show()
                     end
-                    slog:notice("sleep 1s")
+                    --slog:notice("sleep 1s")
                     posix.sleep(1)
                 until info.ret
                 

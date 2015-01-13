@@ -88,8 +88,6 @@ defunc_disable_lcd = {
             if t.select_status[list_index] then
                 lnondsp.lcd_set_backlight_level(0)
                 lnondsp.lcd_disable()
-            else
-                lnondsp.lcd_enable()
             end
         end
     end, 
@@ -696,7 +694,9 @@ RFT_MODE = {
                 t.power_level = t[3].power_level
             end, 
             [4] = get_para_func("start_delay", "Start delay(s)"), 
-            [5] = get_para_func("step_size", "Step size"),  
+            [5] = function (t) 
+                t.step_size = t[5].step_size
+            end, 
             [6] = get_para_func("step_num", "Step num"), 
             [7] = function (t)
                 t.on_time = t[7].on_time
@@ -735,7 +735,19 @@ RFT_MODE = {
             "Power Level 3",
         }, 
         [4] = "Start delay", 
-        [5] = "Step size", 
+        [5] = {
+            title = "Step size", 
+            tips  = "Select Step size", 
+            multi_select_mode = false, 
+            action = function (t)
+                local step_size_g = {0, 1*1000*1000, 2*1000*1000, 5*1000*1000} 
+                t.step_size = step_size_g[t.select_index]
+            end, 
+            "0 Hz", 
+            "1 MHz", 
+            "2 MHz", 
+            "5 MHz", 
+        }, 
         [6] = "Step num", 
         [7] = {
             title = "ON/OFF Time Setting", 
@@ -1278,7 +1290,7 @@ GPS_MODE = {
 
 Field_MODE = {
     title = "Field test", 
-    tips  = "Press * to start and # to end test", 
+    tips  = "enter OK key to start the test", 
     multi_select_mode = true, 
     init_env = function (t)
         init_global_env()
@@ -1319,7 +1331,7 @@ Field_MODE = {
 
     }, 
     test_process_start = function (t)
-        t.report = {}
+        switch_self_refresh(true)
         for i=1, 4 do
             if "function" == type(t.test_process[i]) then
                 t.test_process[i](t)
