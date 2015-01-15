@@ -281,9 +281,9 @@ defunc_gps_functional_test = {
             local show_list = {
                 [1] = "fixed", 
                 [2] = "TTFF",  
-                [3] = "latitude",  
-                [4] = "longitude",  
-                [5] = "altitude",  
+                [3] = "lat",  
+                [4] = "lon",  
+                [5] = "alt",  
             }
             local menu_tab = {
                 title = "GPS functional test", 

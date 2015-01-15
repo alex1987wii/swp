@@ -227,9 +227,9 @@ static int lnondsp_get_evt_item(lua_State *L)
                 gps_event_ttff_t *ttff = (gps_event_ttff_t *)pbuf;
                 lua_pushboolean2table(L, "fixed", ttff->fixed);         /* 1: fixed, other: no fixed */
                 lua_pushinteger2table(L, "TTFF", ttff->TTFF);           /* unit: second */
-                lua_pushnumber2table(L, "latitude", ttff->latitude);   /* unit: degree */
-                lua_pushnumber2table(L, "longitude", ttff->longitude); /* unit: degree */
-                lua_pushnumber2table(L, "altitude", ttff->altitude);   /* unit: meters */
+                lua_pushnumber2table(L, "lat", ttff->latitude);   /* unit: degree */
+                lua_pushnumber2table(L, "lon", ttff->longitude); /* unit: degree */
+                lua_pushnumber2table(L, "alt", ttff->altitude);   /* unit: meters */
             }
                 break; 
 

@@ -221,7 +221,6 @@ defunc_calibrate_radio_oscillator_test = function(list_index)
     }
 
     menu_tab.init_env = function (tab) 
-        ldsp.calibrate_radio_oscillator_start()
         local r = ldsp.get_original_afc_val()
         if r.ret then
             tab.afc_val = r.afc_val
@@ -229,6 +228,8 @@ defunc_calibrate_radio_oscillator_test = function(list_index)
         end
         slog:notice("get_original_afc_val, afc_val "..tostring(tab.afc_val))
         tab[1] = "AFC Value: "..tostring(tab.afc_val)
+        
+        ldsp.calibrate_radio_oscillator_start()
     end
     
     menu_tab.new_main_menu = function(tab)
@@ -1290,7 +1291,7 @@ GPS_MODE = {
 
 Field_MODE = {
     title = "Field test", 
-    tips  = "enter OK key to start the test", 
+    tips  = "Press 1-5 to test\n  * unavailable now!", 
     multi_select_mode = true, 
     init_env = function (t)
         init_global_env()
@@ -1301,18 +1302,37 @@ Field_MODE = {
             ldsp.restore_default_radio_oscillator_calibration()
             slog:notice("Restore default radio oscillator calibration")
         end, 
-        [3] = defunc_enable_bt(3), 
-        [4] = function (t) end, 
+        [3] = function (t) 
+            ldsp.calibrate_radio_oscillator_stop()
+            slog:win("calibrate radio oscillator stop")
+        end, 
+        [4] = defunc_enable_bt(3), 
+        [5] = function (t)
+            if t.select_status[t.select_index] then
+                if not t.select_status[t.select_index] then
+                    t.test_process[5](t)
+                    t.gps_enable_call = true
+                end
+            end
+        end, 
     }, 
     action = function (t)
         if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
             t.action_map[t.select_index](t)
         end
+        
+        if t.gps_enable_call then
+            if t.select_status[t.select_index] then
+                t.stop_process[5](t)
+                t.gps_enable_call = false
+            end
+        end
     end, 
-    [1] = "Cal Radio Oscillator", 
+    [1] = "Start Oscillator Cal", 
     [2] = "Restore Oscillator Cal", 
-    [3] = "Find BT Device", 
-    [4] = "Enable GPS",  
+    [3] = "Stop Oscillator Cal", 
+    [4] = "Find BT Device", 
+    [5] = "Enable GPS",  
         --[[ display to user'acquiring GPS signal'.Once acquired display to the user
               the 'latitude and longitude' of the fixes
         --]] 
@@ -1321,31 +1341,17 @@ Field_MODE = {
         [1] = function (t) end, 
         [2] = function (t) end, 
         [3] = function (t) end,  
-        [4] = defunc_enable_gps.start(4), 
+        [4] = function (t) end,  
+        [5] = defunc_enable_gps.start(5), 
     }, 
     stop_process = {
         [1] = function (t) end, 
         [2] = function (t) end, 
         [3] = function (t) end, 
-        [4] = defunc_enable_gps.stop(4), 
+        [4] = function (t) end, 
+        [5] = defunc_enable_gps.stop(5), 
 
-    }, 
-    test_process_start = function (t)
-        switch_self_refresh(true)
-        for i=1, 4 do
-            if "function" == type(t.test_process[i]) then
-                t.test_process[i](t)
-            end
-        end
-    end, 
-    test_process_stop = function (t)
-        for i=1, 4 do
-            if "function" == type(t.stop_process[i]) then
-                t.stop_process[i](t)
-            end
-        end
-    end, 
-
+    }
 }
 
 BaseBand_MODE = {
@@ -1433,7 +1439,7 @@ MODE_SWITCH = {
         [1] = "2Way RF Test", 
         [2] = "FCC Test", 
         [3] = "Bluetooth Test",
-        [4] = "GPS Test(nonsupport)",
+        [4] = "GPS Test",
         [5] = "Field Test",
         --[6] = "BaseBand Test",
     }, 
