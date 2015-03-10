@@ -4,6 +4,9 @@
 # LDFLAGS=-lncurses -llua
 # LDFLAGS=-lncurses -llua5.1 -I/usr/include/lua5.1
 
+# PROJECT=CONFIG_PROJECT_G4_BBA
+PROJECT=CONFIG_PROJECT_U3_2ND
+
 CLIBS= -lncurses 
 CC=/opt/ad6900/arm-compiler/bin/arm-linux-gcc
 CFLAGS=-I/opt/ad6900/arm-compiler/arm-none-linux-gnueabi/include/ncurses -Iinclude -DHAVE_NCURSES_CURSES_H
@@ -26,10 +29,12 @@ lib/bit32.so: bit32/bit32.c
 	$(CC) -Wall -shared -o $@ -fPIC $^ $(CFLAGS)
 	
 lib/ldsp.so: ldsp/ldsp.c
-	$(CC) -Wall -shared -o $@ -fPIC $^ $(CFLAGS) -ldspadapter -lbitdsp -lpthread -ltimers -lannal -lcircbuf -lcrc16 $(DSP_INC) -DCONFIG_PROJECT_U3_2ND
+	$(CC) -Wall -shared -o $@ -fPIC $^ $(CFLAGS) -ldspadapter -lbitdsp -lpthread -ltimers -lannal -lcircbuf -lcrc16 $(DSP_INC) -lcaldb -D$(PROJECT)
 	
 lib/lnondsp.so: lnondsp/lnondsp.c
-	$(CC) -Wall -shared -o $@ -fPIC $^ $(CFLAGS) $(NONDSP_INC) -DCONFIG_PROJECT_U3_2ND -lbitnondsp -lpthread -ltimers -lannal -lcircbuf -lbluetooth -ldspadapter -lbitdsp -lcrc16 
+	$(CC) -Wall -shared -o $@ -fPIC $^ $(CFLAGS) $(NONDSP_INC) -D$(PROJECT) -lbitnondsp -lpthread -ltimers -lannal -lcircbuf -lbluetooth -ldspadapter -lbitdsp -lcrc16 
 
+install:
+	cp lib/*.so front_panel/arm-so
 clean:
 	rm -rf lib/curses_c.so lib/posix_c.so lib/bit32.so lib/ldsp.so lib/lnondsp.so
