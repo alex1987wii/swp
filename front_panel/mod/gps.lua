@@ -413,4 +413,24 @@ defunc_gps_hw_test = {
         
     end
 }
+
+defunc_enable_gps = {
+    start = function (list_index)
+        return function (t)
+            if t.select_status[list_index] then
+                gps:enable()
+
+            end
+        end
+    end, 
+    
+    stop = function (list_index)
+        return function (t)
+            if t.select_status[list_index] then
+                gps:disable()
+            end
+        end
+    end
+}
+
 --

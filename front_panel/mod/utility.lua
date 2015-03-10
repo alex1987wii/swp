@@ -1,5 +1,9 @@
 
 --utility.lua 
+require "log"
+require "posix"
+require "ldsp"
+require "lnondsp"
 
 read_attr_file = function(f)
     local f = assert(io.open(f, "r"))
@@ -98,4 +102,44 @@ thread_do = function (func)
     end
     
     return pid
+end
+
+
+function get_para_func(pname, pinfo)
+    return function (t)
+        local r = get_string_in_window(t[t.select_index])
+        if r.ret then
+            t[pname] =  tonumber(r.str)
+            if nil == t[pname] then
+                slog:err("get string in window is not number: "..tostring(r.str))
+                t.select_status[t.select_index] = false
+                return false
+            end
+
+            if not check_num_range(t[pname]) then
+                slog:err("enter is not number")
+                return false
+            end
+            
+            if string.len(pinfo) > (curses.cols() - 9) then
+                t[t.select_index] = pinfo
+            else
+                t[t.select_index] = pinfo.." "..tostring(r.str)
+            end
+        else
+            slog:err("enter "..r.errmsg)
+        end
+    end
+end 
+
+function init_global_env()
+    if not global_env_init then
+        ldsp.bit_launch_dsp()
+        ldsp.register_callbacks()
+        ldsp.start_dsp_service()
+        
+        lnondsp.register_callbacks()
+        lnondsp.bit_gps_thread_create()
+        global_env_init = true
+    end
 end

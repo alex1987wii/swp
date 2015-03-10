@@ -1,5 +1,6 @@
 -- menu show 
 require "log"
+require "curses"
 require "utility"
 
 local device_type = device_type or read_config_mk_file("/etc/sconfig.mk", "Project")
@@ -14,9 +15,27 @@ key_map = {
     stop = 0x23
 }
 
-if "g4_bba" == device_type then
+if "u3" == device_type then
+    key_map.up = 258
+    key_map.down = 259
+    key_map.space = 0x20
+    key_map.enter = 0xa
+    key_map.left = 260
+    key_map.start = 0x2a
+    key_map.stop = 0x23
+elseif "u3_2nd" == device_type then
+    key_map.up = curses.KEY_DOWN 
+    key_map.down = curses.KEY_UP 
+    key_map.space = 0x20
+    key_map.enter = 0xa
+    key_map.left = curses.KEY_LEFT
+    key_map.start = 0x2a
+    key_map.stop = 0x23
+elseif "g4_bba" == device_type then
     key_map.start = 0x25
     key_map.stop = 0x107
+else
+    
 end
 
 init_menu = function()

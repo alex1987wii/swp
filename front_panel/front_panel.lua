@@ -8,8 +8,8 @@ require "posix"
 require "log"
 require "utility"
 
-require "menu_data"
 require "menu_show"
+require "menu_data"
 
 posix.setenv("TERMINFO", "/usr/share/terminfo", 1)
 --posix.setenv("PWD", "/userdata/front_panel", 1)

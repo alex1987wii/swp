@@ -715,6 +715,7 @@ static int lnondsp_keypad_set_backlight(lua_State *L)
     }
 }
 
+#if 0
 /**
  * int baseband_spkr_start(void)
  * */
@@ -788,6 +789,7 @@ static int lnondsp_vibrator_disable(lua_State *L)
         return 1;
     }
 }
+#endif
 
 #if 0
 /** 
@@ -1989,12 +1991,14 @@ static const struct luaL_reg nondsp_lib[] =
     NF(keypad_disable), 
     NF(keypad_set_backlight), 
     
+    #if 0
     NF(baseband_spkr_start),
     NF(baseband_spkr_stop), 
 
     NF(vibrator_enable), 
     NF(vibrator_disable), 
-
+    #endif
+    
     #if 0
     NF(gsm_enable), 
     NF(gsm_disable), 
