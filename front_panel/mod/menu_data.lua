@@ -11,6 +11,7 @@ require "gps"
 local freq_band = {
     VHF = {start=136 * 1000 * 1000, last = 174 * 1000 * 1000}, 
     U3_2ND = {start=763 * 1000 * 1000, last = 890 * 1000 * 1000}, 
+    G4_BBA = {start=763 * 1000 * 1000, last = 890 * 1000 * 1000}, 
 }
 
 device_type = read_config_mk_file("/etc/sconfig.mk", "Project")
@@ -19,6 +20,8 @@ if "u3" == tostring(device_type) then
     global_freq_band = freq_band.VHF
 elseif "u3_2nd" == tostring(device_type) then
     global_freq_band = freq_band.U3_2ND
+elseif "g4_bba" == tostring(device_type) then
+    global_freq_band = freq_band.G4_BBA
 else
     slog:err("not support device type : "..tostring(device_type))
 end
@@ -149,6 +152,25 @@ defunc_led_selftest = {
         return function (t)
             if t.select_status[list_index] then
                 lnondsp.led_selftest_stop()
+            end
+        end
+    end
+}
+
+defunc_vibrator_test = {
+    start = function (list_index)
+        return function (t)
+            local r, msgid
+            if t.select_status[list_index] then
+                r, msgid = lnondsp.vibrator_enable()
+            end
+        end
+    end, 
+    
+    stop = function (list_index)
+        return function (t)
+            if t.select_status[list_index] then
+                lnondsp.vibrator_disable()
             end
         end
     end
@@ -289,6 +311,14 @@ wait_for_rx_desense_scan_stop = function (t, list_index)
     end
 end
 
+wait_for_two_way_transmit_stop = function (t, list_index)
+    if t.select_status[list_index] then
+        repeat
+            posix.sleep(1)
+        until ldsp.two_way_transmit_flag_get()
+    end
+end
+
 RFT_MODE = {
     title = "2Way RF Test", 
     tips  = "select and test", 
@@ -394,11 +424,11 @@ RFT_MODE = {
             [7] = "delaytime(0~100s)", -- 每个波段measure的间隔时间，有效值范围 
         }, 
         [2] = "Enable Bluetooth", 
-        [3] = "Enable GPS", 
-        [4] = "Disable LCD", 
-        [5] = "Show static image(LCD)", 
-        [6] = "Enable slide show", 
-        [7] = "Enable LED test", 
+        [3] = "Disable LCD", 
+        [4] = "Show static image(LCD)", 
+        [5] = "Enable slide show", 
+        [6] = "Enable LED test", 
+        [7] = "Enable GPS", 
 
         test_process = {
             [1] = function (t)
@@ -413,22 +443,22 @@ RFT_MODE = {
             [2] = function (t)
             
             end, 
-            [3] = defunc_enable_gps.start(3), 
-            [4] = defunc_disable_lcd.start(4), 
-            [5] = defunc_lcd_display_static_image(5), 
-            [6] = defunc_lcd_slide_show_test.start(6), 
-            [7] = defunc_led_selftest.start(7), 
+            [3] = defunc_disable_lcd.start(3), 
+            [4] = defunc_lcd_display_static_image(4), 
+            [5] = defunc_lcd_slide_show_test.start(5), 
+            [6] = defunc_led_selftest.start(6), 
+            [7] = defunc_enable_gps.start(7), 
         }, 
         stop_process = {
             [1] = function (t)
                 local r_des, msgid_des = ldsp.stop_rx_desense_scan()
             end, 
             [2] = function (t) end, 
-            [3] = defunc_enable_gps.stop(3), 
-            [4] = defunc_disable_lcd.stop(4), 
-            [5] = function (t) end, 
-            [6] = defunc_lcd_slide_show_test.stop(6), 
-            [7] = defunc_led_selftest.stop(7), 
+            [3] = defunc_disable_lcd.stop(3), 
+            [4] = function (t) end, 
+            [5] = defunc_lcd_slide_show_test.stop(5), 
+            [6] = defunc_led_selftest.stop(6), 
+            [7] = defunc_enable_gps.stop(7), 
 
         }, 
         test_process_start = function (t)
@@ -778,6 +808,10 @@ RFT_MODE = {
                 slog:err("call ldsp.two_way_transmit_start parameter error: check "..cr.errno.." "..cr.errmsg)
             end
             
+            wait_for_two_way_transmit_stop(t, 1)
+            t:test_process_stop()
+            t.test_process_start_call = false
+            switch_self_refresh(true)
         end, 
         
         test_process_stop = function (t)
@@ -860,10 +894,9 @@ FCC_MODE = {
         tips  = "Select Band Width", 
         multi_select_mode = false, 
         action = function (t)
-            local bw_g = {0, 1, 2} -- 0:16.25KHz 1:2.5KHz 2:25KHz 
+            local bw_g = {1, 2} -- 0:16.25KHz 1:2.5KHz 2:25KHz 
             t.band_width = bw_g[t.select_index]
-        end, 
-        "6.25 KHz", 
+        end,  
         "12.5 KHz", 
         "25 KHz", 
     }, 
@@ -1322,7 +1355,7 @@ Field_MODE = {
         end
         
         if t.gps_enable_call then
-            if t.select_status[t.select_index] then
+            if not t.select_status[5] then
                 t.stop_process[5](t)
                 t.gps_enable_call = false
             end
@@ -1374,11 +1407,215 @@ BaseBand_MODE = {
         end
     end, 
 
-    [1] = "Enable GPS", 
-    [2] = "Disable LCD", 
-    [3]= "Show static image(LCD)", 
-    [4]= "Enable slide show", 
-    [5]= "Enable LED test", 
+    [1] = {
+        title = "Battery lift test", 
+        tips  = "Press * to start and # to end test", 
+        multi_select_mode = true, 
+        new_main_menu = function (t)
+            local m_sub = create_main_menu(t)
+            m_sub:show()
+            m_sub:action()
+        end, 
+        action_map = {
+            [1] = function (t)  end, 
+        }, 
+
+        action = function (t)
+            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                t.action_map[t.select_index](t)
+            end
+        end, 
+        [1] = "Battery lift test", 
+        
+        test_process_start = function (t) end, 
+        test_process_stop = function (t) end
+    }, 
+    [2] = {
+        title = "Speaker test", 
+        tips  = "Press * to start and # to end test", 
+        multi_select_mode = true, 
+        new_main_menu = function (t)
+            local m_sub = create_main_menu(t)
+            m_sub:show()
+            m_sub:action()
+        end, 
+        action_map = {
+            [1] = function (t)  end, 
+        }, 
+
+        action = function (t)
+            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                t.action_map[t.select_index](t)
+            end
+        end, 
+        [1] = "Speaker test", 
+        
+        test_process_start = function (t) end, 
+        test_process_stop = function (t) end
+    }, 
+    [3] = {
+        title = "LCD Slideshow test", 
+        tips  = "Press * to start and # to end test", 
+        multi_select_mode = true, 
+        new_main_menu = function (t)
+            local m_sub = create_main_menu(t)
+            m_sub:show()
+            m_sub:action()
+        end, 
+        action_map = {
+            [1] = function (t)  end, 
+        }, 
+
+        action = function (t)
+            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                t.action_map[t.select_index](t)
+            end
+        end, 
+        [1] = "LCD Slideshow test", 
+        
+        test_process_start = function (t) end, 
+        test_process_stop = function (t) end
+    },  
+    [4] = {
+        title = "LED/Keypad BL test", 
+        tips  = "Press * to start and # to end test", 
+        multi_select_mode = true, 
+        new_main_menu = function (t)
+            local m_sub = create_main_menu(t)
+            m_sub:show()
+            m_sub:action()
+        end, 
+        action_map = {
+            [1] = function (t)  end, 
+            [2] = function (t)  end, 
+        }, 
+
+        action = function (t)
+            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                t.action_map[t.select_index](t)
+            end
+        end, 
+        [1] = "LED test", 
+        [2] = "Keypad BL test", 
+        
+        test_process_start = function (t) end, 
+        test_process_stop = function (t) end
+    },  
+    [5] = {
+        title = "Button test", 
+        tips  = "Press * to start and # to end test", 
+        multi_select_mode = true, 
+        new_main_menu = function (t)
+            local m_sub = create_main_menu(t)
+            m_sub:show()
+            m_sub:action()
+        end, 
+        action_map = {
+            [1] = function (t)  end, 
+        }, 
+
+        action = function (t)
+            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                t.action_map[t.select_index](t)
+            end
+        end, 
+        [1] = "Button test", 
+        
+        test_process_start = function (t) end, 
+        test_process_stop = function (t) end
+    },  
+    [6] = {
+        title = "Accelerometer test", 
+        tips  = "Press * to start and # to end test", 
+        multi_select_mode = true, 
+        new_main_menu = function (t)
+            local m_sub = create_main_menu(t)
+            m_sub:show()
+            m_sub:action()
+        end, 
+        action_map = {
+            [1] = function (t)  end, 
+        }, 
+
+        action = function (t)
+            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                t.action_map[t.select_index](t)
+            end
+        end, 
+        [1] = "Accelerometer test", 
+        
+        test_process_start = function (t) end, 
+        test_process_stop = function (t) end
+    },  
+    [7] = {
+        title = "Query Battery Voltage", 
+        tips  = "Press * to start and # to end test", 
+        multi_select_mode = true, 
+        new_main_menu = function (t)
+            local m_sub = create_main_menu(t)
+            m_sub:show()
+            m_sub:action()
+        end, 
+        action_map = {
+            [1] = function (t)  end, 
+        }, 
+
+        action = function (t)
+            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                t.action_map[t.select_index](t)
+            end
+        end, 
+        [1] = "Query Battery Voltage", 
+        
+        test_process_start = function (t) end, 
+        test_process_stop = function (t) end
+    },   
+    [8] = {
+        title = "Query Device Temperature", 
+        tips  = "Press * to start and # to end test", 
+        multi_select_mode = true, 
+        new_main_menu = function (t)
+            local m_sub = create_main_menu(t)
+            m_sub:show()
+            m_sub:action()
+        end, 
+        action_map = {
+            [1] = function (t)  end, 
+        }, 
+
+        action = function (t)
+            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                t.action_map[t.select_index](t)
+            end
+        end, 
+        [1] = "Query Device Temperature", 
+        
+        test_process_start = function (t) end, 
+        test_process_stop = function (t) end
+    },  
+    [9] = {
+        title = "Query Light Sensor", 
+        tips  = "Press * to start and # to end test", 
+        multi_select_mode = true, 
+        new_main_menu = function (t)
+            local m_sub = create_main_menu(t)
+            m_sub:show()
+            m_sub:action()
+        end, 
+        action_map = {
+            [1] = function (t)  end, 
+        }, 
+
+        action = function (t)
+            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                t.action_map[t.select_index](t)
+            end
+        end, 
+        [1] = "Query Light Sensor", 
+        
+        test_process_start = function (t) end, 
+        test_process_stop = function (t) end
+    },  
 }
 
 MODE_SWITCH = {
@@ -1409,26 +1646,26 @@ MODE_SWITCH = {
                 t.fpl_mode = RFT_MODE
                 t.fpl_mode_name = "RFT_MODE"
             end, 
-            [2] = function (t) 
-                t.fpl_mode = FCC_MODE
-                t.fpl_mode_name = "FCC_MODE"
-            end, 
-            [3] = function (t)
+            [2] = function (t)
                 t.fpl_mode = Bluetooth_MODE
                 t.fpl_mode_name = "Bluetooth_MODE"
             end, 
-            [4] = function (t)
-                t.fpl_mode = GPS_MODE
-                t.fpl_mode_name = "GPS_MODE"
-            end, 
-            [5] = function (t)
-                t.fpl_mode = Field_MODE
-                t.fpl_mode_name = "Field_MODE"
-            end, 
-            [6] = function (t)
+            [3] = function (t)
                 t.fpl_mode = BaseBand_MODE
                 t.fpl_mode_name = "BaseBand_MODE"
             end,
+            [4] = function (t) 
+                t.fpl_mode = FCC_MODE
+                t.fpl_mode_name = "FCC_MODE"
+            end, 
+            [5] = function (t)
+                t.fpl_mode = GPS_MODE
+                t.fpl_mode_name = "GPS_MODE"
+            end, 
+            [6] = function (t)
+                t.fpl_mode = Field_MODE
+                t.fpl_mode_name = "Field_MODE"
+            end, 
         }, 
         action = function (t)
             if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
@@ -1437,11 +1674,11 @@ MODE_SWITCH = {
         end, 
         
         [1] = "2Way RF Test", 
-        [2] = "FCC Test", 
-        [3] = "Bluetooth Test",
-        [4] = "GPS Test",
-        [5] = "Field Test",
-        --[6] = "BaseBand Test",
+        [2] = "Bluetooth Test",
+        [3] = "BaseBand Test",
+        [4] = "FCC Test", 
+        [5] = "GPS Test",
+        [6] = "Field Test",
     }, 
     [2] = "reboot to app Mode", 
     test_process = {
@@ -1473,7 +1710,6 @@ MODE_SWITCH = {
         end
     end, 
 }
-
 
 table_info = function (t)
     return {

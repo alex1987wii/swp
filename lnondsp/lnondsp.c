@@ -201,6 +201,7 @@ static int lnondsp_get_evt_item(lua_State *L)
                 break;
         }
     } else if (NONDSP_EVT_GPS == evt.evt){
+        #ifndef CONFIG_PROJECT_G4_BBA
         switch(evt.evi) {
 
             case NONDSP_EVT_GPS_REQ_RESULT:
@@ -258,6 +259,7 @@ static int lnondsp_get_evt_item(lua_State *L)
                 lua_pushinteger2table(L, "SVid", hw_test_info->SVid);
                 lua_pushinteger2table(L, "Period", hw_test_info->Period);
                 lua_pushinteger2table(L, "bit_sync_time", (unsigned int)hw_test_info->bit_sync_time);
+                lua_pushinteger2table(L, "rtc_freq", (unsigned int)hw_test_info->rtc_freq);
                 lua_pushnumber2table(L, "CNo_mean", hw_test_info->CNo_mean);
                 lua_pushnumber2table(L, "CNo_sigma", hw_test_info->CNo_sigma);
                 lua_pushnumber2table(L, "clock_drift", hw_test_info->clock_drift);
@@ -265,8 +267,7 @@ static int lnondsp_get_evt_item(lua_State *L)
                 lua_pushinteger2table(L, "Abs_I20ms", hw_test_info->Abs_I20ms);
                 lua_pushinteger2table(L, "Abs_Q20ms", hw_test_info->Abs_Q20ms);
                 lua_pushnumber2table(L, "phase_lock_indicator", hw_test_info->phase_lock_indicator);
-                lua_pushinteger2table(L, "rtc_freq", (unsigned int)hw_test_info->rtc_freq);
-                lua_pushinteger2table(L, "agc", (unsigned int)hw_test_info->agc);
+                lua_pushnumber2table(L, "agc", hw_test_info->agc);
                 lua_pushnumber2table(L, "noise_figure", hw_test_info->noise_figure);
                 lua_pushnumber2table(L, "drift_rate_in_ppb", hw_test_info->drift_rate_in_ppb);
                 lua_pushnumber2table(L, "clock_offset_in_ppm", hw_test_info->clock_offset_in_ppm);
@@ -274,6 +275,7 @@ static int lnondsp_get_evt_item(lua_State *L)
             }
                 break; 
         }
+        #endif
     }
         
     return 1;
@@ -285,6 +287,7 @@ static int lnondsp_register_callbacks(lua_State *L)
     return 0;
 }
 
+#ifndef CONFIG_PROJECT_G4_BBA
 /* GPS test interface */
 static int lnondsp_bit_gps_thread_create(lua_State *L)
 {
@@ -409,6 +412,7 @@ static int lnondsp_gps_get_position_fix(lua_State *L)
         return 1;
     }
 }
+#endif
 
 #if 1
 /* LCD test interface */
@@ -710,6 +714,282 @@ static int lnondsp_keypad_set_backlight(lua_State *L)
         return 1;
     }
 }
+
+/**
+ * int baseband_spkr_start(void)
+ * */
+static int lnondsp_baseband_spkr_start(lua_State *L)
+{
+    int ret = -1;
+
+    ret = baseband_spkr_start();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/** 
+ * int baseband_spkr_stop(void)
+ * */
+static int lnondsp_baseband_spkr_stop(lua_State *L)
+{
+    int ret = -1;
+
+    ret = baseband_spkr_stop();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/** 
+ * int32_t vibrator_enable(void);
+ * int32_t vibrator_set_time(uint32_t vib_time);
+ * */
+static int lnondsp_vibrator_enable(lua_State *L)
+{
+    int ret = -1;
+
+    vibrator_set_time(0);
+    ret = vibrator_enable();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/**
+ * int32_t vibrator_disable(void);
+ * */
+static int lnondsp_vibrator_disable(lua_State *L)
+{
+    int ret = -1;
+
+    ret = vibrator_disable();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+#if 0
+/** 
+ *  Description:
+ *      gsm_enable
+ *  Params:
+ *      None
+ *  return:
+ *      0: success
+ *     -1: failed
+ * int32_t gsm_enable();
+ * */
+static int lnondsp_gsm_enable(lua_State *L)
+{
+    int ret = -1;
+
+    ret = fb_gsm_enable();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/**
+ *  Description:
+ *      gsm_disable
+ *  Params:
+ *      None
+ *  return:
+ *      0: success
+ *     -1: failed
+ * int32_t gsm_disable();
+ * */
+static int lnondsp_gsm_disable(lua_State *L)
+{
+    int ret = -1;
+
+    ret = gsm_disable();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* 
+* Function:inquiry the network state of GSM module 
+* Para:
+*     NULL
+* Return:
+*     @ -1:   failed
+*     @ 0: not registered, the MT is not currently searching a new operator to register to
+*     @ 1: registered, home network
+*     @ 2: not registered, but the MT is currently searching a new operator to register to
+*     @ 3: registration denied
+*     @ 4: unknown (e.g. out of GERAN/UTRAN/E-UTRAN coverage)
+*     @ 5: registered, roaming
+*     @ 6: registered for "SMS only", home network (applicable only when <AcTStatus> indicates EUTRAN)
+*     @ 7: registered for "SMS only", roaming (applicable only when <AcTStatus> indicates E-UTRAN)
+*     @ 9: registered for "CSFB not preferred", home network (applicable only when <AcTStatus> indicates E-UTRAN)
+*     @ 10: registered for "CSFB not preferred", roaming (applicable only when <AcTStatus> indicates E-UTRAN)
+*   int32_t gsm_get_network_status(void);
+*/
+static int lnondsp_gsm_get_network_status(lua_State *L)
+{
+    int ret = -1;
+
+    ret = gsm_get_network_status();
+    lua_newtable(L);
+    
+    if (ret < 0) {
+        lua_pushboolean2table(L, "ret", FALSE);
+        lua_pushinteger2table(L, "code", ret);
+        lua_pushstring2table(L, "msg", "not registered, the MT is not currently searching a new operator to register to");
+        return 1;
+    }
+
+    lua_pushboolean2table(L, "ret", TRUE);
+    lua_pushinteger2table(L, "code", ret);
+    switch (ret) {
+    case 0: 
+        lua_pushstring2table(L, "msg", "not registered, the MT is not currently searching a new operator to register to");
+        break;
+    case 1: 
+        lua_pushstring2table(L, "msg", "registered, home network");
+        break;
+    case 2: 
+        lua_pushstring2table(L, "msg", "not registered, but the MT is currently searching a new operator to register to");
+        break;
+    case 3: 
+        lua_pushstring2table(L, "msg", "registration denied");
+        break;
+    case 4: 
+        lua_pushstring2table(L, "msg", "unknown (e.g. out of GERAN/UTRAN/E-UTRAN coverage)");
+        break;
+    case 5: 
+        lua_pushstring2table(L, "msg", "registered, roaming");
+        break;
+    case 6: 
+        lua_pushstring2table(L, "msg", "registered for 'SMS only, home network (applicable only when <AcTStatus> indicates EUTRAN)");
+        break;
+    case 7: 
+        lua_pushstring2table(L, "msg", "registered for 'SMS only', roaming (applicable only when <AcTStatus> indicates E-UTRAN)");
+        break;
+    case 8: 
+        lua_pushstring2table(L, "msg", "not registered, the MT is not currently searching a new operator to register to");
+        break;
+    case 9: 
+        lua_pushstring2table(L, "msg", "registered for 'CSFB not preferred', home network (applicable only when <AcTStatus> indicates E-UTRAN)");
+        break;
+    case 10:
+        lua_pushstring2table(L, "msg", "registered for 'CSFB not preferred', roaming (applicable only when <AcTStatus> indicates E-UTRAN)");
+        break;
+    default:
+        lua_pushstring2table(L, "msg", "no such return code defined");
+    }
+    
+    return 1;
+}
+
+/* 
+* Function:start the process which keeps on sending GPRS datas through GSM module
+* Para:
+*     @remote_address:        the string pointer of remote server's IP address
+*     @remote_port:           the server's port
+*     @data:                  the data pointer you want to send
+*     @data_len:              the data length  
+* Return:
+*     @ 0:    success
+*     @ -1:   failed
+* int gsm_keep_sending_gprs_datas_start(unsigned char *remote_address, int remote_port, unsigned char *data, unsigned int data_len);
+*/
+static int lnondsp_gsm_keep_sending_gprs_datas_start(lua_State *L)
+{
+    unsigned char *remote_address = NULL;
+    int remote_port;
+    unsigned char *data = NULL;
+    unsigned int data_len;
+
+    int ret = -1;
+    int argcnt = 0;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt != 3) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+    
+    if (!lua_isstring(L, 1) || !lua_isnumber(L, 2) || !lua_isstring(L, 3)) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -3);
+        return 2;
+    }
+    
+    remote_address = (unsigned char )lua_tostring(L, 1);
+    remote_port = lua_tointeger(L, 2);
+    data = (unsigned char )lua_tostring(L, 3);
+    data_len = strlen(data);
+
+    ret = gsm_keep_sending_gprs_datas_start(remote_address, remote_port, data, data_len);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/** 
+* Function:stop the process which keeps on sending GPRS datas through GSM module
+* Para:
+*     NULL
+* Return:
+*     @ 0:    success
+*     @ -1:   failed
+* int gsm_keep_sending_gprs_datas_stop(void);
+ * */
+static int lnondsp_gsm_keep_sending_gprs_datas_stop(lua_State *L)
+{
+    int ret = -1;
+
+    ret = gsm_keep_sending_gprs_datas_stop();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+#endif
 
 /* 
  * int32_t bt_enable(uint8_t mode);
@@ -1682,12 +1962,14 @@ static const struct luaL_reg nondsp_lib[] =
     NF(get_evt_number),
     NF(get_evt_item),
     
+    #ifndef CONFIG_PROJECT_G4_BBA
     NF(bit_gps_thread_create), 
     NF(gps_enable), 
     NF(gps_disable), 
     NF(gps_restart), 
     NF(gps_get_position_fix), 
     NF(gps_hardware_test), 
+    #endif
     
     #if 1
     NF(lcd_enable), 
@@ -1706,7 +1988,20 @@ static const struct luaL_reg nondsp_lib[] =
     NF(keypad_enable), 
     NF(keypad_disable), 
     NF(keypad_set_backlight), 
+    
+    NF(baseband_spkr_start),
+    NF(baseband_spkr_stop), 
 
+    NF(vibrator_enable), 
+    NF(vibrator_disable), 
+
+    #if 0
+    NF(gsm_enable), 
+    NF(gsm_disable), 
+    NF(gsm_get_network_status), 
+    NF(gsm_keep_sending_gprs_datas_start), 
+    NF(gsm_keep_sending_gprs_datas_stop), 
+    #endif 
     NF(bt_enable), 
     NF(bt_enable_block), 
     NF(bt_disable), 
