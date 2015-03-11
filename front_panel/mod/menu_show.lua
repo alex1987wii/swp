@@ -18,7 +18,7 @@ key_map = {
 
 if "u3" == device_type then
     key_map.up = 258
-    key_map.down = 259
+    key_map.down = 258
     key_map.space = 0x20
     key_map.enter = 0xa
     key_map.left = 260
