@@ -11,6 +11,39 @@ require "utility"
 require "menu_show"
 require "menu_data"
 
+get_fpl_test_mode = function ()
+    local ss = try_read_fpl_test_mode_setting("/usr/BIT/fpl_mode_en")
+    local en = {}
+    for i=1, string.len(ss) do
+        if '1' == string.sub(ss, i, i) then
+            en[i] = true
+        else
+            en[i] = false
+        end
+    end
+    
+    local enmode = {
+        [1] = RFT_MODE, 
+        [2] = Bluetooth_MODE, 
+        [3] = BaseBand_MODE, 
+        [4] = FCC_MODE, 
+        [5] = GPS_MODE, 
+        [6] = Field_MODE
+    }
+    
+    en.is_enable = function (self, fpl_mode)
+        for i=1, 6 do
+            if enmode[i] == fpl_mode and self[i] then
+                return true
+            end
+        end
+        
+        return false
+    end
+        
+    return en
+end
+
 posix.setenv("TERMINFO", "/usr/share/terminfo", 1)
 --posix.setenv("PWD", "/userdata/front_panel", 1)
 os.execute("/usr/bin/unlock /")
@@ -39,9 +72,30 @@ if "function" == type(load_fpl) then
     load_fpl()
 end
 
-local fpm = create_main_menu(MODE_SWITCH)
+if not ("table" == type(global_fpl_mode)) then
+    slog:win("the fpl test mode is not setting")
+    curses.endwin() 
+    os.execute("/sbin/reboot")
+    return
+end
+
+
+local fpl_mode_handle = get_fpl_test_mode()
+
+if not fpl_mode_handle:is_enable(global_fpl_mode) then
+    slog:win("the fpl test mode: "..tostring(global_fpl_mode.title).." is not enable")
+    curses.endwin() 
+    os.execute("/sbin/reboot")
+    return
+end
+
+--local fpm = create_main_menu(MODE_SWITCH)
+local m = create_main_menu(global_fpl_mode)
 while true do
+    m:show()
+    m:action()
     
+    --[[
     while not global_fpl_mode do
         fpm:show()
         fpm:action()
@@ -54,6 +108,7 @@ while true do
     
     fpm:show()
     fpm:action()
+    --]]
     
     switch_self_refresh(true)
 end

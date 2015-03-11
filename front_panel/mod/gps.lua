@@ -353,14 +353,17 @@ defunc_gps_hw_test = {
             
             local show_list = {
                 [1] = "SVid", 
-                [2] = "bit_sync_time",  
-                [3] = "CNo_mean",  
-                [4] = "CNo_sigma",  
-                [5] = "clock_drift", 
-                [6] = "clock_offset", 
-                [7] = "Abs_I20ms", 
-                [8] = "Abs_Q20ms", 
-                [9] = "rtc_freq",  
+                [2] = "Period", 
+                [3] = "phase_lock_i", 
+                [4] = "rtc_freq", 
+                [5] = "agc", 
+                [6] = "bit_sync_time",  
+                [7] = "CNo_mean",   
+                [8] = "CNo_sigma",  
+                [9] = "clock_drift", 
+                [10] = "clock_offset", 
+                [11] = "Abs_I20ms", 
+                [12] = "Abs_Q20ms", 
             }
             local menu_tab = {
                 title = "GPS Hardware test", 

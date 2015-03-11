@@ -143,3 +143,19 @@ function init_global_env()
         global_env_init = true
     end
 end
+
+
+try_read_fpl_test_mode_setting = function(f) 
+    local f = io.open(f, "r")
+    if nil == f then
+        return "000000"
+    end
+    local s = f:read("*all")
+    f:close()
+    if 6 > string.len(s) then
+        slog:err("fpl mode setting error")
+        return "000000"
+    end
+    
+    return s
+end

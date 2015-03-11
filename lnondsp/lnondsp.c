@@ -266,7 +266,7 @@ static int lnondsp_get_evt_item(lua_State *L)
                 lua_pushnumber2table(L, "clock_offset", hw_test_info->clock_offset);
                 lua_pushinteger2table(L, "Abs_I20ms", hw_test_info->Abs_I20ms);
                 lua_pushinteger2table(L, "Abs_Q20ms", hw_test_info->Abs_Q20ms);
-                lua_pushnumber2table(L, "phase_lock_indicator", hw_test_info->phase_lock_indicator);
+                lua_pushnumber2table(L, "phase_lock_i", hw_test_info->phase_lock_indicator);
                 lua_pushnumber2table(L, "agc", hw_test_info->agc);
                 lua_pushnumber2table(L, "noise_figure", hw_test_info->noise_figure);
                 lua_pushnumber2table(L, "drift_rate_in_ppb", hw_test_info->drift_rate_in_ppb);

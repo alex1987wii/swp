@@ -46,6 +46,7 @@ if [ "/usr/bin/loadfpl.sh" != $fpl_load ]; then
     echo "/usr/bin/loadfpl.sh" >> /etc/service.conf
 fi
 
+sync
 sleep 1
 
 lock /

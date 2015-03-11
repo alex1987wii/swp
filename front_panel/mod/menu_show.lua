@@ -12,7 +12,8 @@ key_map = {
     enter = 0xa, 
     left = curses.KEY_LEFT, 
     start = 0x2a, 
-    stop = 0x23
+    stop = 0x23, 
+    poweron = 39, 
 }
 
 if "u3" == device_type then
@@ -24,11 +25,11 @@ if "u3" == device_type then
     key_map.start = 0x2a
     key_map.stop = 0x23
 elseif "u3_2nd" == device_type then
-    key_map.up = curses.KEY_DOWN 
-    key_map.down = curses.KEY_UP 
+    key_map.up = 259
+    key_map.down = 258
     key_map.space = 0x20
     key_map.enter = 0xa
-    key_map.left = curses.KEY_LEFT
+    key_map.left = 260
     key_map.start = 0x2a
     key_map.stop = 0x23
 elseif "g4_bba" == device_type then
@@ -186,7 +187,7 @@ create_main_menu = function(main_menu_table)
             local menu_table = arg[1] or self.main_table
             while true do
                 local ch = list_win:getch()
-
+                --slog:notice("key val: "..tonumber(ch))
                 if ch == key_map.down then  -- down 
 
                     if menu_table.select_index < table.getn(menu_table) then
@@ -271,6 +272,9 @@ create_main_menu = function(main_menu_table)
                             end
                         end
                     end
+                elseif ch == key_map.poweron then   -- power off/on 
+                    os.execute("rm -f /userdata/Settings/set_fpl_mode.lua")
+                    os.execute("/sbin/reboot")
                 end
                 
                 self:show(menu_table)
