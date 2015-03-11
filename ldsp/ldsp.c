@@ -452,7 +452,6 @@ static int ldsp_start_rx_desense_scan(lua_State *L)
 
 static int ldsp_rx_desense_scan_flag_get(lua_State *L)
 {
-    uint8_t state;
     int ret = -1;
     
     ret = rx_desense_scan_flag_get();
@@ -529,6 +528,21 @@ static int ldsp_two_way_transmit_start(lua_State *L)
         return 1;
     }
 }
+
+#ifndef CONFIG_PROJECT_G4_BBA
+/* 
+ * int two_way_transmit_flag_get(void)
+ * 
+ * */
+static int ldsp_two_way_transmit_flag_get(lua_State *L)
+{
+    int ret = -1;
+    
+    ret = two_way_transmit_flag_get();
+    lua_pushboolean(L, ret);
+    return 1;
+}
+
 
 static int ldsp_two_way_transmit_stop(lua_State *L)
 {
@@ -675,7 +689,51 @@ static int ldsp_fcc_stop(lua_State *L)
         return 1;
     }
 }
+#endif
 
+/**
+ * /userdata/sample_write.pcm
+ * int rx_desense_spkr_enable(unsigned char *path)
+ * void rx_desense_spkr_stop(void)
+
+ * 
+ * */
+static int ldsp_rx_desense_spkr_enable(lua_State *L)
+{
+    int ret = -1;
+    unsigned char *path = NULL;
+    int argcnt = 0;
+    
+    argcnt = lua_gettop(L);
+    if ((argcnt != 1) || (!lua_isstring(L, 1))) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+
+    ret = rx_desense_spkr_enable(path);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+static int ldsp_rx_desense_spkr_stop(lua_State *L)
+{
+    int ret = -1;
+
+    rx_desense_spkr_stop();
+
+    lua_pushboolean(L, TRUE);
+    return 1;
+}
+
+
+#ifndef CONFIG_PROJECT_G4_BBA
 /* field test interface
  * int calibrate_radio_oscillator_start(void);
  * int get_original_afc_val(unsigned short *current_afc_val);
@@ -802,7 +860,7 @@ static int ldsp_restore_default_radio_oscillator_calibration(lua_State *L)
         return 1;
     }
 }
-
+#endif
 
 #if ( defined (CONFIG_PROJECT_U4) || defined (CONFIG_PROJECT_G3) || defined (CONFIG_PROJECT_M1) || defined (CONFIG_PROJECT_M1RU) )
 /* read/write DSP audio samples data interface, only use in u4/g3/g4
@@ -1213,8 +1271,10 @@ static const struct luaL_reg dsp_lib[] =
     NF(rx_desense_scan_flag_get),
     NF(stop_rx_desense_scan),
     
+    #ifndef CONFIG_PROJECT_G4_BBA
     /* DSP two way transmit interface */
     NF(two_way_transmit_start),
+    NF(two_way_transmit_flag_get),
     NF(two_way_transmit_stop),
     
     /* DSP tx duty cycle test interface */
@@ -1223,7 +1283,12 @@ static const struct luaL_reg dsp_lib[] =
     
     NF(fcc_start),
     NF(fcc_stop),
-
+    #endif
+    
+    NF(rx_desense_spkr_enable),
+    NF(rx_desense_spkr_stop), 
+    
+    #ifndef CONFIG_PROJECT_G4_BBA
     /* field test interface */
     NF(calibrate_radio_oscillator_start), 
     NF(get_original_afc_val), 
@@ -1231,6 +1296,7 @@ static const struct luaL_reg dsp_lib[] =
     NF(save_radio_oscillator_calibration), 
     NF(calibrate_radio_oscillator_stop), 
     NF(restore_default_radio_oscillator_calibration), 
+    #endif
     
 #if ( defined (CONFIG_PROJECT_U4) || defined (CONFIG_PROJECT_G3) || defined (CONFIG_PROJECT_M1) || defined (CONFIG_PROJECT_M1RU) )
     NF(read_dsp_audio_samples_data), 

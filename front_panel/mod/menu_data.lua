@@ -8,9 +8,15 @@ require "utility"
 require "baseband"
 require "bluetooth_mode"
 require "gps_mode"
-require "two_way_rf_mode"
 require "fcc"
 require "field"
+
+local device_type = device_type or read_config_mk_file("/etc/sconfig.mk", "Project")
+if "g4_bba" == tostring(device_type) then
+    require "two_way_rf_mode_g4"
+else
+    require "two_way_rf_mode"
+end
 
 MODE_SWITCH = {
     title = "Front Panel Mode Ctl", 

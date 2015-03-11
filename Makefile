@@ -4,8 +4,8 @@
 # LDFLAGS=-lncurses -llua
 # LDFLAGS=-lncurses -llua5.1 -I/usr/include/lua5.1
 
-# PROJECT=CONFIG_PROJECT_G4_BBA
-PROJECT=CONFIG_PROJECT_U3_2ND
+PROJECT=CONFIG_PROJECT_G4_BBA
+# PROJECT=CONFIG_PROJECT_U3_2ND
 
 CLIBS= -lncurses 
 CC=/opt/ad6900/arm-compiler/bin/arm-linux-gcc
@@ -18,7 +18,7 @@ DSP_INC= -I$(UNILIB_PATH)/libbitdsp -L$(UNILIB_PATH)/caldb -L$(UNILIB_PATH)/libb
 NONDSP_INC= -I$(UNILIB_PATH)/libbitnondsp/include -I$(UNILIB_PATH)/libbitnondsp/nondspdriver -I$(UNILIB_PATH)/gps/include -L$(ROOTFS_IFS_PATH)/lib -I$(UNILIB_PATH)/bitservice/include -L$(UNILIB_PATH)/bt 
 
 ifeq (CONFIG_PROJECT_G4_BBA, $PROJECT)
-  CLIBS += -lcaldb 
+DSP_INC += -lcaldb 
 endif
 
 all: lib/curses_c.so lib/posix_c.so lib/bit32.so lib/ldsp.so lib/lnondsp.so
