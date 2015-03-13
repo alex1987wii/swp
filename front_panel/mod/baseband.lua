@@ -23,7 +23,7 @@ defunc_disable_lcd = {
 
 defunc_lcd_display_static_image = function (list_index)
     return function (t)
-        local pic_path = "/root/"..device_type.."_logo.dat"
+        local pic_path = "/root/"..tostring(device_type).."_logo.dat"
         local width = 220
         local height = 176
         local r, msgid

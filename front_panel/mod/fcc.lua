@@ -210,7 +210,7 @@ FCC_MODE = {
         if "function" == type(t.test_process[1]) then
             t.test_process[1](t)
         end
-        t.report = {}
+
         for i=7, 12 do
             if "function" == type(t.test_process[i]) then
                 t.test_process[i](t)
@@ -228,7 +228,4 @@ FCC_MODE = {
         end
     end, 
 
-    test_process_report = function (t)
-        
-    end, 
 }
