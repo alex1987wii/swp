@@ -132,6 +132,8 @@ function get_para_func(pname, pinfo)
     end
 end 
 
+local device_type = device_type or read_config_mk_file("/etc/sconfig.mk", "Project")
+
 function init_global_env()
     if not global_env_init then
         ldsp.bit_launch_dsp()
@@ -139,7 +141,9 @@ function init_global_env()
         ldsp.start_dsp_service()
         
         lnondsp.register_callbacks()
-        lnondsp.bit_gps_thread_create()
+        if "g4_bba" ~= device_type then
+            lnondsp.bit_gps_thread_create()
+        end
         global_env_init = true
     end
 end

@@ -41,7 +41,7 @@ RFT_MODE = {
     action_map = {
         [1] = function (t)
             --[[
-            local func = loadfile("/userdata/rx_desense_setting.lua")
+            local func = loadfile("/usr/local/share/lua/5.1/rx_desense_setting.lua")
             if nil == func then
                 slog:win("can not get the file: /userdata/rx_desense_setting.lua")
                 return
@@ -53,11 +53,11 @@ RFT_MODE = {
             end
             --]]
             local setting = require("rx_desense_setting")
-            if nil == func then
+            if nil == setting then
                 slog:win("can not get the setting from file: /usr/local/share/lua/5.1/rx_desense_setting.lua")
                 return
             end
-            
+            --
             t.freq = setting.freq
             t.band_width = setting.band_width
             t.step_size = setting.step_size
@@ -80,7 +80,7 @@ RFT_MODE = {
     [5] = "Enable slide show", 
     [6] = "Enable LED test", 
     [7] = "Vibrator enable", 
-    [8] = "GSM enable"
+    [8] = "GSM enable", 
 
     test_process = {
         [1] = function (t)
@@ -111,7 +111,6 @@ RFT_MODE = {
         [7] = defunc_vibrator_test.stop(7), 
     }, 
     test_process_start = function (t)
-        t.report = {}
         for i=1, table.getn(t) do
             if "function" == type(t.test_process[i]) then
                 t.test_process[i](t)
@@ -130,9 +129,5 @@ RFT_MODE = {
                 t.stop_process[i](t)
             end
         end
-    end, 
-    
-    test_process_report = function (t)
-        
-    end, 
+    end
 }

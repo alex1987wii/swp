@@ -17,7 +17,7 @@ DSP_INC= -I$(UNILIB_PATH)/libbitdsp -L$(UNILIB_PATH)/caldb -L$(UNILIB_PATH)/libb
 # NONDSP_INC= -I$(UNILIB_PATH)/libbitnondsp/include -L$(UNILIB_PATH)/libbitnondsp -L/$(UNILIB_PATH)/timers -L$(UNILIB_PATH)/annal -L$(UNILIB_PATH)/circbuf -I$(UNILIB_PATH)/bitservice/include
 NONDSP_INC= -I$(UNILIB_PATH)/libbitnondsp/include -I$(UNILIB_PATH)/libbitnondsp/nondspdriver -I$(UNILIB_PATH)/gps/include -L$(ROOTFS_IFS_PATH)/lib -I$(UNILIB_PATH)/bitservice/include -L$(UNILIB_PATH)/bt 
 
-ifeq (CONFIG_PROJECT_G4_BBA, $PROJECT)
+ifeq (CONFIG_PROJECT_G4_BBA, $(PROJECT))
 DSP_INC += -lcaldb 
 endif
 
