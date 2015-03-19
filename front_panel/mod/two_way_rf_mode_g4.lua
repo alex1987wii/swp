@@ -80,7 +80,7 @@ RFT_MODE = {
     [5] = "Enable slide show", 
     [6] = "Enable LED test", 
     [7] = "Vibrator enable", 
-    [8] = "GSM enable", 
+    --[8] = "GSM enable", 
 
     test_process = {
         [1] = function (t)

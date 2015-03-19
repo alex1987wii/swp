@@ -19,6 +19,7 @@ NONDSP_INC= -I$(UNILIB_PATH)/libbitnondsp/include -I$(UNILIB_PATH)/libbitnondsp/
 
 ifeq (CONFIG_PROJECT_G4_BBA, $(PROJECT))
 DSP_INC += -lcaldb 
+NONDSP_INC += -lcaldb 
 endif
 
 all: lib/curses_c.so lib/posix_c.so lib/bit32.so lib/ldsp.so lib/lnondsp.so

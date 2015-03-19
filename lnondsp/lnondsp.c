@@ -789,7 +789,7 @@ static int lnondsp_vibrator_disable(lua_State *L)
     }
 }
 
-#if 0
+#ifdef CONFIG_PROJECT_G4_BBA 
 /** 
  *  Description:
  *      gsm_enable
@@ -950,9 +950,9 @@ static int lnondsp_gsm_keep_sending_gprs_datas_start(lua_State *L)
         return 2;
     }
     
-    remote_address = (unsigned char )lua_tostring(L, 1);
+    remote_address = (unsigned char *)lua_tostring(L, 1);
     remote_port = lua_tointeger(L, 2);
-    data = (unsigned char )lua_tostring(L, 3);
+    data = (unsigned char *)lua_tostring(L, 3);
     data_len = strlen(data);
 
     ret = gsm_keep_sending_gprs_datas_start(remote_address, remote_port, data, data_len);
@@ -1995,13 +1995,14 @@ static const struct luaL_reg nondsp_lib[] =
     NF(vibrator_enable), 
     NF(vibrator_disable), 
 
-    #if 0
+    #ifdef CONFIG_PROJECT_G4_BBA 
     NF(gsm_enable), 
     NF(gsm_disable), 
     NF(gsm_get_network_status), 
     NF(gsm_keep_sending_gprs_datas_start), 
     NF(gsm_keep_sending_gprs_datas_stop), 
     #endif 
+    
     NF(bt_enable), 
     NF(bt_enable_block), 
     NF(bt_disable), 

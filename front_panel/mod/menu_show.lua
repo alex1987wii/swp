@@ -17,11 +17,11 @@ key_map = {
 }
 
 if "u3" == device_type then
-    key_map.up = 258
-    key_map.down = 258
+    key_map.up = 259   --0x102 
+    key_map.down = 258 --0x101 
     key_map.space = 0x20
     key_map.enter = 0xa
-    key_map.left = 260
+    key_map.left = 260  --0x103 
     key_map.start = 0x2a
     key_map.stop = 0x23
 elseif "u3_2nd" == device_type then
@@ -33,6 +33,11 @@ elseif "u3_2nd" == device_type then
     key_map.start = 0x2a
     key_map.stop = 0x23
 elseif "g4_bba" == device_type then
+    key_map.up = 259
+    key_map.down = 258
+    key_map.space = 0x20
+    key_map.enter = 0xa
+    key_map.left = 260
     key_map.start = 0x25
     key_map.stop = 0x107
 else
