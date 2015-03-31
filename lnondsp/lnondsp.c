@@ -841,6 +841,46 @@ static int lnondsp_gsm_disable(lua_State *L)
 }
 
 /* 
+ * Function:set GSM band
+ * Para:
+ *     @band_type : type of gsm_band_t,include GSM_BAND_850_1900,GSM_BAND_900_1800 and GSM_BAND_850_900_1800_1900
+ * Return:
+ *     @ -1:   failed
+ *     @ 0:    OK
+ *  typedef enum{
+ *      GSM_BAND_850_1900 =0,
+ *      GSM_BAND_900_1800,
+ *      GSM_BAND_850_900_1800_1900,
+ *  }gsm_band_t;
+ * int32_t gsm_set_band(gsm_band_t band_type);
+ */
+static int lnondsp_gsm_set_band(lua_State *L)
+{
+    int ret = -1;
+    int band_type;
+    int argcnt;
+    
+	argcnt = lua_gettop(L);
+	if (argcnt != 1) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+    
+    band_type = (int) lua_tointeger(L, 1);
+    
+    ret = gsm_set_band(band_type);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/* 
 * Function:inquiry the network state of GSM module 
 * Para:
 *     NULL
@@ -914,6 +954,119 @@ static int lnondsp_gsm_get_network_status(lua_State *L)
     
     return 1;
 }
+ 
+ /* 
+* Function:Get GSM signal quality
+* Para:
+*    NULL
+* Return:
+*     @0: -113 dBm or less
+*     @1: -111 dBm
+*     @2..30: from -109 to -53 dBm with 2 dBm steps
+*     @31: -51 dBm or greater
+*     @99: not known or not detectable or currently not available
+* unsigned int gsm_get_CSQ(void);
+*/
+static int lnondsp_gsm_get_CSQ(lua_State *L)
+{
+    int ret = -1;
+
+    ret = gsm_get_CSQ();
+    lua_newtable(L);
+    
+    if (ret < 0) {
+        lua_pushboolean2table(L, "ret", FALSE);
+        lua_pushinteger2table(L, "code", ret);
+        lua_pushstring2table(L, "msg", "-113 dBm or less");
+        return 1;
+    }
+
+    lua_pushboolean2table(L, "ret", TRUE);
+    lua_pushinteger2table(L, "code", ret);
+    switch (ret) {
+    case 0: 
+        lua_pushstring2table(L, "msg", "not registered, the MT is not currently searching a new operator to register to");
+        break;
+    case 1: 
+        lua_pushstring2table(L, "msg", "-111 dBm");
+        break;
+    case 2: 
+        lua_pushstring2table(L, "msg", "not registered, but the MT is currently searching a new operator to register to");
+        break;
+    case 31: 
+        lua_pushstring2table(L, "msg", "-51 dBm or greater");
+        break;
+    case 99: 
+        lua_pushstring2table(L, "msg", "not known or not detectable or currently not available");
+        break;
+
+    default:
+        if ((ret >= 2) || (ret <= 30)) {
+            lua_pushstring2table(L, "msg", "-109 + (N * 2) dBm");
+        } else {
+            lua_pushstring2table(L, "msg", "no such return code defined");
+        }
+    }
+    
+    return 1;
+}
+
+/* 
+ * Function:Interface of getting register status for GSM module
+ * Para:
+ *    NULL
+ * Return:
+ *     @0  :gsm in idle
+ *     @1  :gsm is initialing
+ *     @2  :waiting for registered
+ *     @3  :registered
+ *     @4  :a call is incoming,the gsm module rings
+ *     @5  :answered the incoming call
+* int32_t gsm_get_register_status(void);
+*/
+static int lnondsp_gsm_get_register_status(lua_State *L)
+{
+    int ret = -1;
+
+    ret = gsm_get_register_status();
+    lua_newtable(L);
+    
+    if (ret < 0) {
+        lua_pushboolean2table(L, "ret", FALSE);
+        lua_pushinteger2table(L, "code", ret);
+        lua_pushstring2table(L, "msg", "not registered, the MT is not currently searching a new operator to register to");
+        return 1;
+    }
+
+    lua_pushboolean2table(L, "ret", TRUE);
+    lua_pushinteger2table(L, "code", ret);
+    switch (ret) {
+    case 0: 
+        lua_pushstring2table(L, "msg", "gsm in idle");
+        break;
+    case 1: 
+        lua_pushstring2table(L, "msg", "gsm is initialing");
+        break;
+    case 2: 
+        lua_pushstring2table(L, "msg", "waiting for registered");
+        break;
+    case 3: 
+        lua_pushstring2table(L, "msg", "registered");
+        break;
+    case 4: 
+        lua_pushstring2table(L, "msg", "a call is incoming,the gsm module rings");
+        break;
+    case 5: 
+        lua_pushstring2table(L, "msg", "answered the incoming call");
+        break;
+
+    default:
+        lua_pushstring2table(L, "msg", "no such return code defined");
+    }
+    
+    return 1;
+}
+
 
 /* 
 * Function:start the process which keeps on sending GPRS datas through GSM module
@@ -1998,7 +2151,10 @@ static const struct luaL_reg nondsp_lib[] =
     #ifdef CONFIG_PROJECT_G4_BBA 
     NF(gsm_enable), 
     NF(gsm_disable), 
+    NF(gsm_get_CSQ), 
     NF(gsm_get_network_status), 
+    NF(gsm_get_register_status), 
+    NF(gsm_set_band), 
     NF(gsm_keep_sending_gprs_datas_start), 
     NF(gsm_keep_sending_gprs_datas_stop), 
     #endif 

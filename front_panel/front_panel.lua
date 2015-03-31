@@ -28,11 +28,12 @@ get_fpl_test_mode = function ()
         [3] = BaseBand_MODE, 
         [4] = FCC_MODE, 
         [5] = GPS_MODE, 
-        [6] = Field_MODE
+        [6] = Field_MODE, 
+        [7] = GSM_MODE
     }
     
     en.is_enable = function (self, fpl_mode)
-        for i=1, 6 do
+        for i=1, table.getn(enmode) do
             if enmode[i] == fpl_mode and self[i] then
                 return true
             end
