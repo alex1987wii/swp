@@ -58,6 +58,10 @@ RFT_MODE = {
                 return
             end
             --
+            for k, v in pairs(setting) do
+                 slog.err("read setting: "..tostring(k).." : "..tostring(v))
+            end
+
             t.freq = setting.freq
             t.band_width = setting.band_width
             t.step_size = setting.step_size
@@ -65,6 +69,7 @@ RFT_MODE = {
             t.msr_step_num = setting.msr_step_num
             t.samples = setting.samples
             t.delaytime = setting.delaytime
+            t.fpm_path = setting.fpm_path
         end, 
         [2] = defunc_enable_bt(2), 
     }, 
@@ -80,13 +85,14 @@ RFT_MODE = {
     [5] = "Enable slide show", 
     [6] = "Enable LED test", 
     [7] = "Vibrator enable", 
-    --[8] = "GSM enable", 
+    [8] = "speaker enable", 
+    --[9] = "GSM enable", 
 
     test_process = {
         [1] = function (t)
-            local cr = check_num_parameters(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime)
+            local cr = check_num_parameters(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime, t.fpm_path)
             if cr.ret then
-                local r_des, msgid_des = ldsp.start_rx_desense_scan(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime)
+                local r_des, msgid_des = ldsp.start_rx_desense_scan(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime, t.fpm_path)
             else
                 slog:win("parameter error: check the setting file "..cr.errno.." "..cr.errmsg)
             end
@@ -98,6 +104,7 @@ RFT_MODE = {
         [5] = defunc_lcd_slide_show_test.start(5), 
         [6] = defunc_led_selftest.start(6), 
         [7] = defunc_vibrator_test.start(7), 
+        [8] = defunc_rx_desense_spkr.start(8), 
     }, 
     stop_process = {
         [1] = function (t)
@@ -109,6 +116,7 @@ RFT_MODE = {
         [5] = defunc_lcd_slide_show_test.stop(5), 
         [6] = defunc_led_selftest.stop(6), 
         [7] = defunc_vibrator_test.stop(7), 
+        [8] = defunc_rx_desense_spkr.stop(8), 
     }, 
     test_process_start = function (t)
         for i=1, table.getn(t) do

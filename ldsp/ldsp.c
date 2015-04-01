@@ -406,6 +406,7 @@ static int ldsp_start_rx_desense_scan(lua_State *L)
     unsigned int msr_step_num; /* 0~50 */
     unsigned int samples;     /* 10~50000 */
     unsigned int delaytime;   /* 0~100(seconds) */
+    unsigned int pfm_path;   /* 0:1:2 */
     
     int i;
     int ret = -1;
@@ -434,7 +435,13 @@ static int ldsp_start_rx_desense_scan(lua_State *L)
     samples       = (unsigned int)lua_tointeger(L, 6);
     delaytime     = (unsigned int)lua_tointeger(L, 7);
     
-    ret = start_rx_desense_scan(freq, band_width, step_size, step_num, msr_step_num, samples, delaytime);
+    if (argcnt >= 8) {
+        pfm_path = (unsigned int)lua_tointeger(L, 8);
+    } else {
+        pfm_path = 0;
+    }
+    
+    ret = start_rx_desense_scan(freq, band_width, step_size, step_num, msr_step_num, samples, delaytime, pfm_path);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -701,7 +708,7 @@ static int ldsp_fcc_stop(lua_State *L)
 static int ldsp_rx_desense_spkr_enable(lua_State *L)
 {
     int ret = -1;
-    unsigned char *path = NULL;
+    char *path = NULL;
     int argcnt = 0;
     
     argcnt = lua_gettop(L);
@@ -711,6 +718,7 @@ static int ldsp_rx_desense_spkr_enable(lua_State *L)
         return 2;
     }
 
+    path = (char *)lua_tostring(L, 1);
     ret = rx_desense_spkr_enable(path);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);

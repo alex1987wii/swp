@@ -9,6 +9,11 @@ step_num   /* 0~ 15000 */
 msr_step_num /* 0~50 */
 samples    /* 10~50000 */
 delaytime   /* 0~100(seconds) */
+pfm_path    /* 0 : Main Channel, High Performance Path (mixer path)  
+			     1 : Main Channel, Low Performance Path (direct path)  
+			     2: Auto selection (reserved for future ) */
+
+pcm_file_path: the path of speaker' pcm file
 --]]
 
 local setting = {
@@ -18,7 +23,10 @@ local setting = {
 	step_num      = 2,
 	msr_step_num = 5,
 	samples       = 50,
-	delaytime     = 5
+	delaytime     = 5, 
+	pfm_path     = 0
+    
+   pcm_file_path = "/userdata/apkr.pcm"
 }
 
 return setting

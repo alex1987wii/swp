@@ -134,7 +134,29 @@ BaseBand_MODE = {
         end, 
         [1] = "Battery lift test", 
         
-        test_process_start = function (t) end, 
+        test_process_start = function (t) 
+            switch_self_refresh(true)
+            
+            local mt = {
+                title = "battery test", 
+                tips = "battery test", 
+                [1] = "curr : "..tostring(read_attr_file("/sys/devices/platform/battery/charge_current")), 
+                [2] = "event : "..tostring(read_attr_file("/sys/devices/platform/battery/charger_event")), 
+                [3] = "status : "..tostring(read_attr_file("/sys/devices/platform/battery/status")), 
+                update = function(self)
+                    self[1] = "curr : "..tostring(read_attr_file("/sys/devices/platform/battery/charge_current")) 
+                    self[2] = "event : "..tostring(read_attr_file("/sys/devices/platform/battery/charger_event")) 
+                    self[3] = "status : "..tostring(read_attr_file("/sys/devices/platform/battery/status")) 
+                end, 
+            }
+            
+            while true do
+                create_main_menu(mt):show()
+                posix.sleep(1)
+                mt:update()
+            end
+        
+        end, 
         test_process_stop = function (t) end
     }, 
     [2] = {

@@ -77,3 +77,29 @@ wait_for_two_way_transmit_stop = function (t, list_index)
     end
 end
 
+defunc_rx_desense_spkr = {
+    start = function (list_index)
+        return function (t)
+            local r, msgid
+            if t.select_status[list_index] then
+            
+                local setting = require("rx_desense_setting")
+                if nil == setting then
+                    slog:win("can not get the setting from file: /usr/local/share/lua/5.1/rx_desense_setting.lua")
+                    return
+                end
+                
+                r, msgid = ldsp.rx_desense_spkr_enable(setting.pcm_file_path)
+            end
+        end
+    end, 
+    
+    stop = function (list_index)
+        return function (t)
+            if t.select_status[list_index] then
+                ldsp.rx_desense_spkr_stop()
+            end
+        end
+    end
+}
+
