@@ -852,7 +852,7 @@ static int lnondsp_gsm_disable(lua_State *L)
  *      GSM_BAND_900_1800,
  *      GSM_BAND_850_900_1800_1900,
  *  }gsm_band_t;
- * int32_t gsm_set_band(gsm_band_t band_type);
+ * int32_t gsm_set_bands(gsm_band_t band_type);
  */
 static int lnondsp_gsm_set_band(lua_State *L)
 {
@@ -869,7 +869,7 @@ static int lnondsp_gsm_set_band(lua_State *L)
     
     band_type = (int) lua_tointeger(L, 1);
     
-    ret = gsm_set_band(band_type);
+    ret = gsm_set_bands(band_type);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);

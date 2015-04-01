@@ -88,8 +88,9 @@ defunc_rx_desense_spkr = {
                     slog:win("can not get the setting from file: /usr/local/share/lua/5.1/rx_desense_setting.lua")
                     return
                 end
-                
-                r, msgid = ldsp.rx_desense_spkr_enable(setting.pcm_file_path)
+                while true do
+                    r, msgid = ldsp.rx_desense_spkr_enable(setting.pcm_file_path)
+                end
             end
         end
     end, 

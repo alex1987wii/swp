@@ -10,6 +10,7 @@ require "bluetooth_mode"
 require "gps_mode"
 require "fcc"
 require "field"
+require "gsm_mode"
 
 local device_type = device_type or read_config_mk_file("/etc/sconfig.mk", "Project")
 if "g4_bba" == tostring(device_type) then
@@ -66,6 +67,10 @@ MODE_SWITCH = {
                 t.fpl_mode = Field_MODE
                 t.fpl_mode_name = "Field_MODE"
             end, 
+            [7] = function (t)
+                t.fpl_mode = GSM_MODE
+                t.fpl_mode_name = "GSM_MODE"
+            end, 
         }, 
         action = function (t)
             if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
@@ -79,6 +84,7 @@ MODE_SWITCH = {
         [4] = "FCC Test", 
         [5] = "GPS Test",
         [6] = "Field Test",
+        [7] = "GSM Test",
     }, 
     [2] = "reboot to app Mode", 
     test_process = {

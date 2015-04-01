@@ -10,8 +10,8 @@ require "log"
 gsm_init = function()
     
     local wait_menu = {
-        title = "GSM Enable", 
-        tips  = "Enable devices ..., plaease wait", 
+        title = "GSM Initial/Register", 
+        tips  = "Enable ..., plaease wait", 
         multi_select_mode = false, 
         [1] = "Enable GSM ..."
     }
@@ -21,7 +21,7 @@ gsm_init = function()
     if not global_gsm_enable then
         local r_en, r_enno = lnondsp.gsm_enable()
         if not r_en then
-            slog:err("gsm_enable fail, return "..tostring(r_enno))
+            slog:win("gsm_enable fail, return "..tostring(r_enno))
             return nil
         end
     end
@@ -55,8 +55,11 @@ gsm_init = function()
             
             return r_s
         end, 
-        
+
         set_band = function (b)
+            wait_menu.tips  = "set_band ..."
+            wait_menu[1] = "please wait ..."
+            create_main_menu(wait_menu):show()
             local r, s = lnondsp.gsm_set_band(b)
             if not r then
                 slog:err("gsm set band error: return code "..tostring(s))
@@ -66,19 +69,19 @@ gsm_init = function()
         end, 
         
         get_CSQ = function ()
-            local r = lnondsp.gsm_get_CSQ()
+            return lnondsp.gsm_get_CSQ()
         end, 
         
-        gsm_get_register_status = function ()
+        get_register_status = function ()
             return lnondsp.gsm_get_register_status()
         end, 
         
         keep_sending_gprs_datas_start = function()
-            lnondsp.gsm_keep_sending_gprs_datas_start()
+            return lnondsp.gsm_keep_sending_gprs_datas_start()
         end, 
         
         keep_sending_gprs_datas_stop = function()
-            lnondsp.gsm_keep_sending_gprs_datas_stop()
+            return lnondsp.gsm_keep_sending_gprs_datas_stop()
         end, 
         
         disable = function(t)
@@ -88,40 +91,42 @@ gsm_init = function()
     }
 end
 
-defunc_enable_bt = function(list_index)
+defunc_gsm_init_register_test = function(list_index)
     return function(t)
-        if "nil" == type(t[list_index]) then
-            slog:err("bt device find item nil")
-            t[list_index] = "Find Bt Devices"
-        elseif "string" == type(t[list_index]) then
-            g_bt = g_bt or bt_init()
-            if nil == g_bt then
-                slog:win("bt enable fail, please check the error msg")
-                return false
-            end
-
-            g_bt:find_devices()
-            local bt_menu = g_bt:get_devices_table()
-            if nil == bt_menu then
-                slog:err("bt:get_devices_table, can not scan devices")
-                return false
-            end
+        if t.select_status[list_index] then
+            local gsm = gsm or gsm_init()
             
-            t[list_index] = bt_menu
-            local m = create_main_menu(t[list_index])
-            m:show()
-            m:action()
+            local csq = gsm.get_CSQ()
+            
+            local mt = {
+                title = "GSM Initial/Register", 
+                tips = "Register Initial Status", 
+                [1] = "Register Status : ", 
+                [2] = tostring(gsm.get_register_status().msg),
+                [3] = "CSQ : ", 
+                [4] = tostring(csq.code).." : "..tostring(csq.msg),
+                update = function (self)
+                    csq = gsm.get_CSQ()
+                    self[1] = "Register Status : "
+                    self[2] = tostring(gsm.get_register_status().msg)
+                    self[3] = "CSQ : "
+                    self[4] = tostring(csq.code).." : "..tostring(csq.msg)
+                end, 
+            }
+            create_main_menu(mt):show()
+            
+            local ch = list_win:getch()
+            
+            while ch ~= key_map.stop do
+                mt:update()
+                create_main_menu(mt):show()
+                ch = list_win:getch()
+            end
         end
     end
 end
 
-def_disable_bt = function()
-    g_bt = g_bt or bt_init()
-    if nil == g_bt then
-        slog:win("bt enable fail, please check the error msg")
-        return false
-    end
-    
-    g_bt:disable()
+def_gsm_enable = function(list_index)
+
 end
 
