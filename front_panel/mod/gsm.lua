@@ -24,6 +24,7 @@ gsm_init = function()
             slog:win("gsm_enable fail, return "..tostring(r_enno))
             return nil
         end
+        posix.sleep(2)
     end
     
     global_gsm_enable = true
@@ -36,6 +37,7 @@ gsm_init = function()
                     slog:err("gsm_enable fail, return "..tostring(r_enno))
                     return nil
                 end
+                posix.sleep(2)
                 global_gsm_enable = true
             end
         end, 
@@ -64,6 +66,7 @@ gsm_init = function()
             if not r then
                 slog:err("gsm set band error: return code "..tostring(s))
             end
+            posix.sleep(2)
             
             return r
         end, 

@@ -40,18 +40,18 @@ RFT_MODE = {
     end, 
     action_map = {
         [1] = function (t)
-            --[[
+            --
             local func = loadfile("/usr/local/share/lua/5.1/rx_desense_setting.lua")
             if nil == func then
-                slog:win("can not get the file: /userdata/rx_desense_setting.lua")
+                slog:win("can not get the file: /usr/local/share/lua/5.1/rx_desense_setting.lua")
                 return
             end
             local setting = func()
-            if "table" ~= setting then
-                slog:win("can not get setting from the file: /userdata/rx_desense_setting.lua")
+            if "table" ~= type(setting) then
+                slog:win("can not get setting from the file: /usr/local/share/lua/5.1/rx_desense_setting.lua")
                 return
             end
-            --]]
+            --[[
             local setting = require("rx_desense_setting")
             if nil == setting then
                 slog:win("can not get the setting from file: /usr/local/share/lua/5.1/rx_desense_setting.lua")
@@ -61,6 +61,7 @@ RFT_MODE = {
             for k, v in pairs(setting) do
                  slog.err("read setting: "..tostring(k).." : "..tostring(v))
             end
+            --]]
 
             t.freq = setting.freq
             t.band_width = setting.band_width
@@ -69,7 +70,7 @@ RFT_MODE = {
             t.msr_step_num = setting.msr_step_num
             t.samples = setting.samples
             t.delaytime = setting.delaytime
-            t.fpm_path = setting.fpm_path
+            t.pfm_path = setting.pfm_path
         end, 
         [2] = defunc_enable_bt(2), 
     }, 
@@ -90,9 +91,9 @@ RFT_MODE = {
 
     test_process = {
         [1] = function (t)
-            local cr = check_num_parameters(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime, t.fpm_path)
+            local cr = check_num_parameters(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime, t.pfm_path)
             if cr.ret then
-                local r_des, msgid_des = ldsp.start_rx_desense_scan(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime, t.fpm_path)
+                local r_des, msgid_des = ldsp.start_rx_desense_scan(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime, t.pfm_path)
             else
                 slog:win("parameter error: check the setting file "..cr.errno.." "..cr.errmsg)
             end

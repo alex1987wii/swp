@@ -17,16 +17,16 @@ pcm_file_path: the path of speaker' pcm file
 --]]
 
 local setting = {
-	freq           = 763000000, 
-	band_width    = 1, 
-	step_size     = 25000, 
-	step_num      = 2,
-	msr_step_num = 5,
-	samples       = 50,
-	delaytime     = 5, 
-	pfm_path     = 0
-    
-   pcm_file_path = "/userdata/apkr.pcm"
+    freq           = 763000000, 
+    band_width    = 1, 
+    step_size     = 25000, 
+    step_num      = 2,
+    msr_step_num = 5,
+    samples       = 50,
+    delaytime     = 5, 
+    pfm_path     = 0, 
+
+    pcm_file_path = "/userdata/apkr.pcm"
 }
 
 return setting
