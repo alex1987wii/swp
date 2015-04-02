@@ -73,6 +73,7 @@ RFT_MODE = {
             t.pfm_path = setting.pfm_path
         end, 
         [2] = defunc_enable_bt(2), 
+        [8] = defunc_rx_desense_spkr_action(8), 
     }, 
     action = function (t)
         if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
