@@ -274,8 +274,19 @@ static int lnondsp_get_evt_item(lua_State *L)
                 lua_pushnumber2table(L, "Q_I_ratio", hw_test_info->Q_I_ratio);
             }
                 break; 
-        }
+        } 
         #endif
+        else if (NONDSP_EVT == evt.evt) {
+            switch(evt.evi) {
+                case NONDSP_EVT_GPS_REQ_RESULT:
+                {
+                    struct parameter *key_event = (struct parameter *)pbuf;
+                    lua_pushinteger2table(L, "type", key_event->type);
+                    lua_pushinteger2table(L, "code", key_event->code);
+                    lua_pushinteger2table(L, "value", key_event->value);
+                }
+            }
+        }
     }
         
     return 1;

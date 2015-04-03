@@ -77,6 +77,30 @@ wait_for_two_way_transmit_stop = function (t, list_index)
     end
 end
 
+defunc_rx_desense_scan = {
+    start = function (list_index)
+        return function (t)
+            if t.select_status[list_index] then
+                local cr = check_num_parameters(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime, t.pfm_path)
+                if cr.ret then
+                    ldsp.start_rx_desense_scan(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime, t.pfm_path)
+                else
+                    slog:win("parameter error: check the setting file "..cr.errno.." "..cr.errmsg)
+                end
+            end
+        end
+    end, 
+    
+    stop = function (list_index)
+        return function (t)
+            if t.select_status[list_index] then
+                ldsp.stop_rx_desense_scan()
+            end
+        end
+    end
+}
+
+
 defunc_rx_desense_spkr = {
     start = function (list_index)
         return function (t)

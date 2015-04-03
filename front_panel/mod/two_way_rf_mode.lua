@@ -138,18 +138,8 @@ RFT_MODE = {
         [7] = "Enable GPS", 
 
         test_process = {
-            [1] = function (t)
-                local cr = check_num_parameters(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime)
-                if cr.ret then
-                    local r_des, msgid_des = ldsp.start_rx_desense_scan(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime)
-                else
-                    slog:err("parameter error: check "..cr.errno.." "..cr.errmsg)
-                end
-
-            end, 
-            [2] = function (t)
-            
-            end, 
+            [1] = defunc_rx_desense_scan.start(1), 
+            [2] = function (t) end, 
             [3] = defunc_disable_lcd.start(3), 
             [4] = defunc_lcd_display_static_image(4), 
             [5] = defunc_lcd_slide_show_test.start(5), 
@@ -157,9 +147,7 @@ RFT_MODE = {
             [7] = defunc_enable_gps.start(7), 
         }, 
         stop_process = {
-            [1] = function (t)
-                local r_des, msgid_des = ldsp.stop_rx_desense_scan()
-            end, 
+            [1] = defunc_rx_desense_scan.stop(1), 
             [2] = function (t) end, 
             [3] = defunc_disable_lcd.stop(3), 
             [4] = function (t) end, 
@@ -176,11 +164,13 @@ RFT_MODE = {
                 end
             end
             
-            wait_for_rx_desense_scan_stop(t, 1)
-            
-            t:test_process_stop()
-            t.test_process_start_call = false
-            switch_self_refresh(true)
+            if t.select_status[1] then
+                wait_for_rx_desense_scan_stop(t, 1)
+                
+                t:test_process_stop()
+                t.test_process_start_call = false
+                switch_self_refresh(true)
+            end
         end, 
         test_process_stop = function (t)
             for i=1, table.getn(t) do
@@ -188,9 +178,6 @@ RFT_MODE = {
                     t.stop_process[i](t)
                 end
             end
-        end, 
-        test_process_report = function (t)
-            
         end, 
     }, 
     [2] = {
@@ -329,10 +316,9 @@ RFT_MODE = {
             tips  = "Select Band Width", 
             multi_select_mode = false, 
             action = function (t)
-                local bw_g = {0, 1, 2} -- 0:6.25KHz 1:12.5KHz 2:25KHz 
+                local bw_g = {1, 2} -- 0:6.25KHz 1:12.5KHz 2:25KHz 
                 t.band_width = bw_g[t.select_index]
             end, 
-            "6.25 KHz", 
             "12.5 KHz", 
             "25 KHz", 
         }, 

@@ -174,6 +174,7 @@ slog = {
         end
         
         if nil ~= note_in_window then 
+            switch_self_refresh(true)
             note_in_window("NOTICE: "..s.."\n Any key exit")
         end
     end

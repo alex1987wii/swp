@@ -91,15 +91,7 @@ RFT_MODE = {
     --[9] = "GSM enable", 
 
     test_process = {
-        [1] = function (t)
-            local cr = check_num_parameters(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime, t.pfm_path)
-            if cr.ret then
-                local r_des, msgid_des = ldsp.start_rx_desense_scan(t.freq, t.band_width, t.step_size, t.step_num, t.msr_step_num, t.samples, t.delaytime, t.pfm_path)
-            else
-                slog:win("parameter error: check the setting file "..cr.errno.." "..cr.errmsg)
-            end
-
-        end, 
+        [1] = defunc_rx_desense_scan.start(1), 
         [2] = function (t) end, 
         [3] = defunc_disable_lcd.start(3), 
         [4] = defunc_lcd_display_static_image(4), 
@@ -109,9 +101,7 @@ RFT_MODE = {
         [8] = defunc_rx_desense_spkr.start(8), 
     }, 
     stop_process = {
-        [1] = function (t)
-            local r_des, msgid_des = ldsp.stop_rx_desense_scan()
-        end, 
+        [1] = defunc_rx_desense_scan.stop(1),
         [2] = function (t) end, 
         [3] = defunc_disable_lcd.stop(3), 
         [4] = function (t) end, 
@@ -127,11 +117,13 @@ RFT_MODE = {
             end
         end
         
-        wait_for_rx_desense_scan_stop(t, 1)
-        
-        t:test_process_stop()
-        t.test_process_start_call = false
-        switch_self_refresh(true)
+        if t.select_status[1] then
+            wait_for_rx_desense_scan_stop(t, 1)
+            
+            t:test_process_stop()
+            t.test_process_start_call = false
+            switch_self_refresh(true)
+        end
     end, 
     test_process_stop = function (t)
         for i=1, table.getn(t) do

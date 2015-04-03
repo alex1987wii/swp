@@ -36,6 +36,9 @@ NONDSP_EVT = {
         [9]  = "RSSI",
         [10] = "SCAN_ID_NAME", 
     },
+    KEY = {
+        [1] = "EVENT_REPORT"
+    }, 
     --[[
     PM = {
         "", 
