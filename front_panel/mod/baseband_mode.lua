@@ -44,9 +44,7 @@ BaseBand_MODE = {
         end, 
         [1] = "Battery lift test", 
         
-        test_process_start = function (t) 
-
-        end, 
+        test_process_start = function (t) end, 
         test_process_stop = function (t) end
     }, 
     [2] = {
@@ -260,7 +258,7 @@ BaseBand_MODE = {
         test_process_stop = function (t) end
     },  
     [7] = {
-        title = "Query Battery Voltage", 
+        title = "Query Battery status", 
         tips  = "Press * to start and # to end test", 
         multi_select_mode = true, 
         new_main_menu = function (t)
@@ -273,6 +271,13 @@ BaseBand_MODE = {
             [2] = function (t)
                 t.duration = t[2].duration
             end, 
+            [3] = function (t)
+                if t.select_status[3] then
+					global_bat_status_syslog_flag = true
+				else
+				    global_bat_status_syslog_flag = false
+				end
+            end, 
         }, 
 
         action = function (t)
@@ -280,8 +285,9 @@ BaseBand_MODE = {
                 t.action_map[t.select_index](t)
             end
         end, 
-        [1] = "Query Battery Voltage", 
+        [1] = "Query Battery status", 
         [2] = defunc_select_duration(2), 
+        [3] = "Enable syslog", 
 
         test_process = {
             [1] = defunc_battery_voltage_test(1), 
@@ -384,6 +390,89 @@ BaseBand_MODE = {
         }, 
         stop_process = {
             [1] = function (t) end, 
+        }, 
+
+        test_process_start = function (t) 
+            switch_self_refresh(true)
+            for i=1, table.getn(t) do
+                if "function" == type(t.test_process[i]) then
+                    t.test_process[i](t)
+                end
+            end
+            t.test_process_start_call = false
+        end, 
+        test_process_stop = function (t) 
+            for i=1, table.getn(t) do
+                if "function" == type(t.stop_process[i]) then
+                    t.stop_process[i](t)
+                end
+            end
+        end
+    },  
+    [10] = {
+        title = "Query Volume Knob", 
+        tips  = "Press * to start and # to end test", 
+        multi_select_mode = true, 
+        new_main_menu = function (t)
+            local m_sub = create_main_menu(t)
+            m_sub:show()
+            m_sub:action()
+        end, 
+        action_map = {
+            [1] = function (t)  end, 
+            [2] = function (t)
+                t.duration = t[2].duration
+            end, 
+        }, 
+
+        action = function (t)
+            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                t.action_map[t.select_index](t)
+            end
+        end, 
+        [1] = "Query Volume Knob", 
+        [2] = defunc_select_duration(2), 
+
+        test_process = {
+            [1] = defunc_query_volume_knob_test(1), 
+        }, 
+        stop_process = {
+            [1] = function (t) end, 
+        }, 
+
+        test_process_start = function (t) 
+            switch_self_refresh(true)
+            for i=1, table.getn(t) do
+                if "function" == type(t.test_process[i]) then
+                    t.test_process[i](t)
+                end
+            end
+            t.test_process_start_call = false
+        end, 
+        test_process_stop = function (t) 
+            for i=1, table.getn(t) do
+                if "function" == type(t.stop_process[i]) then
+                    t.stop_process[i](t)
+                end
+            end
+        end
+    },  
+    [11] = {
+        title = "Vibrator Test", 
+        tips  = "Press * to start and # to end test", 
+        multi_select_mode = true, 
+        new_main_menu = function (t)
+            local m_sub = create_main_menu(t)
+            m_sub:show()
+            m_sub:action()
+        end, 
+        action = function (t) end, 
+        [1] = "Vibrator Test", 
+        test_process = {
+            [1] = defunc_vibrator_test.start(1), 
+        }, 
+        stop_process = {
+            [1] = defunc_vibrator_test.stop(1), 
         }, 
 
         test_process_start = function (t) 

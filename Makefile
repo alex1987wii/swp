@@ -4,13 +4,14 @@
 # LDFLAGS=-lncurses -llua
 # LDFLAGS=-lncurses -llua5.1 -I/usr/include/lua5.1
 
-PROJECT=CONFIG_PROJECT_G4_BBA
-# PROJECT=CONFIG_PROJECT_U3_2ND
+# PROJECT=CONFIG_PROJECT_G4_BBA
+PROJECT=CONFIG_PROJECT_U3
 
 CLIBS= -lncurses 
 CC=/opt/ad6900/arm-compiler/bin/arm-linux-gcc
 CFLAGS=-I/opt/ad6900/arm-compiler/arm-none-linux-gnueabi/include/ncurses -Iinclude -DHAVE_NCURSES_CURSES_H
-AD6900_PATH= /home/simba/worksrc/ad6900
+#AD6900_PATH= /home/simba/worksrc/ad6900
+AD6900_PATH= /home/simba/work/ad6900
 UNILIB_PATH= $(AD6900_PATH)/unilibs
 ROOTFS_IFS_PATH= $(AD6900_PATH)/output/ifs/rootfs
 DSP_INC= -I$(UNILIB_PATH)/libbitdsp -L$(UNILIB_PATH)/caldb -L$(UNILIB_PATH)/libbitdsp -I/$(UNILIB_PATH)/dspadapter/include -L/$(UNILIB_PATH)/dspadapter -L/$(UNILIB_PATH)/timers -L$(UNILIB_PATH)/annal -L$(UNILIB_PATH)/circbuf -L$(UNILIB_PATH)/crc16 -L$(ROOTFS_IFS_PATH)/lib

@@ -5,8 +5,25 @@ require "posix"
 require "ldsp"
 require "lnondsp"
 
+process_do = function(func, t)
+	local pid = posix.fork()
+    
+	if pid == 0 then
+        if "function" == type(func) then
+            func(t)
+        end
+        
+        posix._exit(0)
+    end
+    
+    return pid
+end
+
 read_attr_file = function(f)
-    local f = assert(io.open(f, "r"))
+    local f = io.open(f, "r")
+    if nil == f then
+        return nil
+    end
     local s = f:read("*all")
     f:close()
     return s
