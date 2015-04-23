@@ -165,7 +165,6 @@ function init_global_env()
     end
 end
 
-
 try_read_fpl_test_mode_setting = function(f) 
     local f = io.open(f, "r")
     if nil == f then
@@ -179,4 +178,15 @@ try_read_fpl_test_mode_setting = function(f)
     end
     
     return s
+end
+
+warning_tone = function (tm)
+	local tcnt = time_counter()
+
+	while tcnt() < tm do
+		ldsp.baseband_spkr_start()
+		posix.sleep(1)  
+		ldsp.baseband_spkr_stop()
+		posix.sleep(1)
+	end
 end

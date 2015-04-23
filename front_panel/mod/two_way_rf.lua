@@ -4,6 +4,7 @@
 require "log"
 require "ldsp"
 require "baseband"
+require "utility"
 
 defunc_bt_txdata1_transmitter = {
     start = function (list_index) 
@@ -67,6 +68,8 @@ wait_for_rx_desense_scan_stop = function (t, list_index)
             posix.sleep(1)
         until ldsp.rx_desense_scan_flag_get()
     end
+    
+    warning_tone(10)
 end
 
 wait_for_two_way_transmit_stop = function (t, list_index)
@@ -75,6 +78,8 @@ wait_for_two_way_transmit_stop = function (t, list_index)
             posix.sleep(1)
         until ldsp.two_way_transmit_flag_get()
     end
+    
+    warning_tone(10)
 end
 
 defunc_rx_desense_scan = {
@@ -99,7 +104,6 @@ defunc_rx_desense_scan = {
         end
     end
 }
-
 
 defunc_rx_desense_spkr = {
     start = function (list_index)
@@ -168,6 +172,5 @@ defunc_rx_desense_spkr_action = function (list_index)
             return
         end
         ff:close()
-        
     end
 end

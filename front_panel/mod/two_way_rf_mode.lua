@@ -55,8 +55,12 @@ RFT_MODE = {
                 t.msr_step_num = t[1].msr_step_num
                 t.samples = t[1].samples
                 t.delaytime = t[1].delaytime
+                if "g4_bba" ~= tostring(device_type) then
+                    t.pfm_path = 0
+                end
             end, 
             [2] = defunc_enable_bt(2), 
+            [8] = defunc_rx_desense_spkr_action(8), 
         }, 
         action = function (t)
             if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
@@ -136,6 +140,7 @@ RFT_MODE = {
         [5] = "Enable slide show", 
         [6] = "Enable LED test", 
         [7] = "Enable GPS", 
+        [8] = "speaker enable", 
 
         test_process = {
             [1] = defunc_rx_desense_scan.start(1), 
@@ -145,6 +150,7 @@ RFT_MODE = {
             [5] = defunc_lcd_slide_show_test.start(5), 
             [6] = defunc_led_selftest.start(6), 
             [7] = defunc_enable_gps.start(7), 
+            [8] = defunc_rx_desense_spkr.start(8), 
         }, 
         stop_process = {
             [1] = defunc_rx_desense_scan.stop(1), 
@@ -154,6 +160,7 @@ RFT_MODE = {
             [5] = defunc_lcd_slide_show_test.stop(5), 
             [6] = defunc_led_selftest.stop(6), 
             [7] = defunc_enable_gps.stop(7), 
+            [8] = defunc_rx_desense_spkr.stop(8), 
 
         }, 
         test_process_start = function (t)

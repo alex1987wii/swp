@@ -245,6 +245,9 @@ BaseBand_MODE = {
         end, 
         action_map = {
             [1] = function (t)  end, 
+            [2] = function (t)
+                t.duration = t[2].duration
+            end, 
         }, 
 
         action = function (t)
@@ -253,9 +256,32 @@ BaseBand_MODE = {
             end
         end, 
         [1] = "Accelerometer test", 
+        [2] = defunc_select_duration(2), 
         
-        test_process_start = function (t) end, 
-        test_process_stop = function (t) end
+
+        test_process = {
+            [1] = defunc_query_accelerometer_test(1), 
+        }, 
+        stop_process = {
+            [1] = function (t) end, 
+        }, 
+
+        test_process_start = function (t) 
+            switch_self_refresh(true)
+            for i=1, table.getn(t) do
+                if "function" == type(t.test_process[i]) then
+                    t.test_process[i](t)
+                end
+            end
+            t.test_process_start_call = false
+        end, 
+        test_process_stop = function (t) 
+            for i=1, table.getn(t) do
+                if "function" == type(t.stop_process[i]) then
+                    t.stop_process[i](t)
+                end
+            end
+        end
     },  
     [7] = {
         title = "Query Battery status", 
@@ -457,39 +483,44 @@ BaseBand_MODE = {
             end
         end
     },  
-    [11] = {
-        title = "Vibrator Test", 
-        tips  = "Press * to start and # to end test", 
-        multi_select_mode = true, 
-        new_main_menu = function (t)
-            local m_sub = create_main_menu(t)
-            m_sub:show()
-            m_sub:action()
-        end, 
-        action = function (t) end, 
-        [1] = "Vibrator Test", 
-        test_process = {
-            [1] = defunc_vibrator_test.start(1), 
-        }, 
-        stop_process = {
-            [1] = defunc_vibrator_test.stop(1), 
-        }, 
-
-        test_process_start = function (t) 
-            switch_self_refresh(true)
-            for i=1, table.getn(t) do
-                if "function" == type(t.test_process[i]) then
-                    t.test_process[i](t)
-                end
-            end
-            t.test_process_start_call = false
-        end, 
-        test_process_stop = function (t) 
-            for i=1, table.getn(t) do
-                if "function" == type(t.stop_process[i]) then
-                    t.stop_process[i](t)
-                end
-            end
-        end
-    },  
 }
+
+local device_type = device_type or read_config_mk_file("/etc/sconfig.mk", "Project")
+
+if "g4_bba" == tostring(device_type) then
+	BaseBand_MODE[table.getn(BaseBand_MODE)+1] = {
+		title = "Vibrator Test", 
+		tips  = "Press * to start and # to end test", 
+		multi_select_mode = true, 
+		new_main_menu = function (t)
+			local m_sub = create_main_menu(t)
+			m_sub:show()
+			m_sub:action()
+		end, 
+		action = function (t) end, 
+		[1] = "Vibrator Test", 
+		test_process = {
+			[1] = defunc_vibrator_test.start(1), 
+		}, 
+		stop_process = {
+			[1] = defunc_vibrator_test.stop(1), 
+		}, 
+
+		test_process_start = function (t) 
+			switch_self_refresh(true)
+			for i=1, table.getn(t) do
+				if "function" == type(t.test_process[i]) then
+					t.test_process[i](t)
+				end
+			end
+			t.test_process_start_call = false
+		end, 
+		test_process_stop = function (t) 
+			for i=1, table.getn(t) do
+				if "function" == type(t.stop_process[i]) then
+					t.stop_process[i](t)
+				end
+			end
+		end
+	}
+end

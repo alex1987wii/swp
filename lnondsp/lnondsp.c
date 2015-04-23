@@ -729,42 +729,7 @@ static int lnondsp_keypad_set_backlight(lua_State *L)
     }
 }
 
-/**
- * int baseband_spkr_start(void)
- * */
-static int lnondsp_baseband_spkr_start(lua_State *L)
-{
-    int ret = -1;
-
-    ret = baseband_spkr_start();
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
-/** 
- * int baseband_spkr_stop(void)
- * */
-static int lnondsp_baseband_spkr_stop(lua_State *L)
-{
-    int ret = -1;
-
-    ret = baseband_spkr_stop();
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
+#ifdef CONFIG_PROJECT_G4_BBA
 /** 
  * int32_t vibrator_enable(void);
  * int32_t vibrator_set_time(uint32_t vib_time);
@@ -802,8 +767,7 @@ static int lnondsp_vibrator_disable(lua_State *L)
         return 1;
     }
 }
-
-#ifdef CONFIG_PROJECT_G4_BBA 
+ 
 /** 
  *  Description:
  *      gsm_enable
@@ -2155,14 +2119,12 @@ static const struct luaL_reg nondsp_lib[] =
     NF(keypad_enable), 
     NF(keypad_disable), 
     NF(keypad_set_backlight), 
-    
-    NF(baseband_spkr_start),
-    NF(baseband_spkr_stop), 
+ 
+    #ifdef CONFIG_PROJECT_G4_BBA 
 
     NF(vibrator_enable), 
     NF(vibrator_disable), 
 
-    #ifdef CONFIG_PROJECT_G4_BBA 
     NF(gsm_enable), 
     NF(gsm_disable), 
     NF(gsm_get_CSQ), 

@@ -740,6 +740,41 @@ static int ldsp_rx_desense_spkr_stop(lua_State *L)
     return 1;
 }
 
+/**
+ * int baseband_spkr_start(void)
+ * */
+static int ldsp_baseband_spkr_start(lua_State *L)
+{
+    int ret = -1;
+
+    ret = baseband_spkr_start();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/** 
+ * int baseband_spkr_stop(void)
+ * */
+static int ldsp_baseband_spkr_stop(lua_State *L)
+{
+    int ret = -1;
+
+    ret = baseband_spkr_stop();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
 
 #ifndef CONFIG_PROJECT_G4_BBA
 /* field test interface
@@ -1292,9 +1327,12 @@ static const struct luaL_reg dsp_lib[] =
     NF(fcc_start),
     NF(fcc_stop),
     #endif
-    
+
     NF(rx_desense_spkr_enable),
     NF(rx_desense_spkr_stop), 
+    
+    NF(baseband_spkr_start),
+    NF(baseband_spkr_stop), 
     
     #ifndef CONFIG_PROJECT_G4_BBA
     /* field test interface */
