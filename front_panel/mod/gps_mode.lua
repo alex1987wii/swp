@@ -23,7 +23,7 @@ GPS_MODE = {
             t.interval = t[2].interval
             t.measurement_num = t[2].measurement_num
         end, 
-        [3] = function (t) end, 
+        [3] = defunc_2way_ch1_knob_action(3), 
         [4] = defunc_enable_bt(4), 
         [5] = function (t) end, 
         [6] = function (t) end, 

@@ -78,11 +78,12 @@ FCC_MODE = {
         tips  = "Select Band Width", 
         multi_select_mode = false, 
         action = function (t)
-            local bw_g = {1, 2} -- 0:16.25KHz 1:2.5KHz 2:25KHz 
+            local bw_g = {1, 2, 3} -- 1:2.5KHz 2:25KHz 3:20KHz 
             t.band_width = bw_g[t.select_index]
         end,  
         "12.5 KHz", 
         "25 KHz", 
+        "20 KHz", 
     }, 
     [3] = {
         title = "Power", 
@@ -113,7 +114,7 @@ FCC_MODE = {
         tips  = "Select Squelch", 
         multi_select_mode = false, 
         action = function (t)
-            local squelch_g = {1, 2, 3}  -- 0:none, 1:external speaker/mic, 2:bluetooth 
+            local squelch_g = {0, 1, 2}  -- 0:none, 1:external speaker/mic, 2:bluetooth 
             t.squelch = squelch_g[t.select_index]
         end, 
         "none", 

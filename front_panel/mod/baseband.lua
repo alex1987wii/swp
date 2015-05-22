@@ -107,8 +107,12 @@ defunc_select_duration = function (list_index)
     }
 end
 
-defunc_query_accelerometer_test = function (list_index)
+defunc_accelerometer_test = function (list_index)
     return function (t) 
+        if not t.select_status[list_index] then
+            return;
+        end
+    
         if "number" ~= type(t.duration) then
             slog:win("the measure duration is not setting!")
             t.test_process_start_call = false
@@ -118,12 +122,12 @@ defunc_query_accelerometer_test = function (list_index)
         os.execute("echo 1 > /sys/devices/virtual/sensors/motion_sensor/static_enable")
         local tcnt = time_counter()
         local mt = {
-            title = "Accelerometer Test", 
+            title = "Accelerometer (+-4g)", 
             tips = "Query Accelerometer", 
             [1] = "x : y : z", 
             update = function(self)
                 self[2] = tostring(read_attr_file("/sys/devices/virtual/sensors/motion_sensor/dataxyz"))
-                self.tips = "Query Accelerometer ("..tostring(tcnt()).." s)"
+                self.tips = "Accelerometer ("..tostring(tcnt()).." s)"
             end, 
         }
         
@@ -134,6 +138,40 @@ defunc_query_accelerometer_test = function (list_index)
         end
         
         os.execute("echo 0 > /sys/devices/virtual/sensors/motion_sensor/static_enable")
+    end
+end
+
+defunc_accelerometer_selftest = function (list_index)
+    return function (t) 
+        if not t.select_status[list_index] then
+            return;
+        end
+    
+        if "number" ~= type(t.duration) then
+            slog:win("the measure duration is not setting!")
+            t.test_process_start_call = false
+            return
+        end
+        
+        os.execute("echo 1 > /sys/devices/virtual/sensors/motion_sensor/selftest_enable")
+        local tcnt = time_counter()
+        local mt = {
+            title = "Accel SelfTest (+-2g)", 
+            tips = "Query Accelerometer", 
+            [1] = "x : y : z", 
+            update = function(self)
+                self[2] = tostring(read_attr_file("/sys/devices/virtual/sensors/motion_sensor/dataxyz"))
+                self.tips = "Accelerometer SelfTest("..tostring(tcnt()).." s)"
+            end, 
+        }
+        
+        while tcnt() < tonumber(t.duration) do
+            mt:update()
+            create_main_menu(mt):show()
+            posix.sleep(1)
+        end
+        
+        os.execute("echo 0 > /sys/devices/virtual/sensors/motion_sensor/selftest_enable")
     end
 end
 

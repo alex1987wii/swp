@@ -18,6 +18,7 @@ Bluetooth_MODE = {
             t.freq = t[2].freq
             t.data_rate = t[2].data_rate
         end, 
+        [3] = defunc_2way_ch1_knob_action(3), 
     }, 
     action = function (t)
         if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then

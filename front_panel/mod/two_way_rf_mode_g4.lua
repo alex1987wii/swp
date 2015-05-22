@@ -39,39 +39,7 @@ RFT_MODE = {
         m_sub:action()
     end, 
     action_map = {
-        [1] = function (t)
-            --
-            local func = loadfile("/usr/local/share/lua/5.1/rx_desense_setting.lua")
-            if nil == func then
-                slog:win("can not get the file: /usr/local/share/lua/5.1/rx_desense_setting.lua")
-                return
-            end
-            local setting = func()
-            if "table" ~= type(setting) then
-                slog:win("can not get setting from the file: /usr/local/share/lua/5.1/rx_desense_setting.lua")
-                return
-            end
-            --[[
-            local setting = require("rx_desense_setting")
-            if nil == setting then
-                slog:win("can not get the setting from file: /usr/local/share/lua/5.1/rx_desense_setting.lua")
-                return
-            end
-            --
-            for k, v in pairs(setting) do
-                 slog.err("read setting: "..tostring(k).." : "..tostring(v))
-            end
-            --]]
-
-            t.freq = setting.freq
-            t.band_width = setting.band_width
-            t.step_size = setting.step_size
-            t.step_num = setting.step_num
-            t.msr_step_num = setting.msr_step_num
-            t.samples = setting.samples
-            t.delaytime = setting.delaytime
-            t.pfm_path = setting.pfm_path
-        end, 
+        [1] = defunc_rx_desense_action(1), 
         [2] = defunc_enable_bt(2), 
         [8] = defunc_rx_desense_spkr_action(8), 
     }, 

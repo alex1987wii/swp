@@ -337,9 +337,9 @@ RFT_MODE = {
                 local powers = {0, 1, 2}
                 t.power = powers[t.select_index]
             end, 
-            "Power profile 1",
-            "Power profile 2",
-            "Power profile 3",
+            "Low",
+            "Mid",
+            "High",
         }, 
         [4] = {
             title = "Audio Path", 

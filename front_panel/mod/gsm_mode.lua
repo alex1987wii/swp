@@ -2,6 +2,7 @@
 -- gsm_mode.lua 
 require "log"
 require "gsm"
+require "two_way_rf"
 
 GSM_MODE = {
     title = "GSM Active Test Mode", 
@@ -16,6 +17,7 @@ GSM_MODE = {
         [1] = function (t) 
             t.gsm_band = t[1].gsm_band
         end, 
+        [2] = defunc_rx_desense_action(2), 
     }, 
     action = function (t)
         if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
@@ -37,26 +39,35 @@ GSM_MODE = {
         "GSM 900/1800",
         "GSM 850/900/1800/1900",
     }, 
+    [2] = "Rx Desense Scan", 
 
     test_process = {
         [1] = defunc_gsm_init_register_test(1), 
+        [2] = defunc_rx_desense_scan.start(2), 
     }, 
     stop_process = {
-        [1] = function (t) end, 
+        [1] = function (t) 
+            local gsm = gsm or gsm_init()
+            gsm.disable()
+        end, 
+        [2] = defunc_rx_desense_scan.stop(2), 
     }, 
     test_process_start = function (t)
         switch_self_refresh(true)
-        for i=1, 1 do
+        for i=1, table.getn(t) do
             if "function" == type(t.test_process[i]) then
                 t.test_process[i](t)
             end
         end
         t.test_process_start_call = false
     end, 
-    test_process_stop = function (t)
-        local gsm = gsm or gsm_init()
-        gsm.disable()
-    end, 
+    test_process_stop = function (t) 
+        for i=1, table.getn(t) do
+            if "function" == type(t.stop_process[i]) then
+                t.stop_process[i](t)
+            end
+        end
+    end
 
 }
  

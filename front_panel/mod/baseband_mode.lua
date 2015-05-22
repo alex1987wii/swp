@@ -244,9 +244,18 @@ BaseBand_MODE = {
             m_sub:action()
         end, 
         action_map = {
-            [1] = function (t)  end, 
+            [1] = function (t)
+                if t.select_status[2] then
+                    t.select_status[2] = false
+                end
+            end, 
             [2] = function (t)
-                t.duration = t[2].duration
+                if t.select_status[1] then
+                    t.select_status[1] = false
+                end
+            end, 
+            [3] = function (t)
+                t.duration = t[3].duration
             end, 
         }, 
 
@@ -256,14 +265,16 @@ BaseBand_MODE = {
             end
         end, 
         [1] = "Accelerometer test", 
-        [2] = defunc_select_duration(2), 
-        
+        [2] = "Accelerometer selftest", 
+        [3] = defunc_select_duration(3), 
 
         test_process = {
-            [1] = defunc_query_accelerometer_test(1), 
+            [1] = defunc_accelerometer_test(1), 
+            [2] = defunc_accelerometer_selftest(2), 
         }, 
         stop_process = {
             [1] = function (t) end, 
+            [2] = function (t) end, 
         }, 
 
         test_process_start = function (t) 
