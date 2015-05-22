@@ -5,6 +5,8 @@ require "log"
 require "ldsp"
 require "baseband"
 
+local device_type = device_type or read_config_mk_file("/etc/sconfig.mk", "Project")
+
 FCC_MODE = {
     title = "Front Panel", 
     tips  = "Select the test item, move and space to select", 
@@ -78,24 +80,23 @@ FCC_MODE = {
         tips  = "Select Band Width", 
         multi_select_mode = false, 
         action = function (t)
-            local bw_g = {1, 2, 3} -- 1:2.5KHz 2:25KHz 3:20KHz 
+            local bw_g = {1, 2, 3} -- 1:2.5KHz 2:25KHz 3:20KHz(only u3_2nd) 
             t.band_width = bw_g[t.select_index]
         end,  
         "12.5 KHz", 
         "25 KHz", 
-        "20 KHz", 
     }, 
     [3] = {
         title = "Power", 
         tips  = "Select Power", 
         multi_select_mode = false, 
         action = function (t)
-            local powers = {0, 1, 2}
+            local powers = {1, 2, 3}
             t.power = powers[t.select_index]
         end, 
-        "power profile 1",
-        "power profile 2",
-        "power profile 3", 
+        "Low",
+        "Mid",
+        "High", 
     }, 
     [4] = {
         title = "Audio Path", 
@@ -127,48 +128,47 @@ FCC_MODE = {
         multi_select_mode = false, 
         action_map = {
             [1] = function (t)
-                t.modulation = 1
+                t.modulation = t[1].analog
             end, 
             [2] = function (t)
-                t.modulation = t[2].analog
-            end, 
-            [3] = function (t)
-                t.modulation = t[3].digital
+                t.modulation = t[2].digital
             end
         }, 
         action = function (t)
             if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
                 t.action_map[t.select_index](t)
             end
-        end, 
-        [1] = "none", 
-        [2] = {
+        end,  
+        [1] = {
             title = "Analog", 
             tips  = "Select Analog", 
             multi_select_mode = false, 
             action = function (t)
-                local analog_g = {2, 3, 8}
+                local analog_g = {1, 2, 3, 8, 12}
                 t.analog = analog_g[t.select_index]
             end, 
+            "None (CSQ)", 
             "CTCSS (Tone = 250.3 Hz)", 
             "CDCSS (Code = 532)", 
             "MDC1200", 
+            "DVOA", 
         }, 
-        [3] = {
+        [2] = {
             title = "Digital", 
             tips  = "Select Digital", 
             multi_select_mode = false, 
             action = function (t)
-                local digital_g = {12, 13, 14, 15, 16, 17, 18}
+                -- P25 Phase II == TDMA DATA -> 14 
+                local digital_g = {13, 14, 15, 16, 17, 18, 14}
                 t.digital = digital_g[t.select_index]
             end, 
-            "DVOA", 
             "TDMA Voice", 
             "TDMA Data", 
             "ARDS Voice", 
             "ARDS Data", 
-            "P25 Voice", 
-            "P25 Data", 
+            "P25 Voice Phase I", 
+            "P25 Data Phase I", 
+            "P25 Phase II", 
         }, 
     },  
     [7] = "Enable Bluetooth",
@@ -230,3 +230,7 @@ FCC_MODE = {
     end, 
 
 }
+
+if "u3_2nd" == tostring(device_type) then
+    FCC_MODE[2][3] = "20 KHz"
+end

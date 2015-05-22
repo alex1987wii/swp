@@ -276,14 +276,11 @@ RFT_MODE = {
                 t.power = t[3].power
             end, 
             [4] = function (t)
-                t.audio_path = t[4].audio_path
+                t.modulation = t[4].modulation
             end, 
             [5] = function (t)
-                t.modulation = t[5].modulation
-            end, 
-            [6] = function (t)
-                t.trans_on_time = t[6].trans_on_time
-                t.trans_off_time = t[6].trans_off_time
+                t.trans_on_time = t[5].trans_on_time
+                t.trans_off_time = t[5].trans_off_time
             end, 
         }, 
         action = function (t)
@@ -334,7 +331,7 @@ RFT_MODE = {
             tips  = "Select Power", 
             multi_select_mode = false, 
             action = function (t)
-                local powers = {0, 1, 2}
+                local powers = {1, 2, 3}
                 t.power = powers[t.select_index]
             end, 
             "Low",
@@ -342,34 +339,18 @@ RFT_MODE = {
             "High",
         }, 
         [4] = {
-            title = "Audio Path", 
-            tips  = "Select Audio Path", 
-            multi_select_mode = false, 
-            action = function (t)
-                local audio_path_g = {1, 2}
-                t.audio_path = audio_path_g[t.select_index]
-            end, 
-            "Internal mic", 
-            "External mic", 
-        }, 
-        [5] = {
             title = "Modulation", 
             tips  = "Select Modulation", 
             multi_select_mode = false, 
             action = function (t)
-                local modulation_g = {1, 2, 3, 4, 5, 8}
+                local modulation_g = {11, 14, 18}
                 t.modulation = modulation_g[t.select_index]
             end, 
-            "none", 
-            "CTCSS", 
-            "CDCSS", 
-            "2 tone", 
-            "5/6 tone", 
-            --"Modem(Digital 4FSK)", 
-            "MDC1200", 
-            --"DTMF", 
+            "CW", 
+            "TDMA", 
+            "P25 Data Phase I", 
         }, 
-        [6] = {
+        [5] = {
             title = "Tx ON/OFF Time Setting", 
             tips  = "Select and input the start/stop time", 
             multi_select_mode = true, 
@@ -387,9 +368,9 @@ RFT_MODE = {
         }, 
         
         test_process_start = function (t)
-            local cr = check_num_parameters(t.freq, t.band_width, t.power, t.audio_path, t.modulation, t.trans_on_time, t.trans_off_time)
+            local cr = check_num_parameters(t.freq, t.band_width, t.power, t.modulation, t.trans_on_time, t.trans_off_time)
             if cr.ret then
-                local r_des, msgid_des = ldsp.tx_duty_cycle_test_start(t.freq, t.band_width, t.power, t.audio_path, t.modulation, t.trans_on_time, t.trans_off_time)
+                local r_des, msgid_des = ldsp.tx_duty_cycle_test_start(t.freq, t.band_width, t.power, t.modulation, t.trans_on_time, t.trans_off_time)
                 if not r_des then
                     slog:err("call ldsp.two_way_transmit_start fail: "..tostring(msgid_des))
                 end
@@ -461,9 +442,9 @@ RFT_MODE = {
                 local power_level_g = {1, 2, 3}
                 t.power_level = power_level_g[t.select_index]
             end, 
-            "Power Level 1",
-            "Power Level 2",
-            "Power Level 3",
+            "Low",
+            "Mid",
+            "High",
         }, 
         [4] = "Start delay", 
         [5] = {

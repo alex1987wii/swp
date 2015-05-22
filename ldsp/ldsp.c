@@ -573,7 +573,6 @@ static int ldsp_tx_duty_cycle_test_start(lua_State *L)
     unsigned char band_width;  /* 0->12.5KHz, 1->25KHz */
     unsigned char power;  /* Signed 16-bit value represents power level in dBm times 100. 
                             For example,” -20.50 dBm” is specified as -2050. */
-    unsigned char audio_path; /*  */
     unsigned char modulation; /*  */
 
     unsigned int trans_on_time; 
@@ -584,7 +583,7 @@ static int ldsp_tx_duty_cycle_test_start(lua_State *L)
     int argcnt = 0;
     
 	argcnt = lua_gettop(L);
-	if (argcnt < 7) {
+	if (argcnt < 6) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, -1);
         return 2;
@@ -601,12 +600,11 @@ static int ldsp_tx_duty_cycle_test_start(lua_State *L)
     freq = (unsigned int)lua_tointeger(L, 1);
     band_width = (unsigned char)lua_tointeger(L, 2);
     power = (unsigned char)lua_tointeger(L, 3);
-    audio_path = (unsigned char)lua_tointeger(L, 4);
-    modulation = (unsigned char)lua_tointeger(L, 5);
-    trans_on_time = (unsigned int)lua_tointeger(L, 6);
-    trans_off_time = (unsigned int)lua_tointeger(L, 7);
+    modulation = (unsigned char)lua_tointeger(L, 4);
+    trans_on_time = (unsigned int)lua_tointeger(L, 5);
+    trans_off_time = (unsigned int)lua_tointeger(L, 6);
     
-    ret = tx_duty_cycle_test_start(freq, band_width, power, audio_path, modulation, trans_on_time, trans_off_time);
+    ret = tx_duty_cycle_test_start(freq, band_width, power, modulation, trans_on_time, trans_off_time);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
