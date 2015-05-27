@@ -101,9 +101,7 @@ Bluetooth_MODE = {
     }, 
     stop_process = {
         [1] = function (t) end, 
-        [2] = function (t)
-            lnondsp.bt_txdata1_transmitter_stop()
-        end, 
+        [2] = defunc_bt_txdata1_transmitter.stop(2), 
         [3] = defunc_2way_ch1_knob_settings.stop(3), 
         [4] = defunc_enable_gps.stop(4),  
         [5] = defunc_disable_lcd.stop(5), 

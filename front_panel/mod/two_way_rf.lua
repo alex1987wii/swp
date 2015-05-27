@@ -8,35 +8,6 @@ require "utility"
 
 local device_type = device_type or read_config_mk_file("/etc/sconfig.mk", "Project")
 
-defunc_bt_txdata1_transmitter = {
-    start = function (list_index) 
-        return function (t)
-            local r, msgid
-            if nil == t.freq or "number" ~= type(t.freq) then
-                slog:err("bt_txdata1_transmitter freq error")
-                return false
-            end
-            if nil == t.data_rate or "string" ~= type(t.data_rate) then
-                slog:err("bt_txdata1_transmitter data_rate error")
-                return false
-            end
-            if t.select_status[list_index] then
-                r, msgid = lnondsp.bt_txdata1_transmitter_start(t.freq, t.data_rate)
-            else
-                r, msgid = lnondsp.bt_txdata1_transmitter_stop()
-            end
-        end
-    end, 
-    
-    stop = function (list_index)
-        return function (t)
-            if t.select_status[list_index] then
-                lnondsp.bt_txdata1_transmitter_stop()
-            end
-        end
-    end
-}
-
 defunc_2way_ch1_knob_action = function (list_index)
     return function (t)
         local func = loadfile("/usr/local/share/lua/5.1/2way_ch1_knob_setting.lua")

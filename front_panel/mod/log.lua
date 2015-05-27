@@ -20,6 +20,32 @@
 --]]
 require "posix"
 
+
+function modlog(modname, fullname)
+	local logfname = fullname
+	--
+	local f = io.open(logfname, "a+")
+	f:write(logfname.." begin:\n")
+	f:flush()
+	--
+	return {
+		--记录错误信息　 
+		line = function(msg)
+			if nil == f then
+				return false
+			end
+			f:write(tostring(modname)..": "..tostring(msg).."\n")
+			f:flush()
+		end, 
+		
+		--关闭日志系统  
+		close = function()
+			f:close()
+			f = nil
+		end, 
+	}
+end
+
 function newlog(logbasename)
 	local createtime = os.date("%Y-%m-%d_%H-%M-%S", os.time())
 	local logfname = logbasename.."_"..createtime..".log"

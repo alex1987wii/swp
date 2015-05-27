@@ -61,12 +61,10 @@ switch_self_refresh = function(flag)
 end
 
 function time_counter()
-	local t_start = os.date("*t", os.time())
-	local s_tmp = t_start.hour * 60 * 60 +t_start.min*60 + t_start.sec 
+	local t_start = os.time()
 	return function ()
-		local t_end = os.date("*t", os.time())
-		local e_tmp = t_end.hour * 60 * 60 +t_end.min*60 + t_end.sec
-		return (e_tmp - s_tmp)
+		local t_end = os.time()
+		return os.difftime(t_end, t_start)
 	end
 end
 

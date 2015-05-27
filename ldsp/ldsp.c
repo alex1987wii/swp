@@ -566,7 +566,11 @@ static int ldsp_two_way_transmit_stop(lua_State *L)
     }
 }
 
-/* DSP duty cycle test interface */
+/* DSP duty cycle test interface
+ * int tx_duty_cycle_test_start(unsigned int frequency, unsigned char band_width,
+ *         unsigned char power, unsigned char modulation,
+ *         unsigned int trans_on_time, unsigned int trans_off_time)
+ */
 static int ldsp_tx_duty_cycle_test_start(lua_State *L)
 {
     unsigned int freq;    /* Transmit freq, value range in UHF, VHF or WLB */
@@ -631,7 +635,8 @@ static int ldsp_tx_duty_cycle_test_stop(lua_State *L)
 }
 
 /*  int fcc_start(unsigned int frequency, unsigned char band_width, unsigned char power,
-                unsigned char audio_path, unsigned char squelch, unsigned char modulation) */
+ *         unsigned char audio_path, unsigned char squelch, unsigned char modulation)
+ */
 static int ldsp_fcc_start(lua_State *L)
 {
     unsigned int freq;    /* Transmit freq, value range in UHF, VHF or WLB */

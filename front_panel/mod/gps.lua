@@ -4,6 +4,8 @@ require "nondsp_event_info"
 require "log"
 require "utility"
 
+gpslogfullpath = "/userdata/SysLog/fpl_gps.log"
+
 gps =  {
 	cold_start = lnondsp.GPS_COLD_START, 
 	warm_start = lnondsp.GPS_WARM_START,
@@ -103,6 +105,8 @@ gps =  {
 			return {ret=false, errmsg="gps get_fixed arg 2, wait time is not number(unit:s)"} 
 		end
 		
+		local gpslog = gpslog or modlog("gps", gpslogfullpath)
+		
         lnondsp.gps_get_position_fix()
         
 		local time_cnt = time_counter()
@@ -121,17 +125,18 @@ gps =  {
 				
 				local e_id = NONDSP_EVT:get_id(evt.evt, evt.evi)
 				if nil ~= e_id and e_id == "GPS_FIXED" then
-                    --[[
+                    
                     if evt.fixed then
                         for k, v in pairs(evt) do
                             if "number" == type(v) then
-                                slog:notice("gps status: "..k.." : "..tostring(v))
+                                gpslog.line("gps status: "..k.." : "..tostring(v))
                             end
                         end
+                        gpslog.line("gps : ----------------")
                     end
                     
                     slog:notice("gps get_fixed event done")
-                    --]]
+                    --
 					return evt
 				end
 				--slog:notice("gps get_fixed, get event: "..tostring(e_id)..", wait 1s")
@@ -172,6 +177,8 @@ gps =  {
 			return {ret=false, errmsg="gps get_hw_info arg 2, wait time is not number(unit:s)"} 
 		end
 		
+		local gpslog = gpslog or modlog("gps", gpslogfullpath)
+		
 		local time_cnt = time_counter()
 		while time_cnt() < tonumber(wait_time) do
 			local evt_index = lnondsp.get_evt_number()
@@ -188,13 +195,14 @@ gps =  {
 				
 				local e_id = NONDSP_EVT:get_id(evt.evt, evt.evi)
 				if nil ~= e_id and e_id == "TEST_MODE_INFO" then
-                    --[[
+                    --
 					for k, v in pairs(evt) do
-                        if "number" == type(v) then
-                            slog:notice("gps hw info: "..k.." : "..tostring(v))
-                        end
+						if "number" == type(v) then
+							gpslog.line("hw info: "..k.." : "..tostring(v))
+						end
 					end
-                    --]]
+					gpslog.line("hw info : ----------------")
+                    --
 					return evt
 				end
 				--slog:notice("gps get_hw_info, get event: "..tostring(e_id))
@@ -296,6 +304,8 @@ defunc_gps_functional_test = {
             menu_tab:update_list(show_list, nil, 0)
             create_main_menu(menu_tab):show()
             
+            gpslog = gpslog or modlog("gps", gpslogfullpath)
+            
             local unity_time_cnt = time_counter()
             for index=1, t.measurement_num do
                 --slog:notice("index "..index)
@@ -327,6 +337,7 @@ defunc_gps_functional_test = {
                 posix.sleep(1)
             end
 
+            slog:win("GPS functional test finish, check the log in "..gpslogfullpath)
         end
     end, 
     
@@ -377,6 +388,8 @@ defunc_gps_hw_test = {
             
             local unity_time_cnt = time_counter()
             
+            gpslog = gpslog or modlog("gps", gpslogfullpath)
+            
             if not gps:hw_test_start(t.svid, t.trancking_time) then
                 slog:win("GPS HW test req start fail")
                 return false
@@ -404,6 +417,8 @@ defunc_gps_hw_test = {
                 
                 posix.sleep(t.interval)
             end
+            
+            slog:win("GPS HW test finish, check the log in "..gpslogfullpath)
 
             gps:enable()
         end

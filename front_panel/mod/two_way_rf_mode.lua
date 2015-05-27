@@ -80,9 +80,9 @@ RFT_MODE = {
                 [3] = function (t) 
                     t.step_size = t[3].step_size
                 end, 
-                [4] = get_para_func("step_num", "Step Num(0~1500)"), 
+                [4] = get_para_func("step_num", "Step Num(0~5000)"), 
                 [5] = get_para_func("msr_step_num", "msr_step_num(0~50)"), 
-                [6] = get_para_func("samples", "samples(10~5000)"), 
+                [6] = get_para_func("samples", "samples(10~60000)"), 
                 [7] = get_para_func("delaytime", "delaytime(0~100s)")
             }, 
             action = function (t)
@@ -207,7 +207,7 @@ RFT_MODE = {
                 t.band_width = t[2].band_width
             end, 
             [3] = get_para_func("msr_step_num", "msr_step_num(0~50)"), 
-            [4] = get_para_func("samples", "samples(10~5000)"), 
+            [4] = get_para_func("samples", "samples(10~60000)"), 
             [5] = get_para_func("delaytime", "delaytime(0~100s)"), 
         }, 
         action = function (t)
@@ -222,7 +222,7 @@ RFT_MODE = {
             tips  = "Select Band Width", 
             multi_select_mode = false, 
             action = function (t)
-                local bw_g = {0, 1} -- 0:12.5KHz 1:25KHz 
+                local bw_g = {0， 1} -- 0:12.5KHz 1:25KHz 
                 t.band_width = bw_g[t.select_index]
             end, 
 
@@ -265,22 +265,18 @@ RFT_MODE = {
             m_sub:show()
             m_sub:action()
         end, 
+        band_width = 0, 
         action_map = {
-            [1] = function (t)
-                t.freq = t[1].freq
-            end, 
-            [2] = function (t) 
-                t.band_width = t[2].band_width
+            [1] = get_para_func("freq", "Freq(Hz)"), 
+            [2] = function (t)
+                t.power = t[2].power
             end, 
             [3] = function (t)
-                t.power = t[3].power
+                t.modulation = t[3].modulation
             end, 
             [4] = function (t)
-                t.modulation = t[4].modulation
-            end, 
-            [5] = function (t)
-                t.trans_on_time = t[5].trans_on_time
-                t.trans_off_time = t[5].trans_off_time
+                t.trans_on_time = t[4].trans_on_time
+                t.trans_off_time = t[4].trans_off_time
             end, 
         }, 
         action = function (t)
@@ -289,44 +285,8 @@ RFT_MODE = {
             end
         end, 
 
-        [1] = {
-            title = "Freq", 
-            tips  = "Select Freq", 
-            multi_select_mode = false, 
-            action_map = {
-                [1] = function (t)
-                    t.freq =  global_freq_band.start + 125 * 1000
-                end, 
-                [2] = function (t)
-                    t.freq =  (global_freq_band.start + global_freq_band.last) / 2 + 125 * 1000
-                end, 
-                [3] = function (t)
-                    t.freq =  global_freq_band.last - 875 * 1000
-                end, 
-                [4] = get_para_func("freq", "Freq(Hz)"), 
-            }, 
-            action = function (t)
-                if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
-                    t.action_map[t.select_index](t)
-                end
-            end, 
-            "Low frequency in MHz", 
-            "Mid frequency in MHz", 
-            "High frequency in MHz", 
-            "Enter freq (Hz)", 
-        },  
+        [1] = "Enter freq (Hz)", 
         [2] = {
-            title = "Band Width", 
-            tips  = "Select Band Width", 
-            multi_select_mode = false, 
-            action = function (t)
-                local bw_g = {1, 2} -- 0:6.25KHz 1:12.5KHz 2:25KHz 
-                t.band_width = bw_g[t.select_index]
-            end, 
-            "12.5 KHz", 
-            "25 KHz", 
-        }, 
-        [3] = {
             title = "Power", 
             tips  = "Select Power", 
             multi_select_mode = false, 
@@ -338,7 +298,7 @@ RFT_MODE = {
             "Mid",
             "High",
         }, 
-        [4] = {
+        [3] = {
             title = "Modulation", 
             tips  = "Select Modulation", 
             multi_select_mode = false, 
@@ -350,7 +310,7 @@ RFT_MODE = {
             "TDMA", 
             "P25 Data Phase I", 
         }, 
-        [5] = {
+        [4] = {
             title = "Tx ON/OFF Time Setting", 
             tips  = "Select and input the start/stop time", 
             multi_select_mode = true, 
@@ -372,10 +332,10 @@ RFT_MODE = {
             if cr.ret then
                 local r_des, msgid_des = ldsp.tx_duty_cycle_test_start(t.freq, t.band_width, t.power, t.modulation, t.trans_on_time, t.trans_off_time)
                 if not r_des then
-                    slog:err("call ldsp.two_way_transmit_start fail: "..tostring(msgid_des))
+                    slog:win("call ldsp.two_way_transmit_start fail: "..tostring(msgid_des))
                 end
             else
-                slog:err("parameter error: check "..tostring(cr.errno).." "..tostring(cr.errmsg))
+                slog:win("parameter error: check "..tostring(cr.errno).." "..tostring(cr.errmsg))
             end
             
         end, 
@@ -397,22 +357,20 @@ RFT_MODE = {
             m_sub:show()
             m_sub:action()
         end, 
+        t.band_width = 1, 
         action_map = {
             [1] = get_para_func("freq", "Start freq(Hz)"), 
-            [2] = function (t) 
-                t.band_width = t[2].band_width
+            [2] = function (t)
+                t.power_level = t[2].power_level
             end, 
-            [3] = function (t)
-                t.power_level = t[3].power_level
+            [3] = get_para_func("start_delay", "Start delay(s)"), 
+            [4] = function (t) 
+                t.step_size = t[4].step_size
             end, 
-            [4] = get_para_func("start_delay", "Start delay(s)"), 
-            [5] = function (t) 
-                t.step_size = t[5].step_size
-            end, 
-            [6] = get_para_func("step_num", "Step num"), 
-            [7] = function (t)
-                t.on_time = t[7].on_time
-                t.off_time = t[7].off_time
+            [5] = get_para_func("step_num", "Step num"), 
+            [6] = function (t)
+                t.on_time = t[6].on_time
+                t.off_time = t[6].off_time
             end, 
         }, 
         action = function (t)
@@ -423,18 +381,6 @@ RFT_MODE = {
 
         [1] = "Start Freq", 
         [2] = {
-            title = "Band Width", 
-            tips  = "Select Band Width", 
-            multi_select_mode = false, 
-            action = function (t)
-                local bw_g = {0, 1, 2} -- 0:6.25KHz 1:12.5KHz 2:25KHz 
-                t.band_width = bw_g[t.select_index]
-            end, 
-            "6.25 KHz", 
-            "12.5 KHz", 
-            "25 KHz", 
-        }, 
-        [3] = {
             title = "Power Level", 
             tips  = "Select Power Level", 
             multi_select_mode = false, 
@@ -446,8 +392,8 @@ RFT_MODE = {
             "Mid",
             "High",
         }, 
-        [4] = "Start delay", 
-        [5] = {
+        [3] = "Start delay", 
+        [4] = {
             title = "Step size", 
             tips  = "Select Step size", 
             multi_select_mode = false, 
@@ -460,8 +406,8 @@ RFT_MODE = {
             "2 MHz", 
             "5 MHz", 
         }, 
-        [6] = "Step num", 
-        [7] = {
+        [5] = "Step num", 
+        [6] = {
             title = "ON/OFF Time Setting", 
             tips  = "Select and input the start/stop time", 
             multi_select_mode = true, 

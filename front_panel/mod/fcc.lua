@@ -16,9 +16,7 @@ FCC_MODE = {
     end, 
 
     action_map = {
-        [1] = function (t)
-            t.freq = t[1].freq
-        end, 
+        [1] = get_para_func("freq", "Freq(Hz)"), 
         [2] = function (t) 
             t.band_width = t[2].band_width
         end, 
@@ -49,32 +47,7 @@ FCC_MODE = {
             end
         end
     end, 
-    [1] = {
-        title = "Freq", 
-        tips  = "Select Freq", 
-        multi_select_mode = false, 
-        action_map = {
-            [1] = function (t)
-                t.freq =  global_freq_band.start + 125 * 1000
-            end, 
-            [2] = function (t)
-                t.freq =  (global_freq_band.start + global_freq_band.last) / 2 + 125 * 1000
-            end, 
-            [3] = function (t)
-                t.freq =  global_freq_band.last - 875 * 1000
-            end, 
-            [4] = get_para_func("freq", "Freq(Hz)"), 
-        }, 
-        action = function (t)
-            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
-                t.action_map[t.select_index](t)
-            end
-        end, 
-        "Low frequency in MHz", 
-        "Mid frequency in MHz", 
-        "High frequency in MHz", 
-        "Enter freq (Hz)", 
-    }, 
+    [1] = "Enter freq (Hz)", 
     [2] = {
         title = "Band Width", 
         tips  = "Select Band Width", 
@@ -186,7 +159,6 @@ FCC_MODE = {
             else
                 slog:err("parameter error: check "..cr.errno.." "..cr.errmsg)
             end
-
         end, 
         [7] = function (t) end, 
         [8] = defunc_enable_gps.start(8), 

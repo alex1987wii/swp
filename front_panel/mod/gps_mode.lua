@@ -11,6 +11,8 @@ GPS_MODE = {
     multi_select_mode = true, 
     init_env = function (t)
         init_global_env()
+        gpslog = gpslog or modlog("gps", gpslogfullpath)
+        
     end, 
     action_map = {
         [1] = function (t)

@@ -131,6 +131,40 @@ bt_init = function()
     }
 end
 
+defunc_bt_txdata1_transmitter = {
+    start = function (list_index) 
+        return function (t)
+            if nil == t.freq or "number" ~= type(t.freq) then
+                slog:win("bt_txdata1_transmitter freq error")
+				t.test_process_start_call = false
+                return false
+            end
+            if nil == t.data_rate or "string" ~= type(t.data_rate) then
+                slog:win("bt_txdata1_transmitter data_rate error")
+				t.test_process_start_call = false
+                return false
+            end
+
+            if t.select_status[list_index] then
+                local r, msgid = lnondsp.bt_txdata1_transmitter_start(t.freq, t.data_rate)
+				if not r then
+					slog:win("call bt_txdata1_transmitter_start fail! errcode: "..tostring(msgid))
+					t.test_process_start_call = false
+				end
+            end
+        end
+    end, 
+    
+    stop = function (list_index)
+        return function (t)
+            if t.select_status[list_index] then
+                lnondsp.bt_txdata1_transmitter_stop()
+            end
+        end
+    end
+}
+
+
 defunc_enable_bt = function(list_index)
     return function(t)
         if "nil" == type(t[list_index]) then
