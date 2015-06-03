@@ -7,22 +7,23 @@ require "log"
 --slog.win_note_en = true
 
 bt_init = function()
-    
+
     local wait_menu = {
-        title = "BT devices Scan", 
-        tips  = "Enable devices ..., plaease wait", 
-        multi_select_mode = false, 
+        title = "BT devices Scan",
+        tips  = "Enable devices ..., plaease wait",
+        multi_select_mode = false,
         [1] = "Enable BT ..."
     }
-    
+
     create_main_menu(wait_menu):show()
-    
+
+    lnondsp.bt_disable()
     local r_en, r_enno = lnondsp.bt_enable_block(lnondsp.BT_HIGH_SPEED)
     if not r_en then
         slog:err("bt_enable_block fail, return "..tostring(r_enno))
         return nil
     end
-    
+
     return {
         find_devices = function(t)
             wait_menu.tips  = "scanning devices ..., plaease wait"
@@ -37,11 +38,11 @@ bt_init = function()
                 return nil
             end
             slog:notice("find devices "..tostring(ev.ret)..":"..tostring(ev.evt)..":"..tostring(ev.evi)..":"..tostring(ev.count))
-            
+
             if (ev.count > 0) and (ev.count < 10) then
                 t.devices = {}
                 t.devices.count = ev.count
-                for i=1, ev.count do 
+                for i=1, ev.count do
                     t.devices[i] = {}
                     t.devices[i].id = ev.id[i]
                     t.devices[i].name = ev.name[i]
@@ -52,20 +53,20 @@ bt_init = function()
                 slog:win("find_devices error, scan devices(count:"..tostring(ev.count)..")")
                 return nil
             end
-        end, 
-        
+        end,
+
         get_devices_table = function(t)
             if (nil == t.devices) or (nil == t.devices.count) or (t.devices.count < 1) then
                 slog:err("t.devices or t.devices.count null")
                 return nil
             end
-            
+
             t.menu_tab = t.menu_tab or {
-                title = "BT devices", 
-                tips  = "select and keyin ENTER to connect device, * to scan again", 
-                multi_select_mode = false, 
+                title = "BT devices",
+                tips  = "select and keyin ENTER to connect device, * to scan again",
+                multi_select_mode = false,
             }
-            
+
             t.menu_tab.devices_connect_status = {}
             t.menu_tab.devices_count = t.devices.count
             t.menu_tab.dev_id = {}
@@ -74,15 +75,15 @@ bt_init = function()
                 t.menu_tab.dev_id[d] = t.devices[d].id
                 t.menu_tab.devices_connect_status[d] = false
             end
-            
+
             t.menu_tab.new_main_menu = function(tab)
                 local m_sub = create_main_menu(tab)
                 m_sub:show()
                 m_sub:action()
             end
-            
+
             t.menu_tab.action = function(tab)
-                for i=1, tab.devices_count do 
+                for i=1, tab.devices_count do
                     if tab.devices_connect_status[i] then
                         lnondsp.bt_disconnect_sco(tab.dev_id[i])
                         tab.devices_connect_status[i] = false
@@ -93,7 +94,7 @@ bt_init = function()
                     lnondsp.bt_establish_sco_block(tab.dev_id[tab.select_index])
                 end
             end
-            
+
             t.menu_tab.test_process_start = function(tab)
                 switch_self_refresh(true)
                 g_bt = g_bt or bt_init()
@@ -101,16 +102,16 @@ bt_init = function()
                     slog:win("bt enable fail, please check the error msg")
                     return false
                 end
-                
-                for i=1, tab.devices_count do 
+
+                for i=1, tab.devices_count do
                     if (tab.select_status ~= nil) and tab.devices_connect_status[i] then
                         lnondsp.bt_disconnect_sco(tab.dev_id[i])
                         tab.devices_connect_status[i] = false
                     end
                 end
-                
+
                 g_bt:find_devices()
-                
+
                 tab.devices_count = g_bt.devices.count
                 tab.dev_id = {}
                 for d=1, g_bt.devices.count do
@@ -119,11 +120,11 @@ bt_init = function()
                     tab.devices_connect_status[d] = false
                 end
             end
-            
+
             t.menu_tab.test_process_stop = function(tab) end
-            
+
             return t.menu_tab
-        end, 
+        end,
 
         disable = function(t)
             lnondsp.bt_disable()
@@ -132,29 +133,32 @@ bt_init = function()
 end
 
 defunc_bt_txdata1_transmitter = {
-    start = function (list_index) 
+    start = function (list_index)
         return function (t)
+            if not t.select_status[list_index] then
+                t.test_process_start_call = false
+                return
+            end
+
             if nil == t.freq or "number" ~= type(t.freq) then
                 slog:win("bt_txdata1_transmitter freq error")
-				t.test_process_start_call = false
+                t.test_process_start_call = false
                 return false
             end
             if nil == t.data_rate or "string" ~= type(t.data_rate) then
                 slog:win("bt_txdata1_transmitter data_rate error")
-				t.test_process_start_call = false
+                t.test_process_start_call = false
                 return false
             end
 
-            if t.select_status[list_index] then
-                local r, msgid = lnondsp.bt_txdata1_transmitter_start(t.freq, t.data_rate)
-				if not r then
-					slog:win("call bt_txdata1_transmitter_start fail! errcode: "..tostring(msgid))
-					t.test_process_start_call = false
-				end
+            local r, msgid = lnondsp.bt_txdata1_transmitter_start(t.freq, t.data_rate)
+            if not r then
+                slog:win("call bt_txdata1_transmitter_start fail! errcode: "..tostring(msgid))
+                t.test_process_start_call = false
             end
         end
-    end, 
-    
+    end,
+
     stop = function (list_index)
         return function (t)
             if t.select_status[list_index] then
@@ -183,7 +187,7 @@ defunc_enable_bt = function(list_index)
                 slog:err("bt:get_devices_table, can not scan devices")
                 return false
             end
-            
+
             t[list_index] = bt_menu
             local m = create_main_menu(t[list_index])
             m:show()
@@ -198,7 +202,7 @@ def_disable_bt = function()
         slog:win("bt enable fail, please check the error msg")
         return false
     end
-    
+
     g_bt:disable()
 end
 

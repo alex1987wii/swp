@@ -24,15 +24,15 @@ static int ldsp_init(lua_State *L)
     int dspmaster_fd = -1;
     int ret = -1;
     int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt != 2) {
+
+    argcnt = lua_gettop(L);
+    if (argcnt != 2) {
         lua_pushnil(L);
         lua_pushstring(L, "ldsp_init argcnt != 2\n");
         return 2;
     }
 
-	if ((!lua_isstring(L, 1)) && (!lua_isstring(L, 2))) {
+    if ((!lua_isstring(L, 1)) && (!lua_isstring(L, 2))) {
         lua_pushnil(L);
         lua_pushstring(L, "ldsp_init arg[1|2] is not string\n");
         return 2;
@@ -65,15 +65,15 @@ static int ldsp_init(lua_State *L)
     int dsp_master_fd = -1;
     int ret = -1;
     int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt != 1) {
+
+    argcnt = lua_gettop(L);
+    if (argcnt != 1) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_init argcnt != 1\n");
         return 2;
     }
 
-	if (!lua_isnumber(L, 1)) {
+    if (!lua_isnumber(L, 1)) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_init arg[1|2] is not string\n");
         return 2;
@@ -111,7 +111,7 @@ static int32_t dsp_event_handle(uint32_t bufsize, uint8_t *evtbuf)
 {
     dsp_evt_t *evt = NULL;
     list_head_t *index = NULL;
-    
+
     log_notice("dsp event generate, size %d\n", bufsize);
     index = list_head_creat();
     if (NULL == index) {
@@ -119,7 +119,7 @@ static int32_t dsp_event_handle(uint32_t bufsize, uint8_t *evtbuf)
         return -1;
     }
     list_head_init(index);
-    
+
     evt = malloc(sizeof(dsp_evt_t));
     if (NULL == evt) {
             log_err("dsp_event_handle, malloc memory %d fail\n", sizeof(dsp_evt_t));
@@ -127,10 +127,10 @@ static int32_t dsp_event_handle(uint32_t bufsize, uint8_t *evtbuf)
             index = NULL;
             return -1;
     }
-    
+
     evt->type = 0;
     evt->bufsize = bufsize;
-    
+
     evt->buf = malloc(bufsize);
     if (NULL == evt->buf) {
             log_err("dsp_event_handle, malloc memory %d fail\n", bufsize);
@@ -138,7 +138,7 @@ static int32_t dsp_event_handle(uint32_t bufsize, uint8_t *evtbuf)
             free(index);
             return -1;
     }
-    
+
     memcpy(evt->buf, evtbuf, bufsize);
     index->data = (void *)evt;
     list_add_tail(index, &dsp_list_head);
@@ -150,7 +150,7 @@ static int32_t dsp_exception_handle(uint32_t bufsize, uint8_t *excepbuf)
 {
     dsp_evt_t *evt = NULL;
     list_head_t *index = NULL;
-    
+
     log_notice("dsp exception generate, size %d\n", bufsize);
     index = list_head_creat();
     if (NULL == index) {
@@ -158,7 +158,7 @@ static int32_t dsp_exception_handle(uint32_t bufsize, uint8_t *excepbuf)
         return -1;
     }
     list_head_init(index);
-    
+
     evt = malloc(sizeof(dsp_evt_t));
     if (NULL == evt) {
             log_err("dsp_exception_handle, malloc memory %d fail\n", sizeof(dsp_evt_t));
@@ -166,10 +166,10 @@ static int32_t dsp_exception_handle(uint32_t bufsize, uint8_t *excepbuf)
             index = NULL;
             return -1;
     }
-    
+
     evt->type = 1;
     evt->bufsize = bufsize;
-    
+
     evt->buf = malloc(bufsize);
     if (NULL == evt->buf) {
             log_err("dsp_exception_handle, malloc memory %d fail\n", bufsize);
@@ -177,7 +177,7 @@ static int32_t dsp_exception_handle(uint32_t bufsize, uint8_t *excepbuf)
             free(index);
             return -1;
     }
-    
+
     memcpy(evt->buf, excepbuf, bufsize);
     index->data = (void *)evt;
     list_add_tail(index, &dsp_list_head);
@@ -235,8 +235,8 @@ static int ldsp_get_evt_item(lua_State *L)
     dsp_evt_t evt;
     void *pbuf = NULL;
     int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
+
+    argcnt = lua_gettop(L);
     if (argcnt != 1) {
         log_err("ldsp_get_evt_item argcnt != 1\n");
         lua_newtable(L);
@@ -245,7 +245,7 @@ static int ldsp_get_evt_item(lua_State *L)
         lua_pushstring2table(L, "errmsg", "argcnt != 1\n");
         return 1;
     }
-    
+
     if (!lua_isnumber(L, 1)) {
         lua_newtable(L);
         lua_pushboolean2table(L, "ret", FALSE);
@@ -263,9 +263,9 @@ static int ldsp_get_evt_item(lua_State *L)
         lua_pushstring2table(L, "errmsg", "thers is not list item\n");
         return 1;
     }
-    
+
     memcpy(&evt, index->data, sizeof(dsp_evt_t));
-    
+
     lua_newtable(L);
     lua_pushstring(L, "buf");
     pbuf = lua_newuserdata(L, evt.bufsize);
@@ -273,7 +273,7 @@ static int ldsp_get_evt_item(lua_State *L)
         log_err("ldsp_get_evt_item lua_newuserdata return null\n");
         lua_pushnil(L);
         lua_settable(L, -3);
-        
+
         lua_pushboolean2table(L, "ret", FALSE);
         lua_pushinteger2table(L, "errno", -2);
         lua_pushstring2table(L, "errmsg", "lnondsp_get_evt lua_newuserdata return null");
@@ -281,7 +281,7 @@ static int ldsp_get_evt_item(lua_State *L)
     }
     memcpy(pbuf, evt.buf, evt.bufsize);
     lua_settable(L, -3);
-    
+
     lua_pushboolean2table(L, "ret", TRUE);
     lua_pushinteger2table(L, "type", evt.type);
     lua_pushinteger2table(L, "bufsize", evt.bufsize);
@@ -289,20 +289,20 @@ static int ldsp_get_evt_item(lua_State *L)
 }
 
 /* define by libbitdsp */
-#if 0 
+#if 0
 static int ldsp_load(lua_State *L)
 {
     const char *imagepath = NULL;
     int path_len = 0;
     int ret = -1;
     int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt >= 1 && lua_isstring(L, 1)) {
+
+    argcnt = lua_gettop(L);
+    if (argcnt >= 1 && lua_isstring(L, 1)) {
         imagepath = (char *)lua_tostring(L, 1);
         path_len = strlen(imagepath);
     }
-    
+
     ret = bit_load_dsp_image(imagepath, path_len);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
@@ -344,28 +344,28 @@ static int ldsp_stop(lua_State *L)
 }
 #endif
 
-/* 
- * DSP complex function interface 
+/*
+ * DSP complex function interface
  */
 /* single power measurement interface */
 static int ldsp_get_period_power_msr_data(lua_State *L)
 {
-    unsigned int start;    
-    unsigned int num;  
-    unsigned int size; 
+    unsigned int start;
+    unsigned int num;
+    unsigned int size;
     unsigned char *data_buf = NULL;
-    
+
     int i;
     int ret = -1;
     int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt < 4) {
+
+    argcnt = lua_gettop(L);
+    if (argcnt < 4) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, -1);
         return 2;
     }
-    
+
     for (i=1; i<=3; i++){
         if (!lua_isnumber(L, i)) {
             lua_pushboolean(L, FALSE);
@@ -373,7 +373,7 @@ static int ldsp_get_period_power_msr_data(lua_State *L)
             return 2;
         }
     }
-    
+
     if (!lua_isuserdata(L, 4)) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, -4);
@@ -384,7 +384,7 @@ static int ldsp_get_period_power_msr_data(lua_State *L)
     num = (unsigned int)lua_tointeger(L, 2);
     size = (unsigned int)lua_tointeger(L, 3);
     data_buf = (unsigned char *)lua_touserdata(L, 4);
-    
+
     ret = get_period_power_msr_data(start, num, size, data_buf);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
@@ -400,25 +400,25 @@ static int ldsp_get_period_power_msr_data(lua_State *L)
 static int ldsp_start_rx_desense_scan(lua_State *L)
 {
     unsigned int freq;    /* Transmit freq, value range in UHF, VHF or WLB */
-    unsigned char band_width;  /* 0->12.5KHz, 1->25KHz */
+    unsigned int band_width;  /* 0->12.5KHz, 1->25KHz */
     unsigned int step_size;  /* 0Hz, 125000Hz, 25000Hz, 100000Hz and 1000000Hz */
-    unsigned int step_num;   /* 0~ 15000 */
+    unsigned int step_num;   /* 0~ 5000 */
     unsigned int msr_step_num; /* 0~50 */
-    unsigned int samples;     /* 10~50000 */
+    unsigned int samples;     /* 10~60000 */
     unsigned int delaytime;   /* 0~100(seconds) */
     unsigned int pfm_path;   /* 0:1:2 */
-    
+
     int i;
     int ret = -1;
     int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt < 7) {
+
+    argcnt = lua_gettop(L);
+    if (argcnt < 7) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, -1);
         return 2;
     }
-    
+
     for (i=1; i<=argcnt; i++){
         if (!lua_isnumber(L, i)) {
             lua_pushboolean(L, FALSE);
@@ -426,21 +426,21 @@ static int ldsp_start_rx_desense_scan(lua_State *L)
             return 2;
         }
     }
-    
+
     freq           = (unsigned int)lua_tointeger(L, 1);
-    band_width    = (unsigned char)lua_tointeger(L, 2);
+    band_width    = (unsigned int)lua_tointeger(L, 2);
     step_size     = (unsigned int)lua_tointeger(L, 3);
     step_num      = (unsigned int)lua_tointeger(L, 4);
     msr_step_num = (unsigned int)lua_tointeger(L, 5);
     samples       = (unsigned int)lua_tointeger(L, 6);
     delaytime     = (unsigned int)lua_tointeger(L, 7);
-    
+
     if (argcnt >= 8) {
         pfm_path = (unsigned int)lua_tointeger(L, 8);
     } else {
         pfm_path = 0;
     }
-    
+
     ret = start_rx_desense_scan(freq, band_width, step_size, step_num, msr_step_num, samples, delaytime, pfm_path);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
@@ -452,15 +452,15 @@ static int ldsp_start_rx_desense_scan(lua_State *L)
     }
 }
 
-/* 
+/*
  * int rx_desense_scan_flag_get(void);
- * 
+ *
  * */
 
 static int ldsp_rx_desense_scan_flag_get(lua_State *L)
 {
     int ret = -1;
-    
+
     ret = rx_desense_scan_flag_get();
     lua_pushboolean(L, ret);
     return 1;
@@ -489,25 +489,25 @@ static int ldsp_two_way_transmit_start(lua_State *L)
 {
     unsigned int start_freq;    /* Transmit freq, value range in UHF, VHF or WLB */
     unsigned char band_width;  /* 0->12.5KHz, 1->25KHz */
-    int16_t  power_level;  /* Signed 16-bit value represents power level in dBm times 100. 
+    int16_t  power_level;  /* Signed 16-bit value represents power level in dBm times 100.
                             For example,” -20.50 dBm” is specified as -2050. */
     unsigned int start_delay;
     unsigned int step_size;
     unsigned int repeat_num;
-    unsigned int on_time; 
+    unsigned int on_time;
     unsigned int off_time;
-    
+
     int i;
     int ret = -1;
     int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt < 8) {
+
+    argcnt = lua_gettop(L);
+    if (argcnt < 8) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, -1);
         return 2;
     }
-    
+
     for (i=1; i<=argcnt; i++){
         if (!lua_isnumber(L, i)) {
             lua_pushboolean(L, FALSE);
@@ -515,7 +515,7 @@ static int ldsp_two_way_transmit_start(lua_State *L)
             return 2;
         }
     }
-    
+
     start_freq = (unsigned int)lua_tointeger(L, 1);
     band_width = (unsigned char)lua_tointeger(L, 2);
     power_level = (int16_t)lua_tointeger(L, 3);
@@ -524,7 +524,7 @@ static int ldsp_two_way_transmit_start(lua_State *L)
     repeat_num = (unsigned int)lua_tointeger(L, 6);
     on_time = (unsigned int)lua_tointeger(L, 7);
     off_time = (unsigned int)lua_tointeger(L, 8);
-    
+
     ret = two_way_transmit_start(start_freq, band_width, power_level, start_delay, step_size, repeat_num, on_time, off_time);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
@@ -537,14 +537,14 @@ static int ldsp_two_way_transmit_start(lua_State *L)
 }
 
 #ifndef CONFIG_PROJECT_G4_BBA
-/* 
+/*
  * int two_way_transmit_flag_get(void)
- * 
+ *
  * */
 static int ldsp_two_way_transmit_flag_get(lua_State *L)
 {
     int ret = -1;
-    
+
     ret = two_way_transmit_flag_get();
     lua_pushboolean(L, ret);
     return 1;
@@ -575,24 +575,24 @@ static int ldsp_tx_duty_cycle_test_start(lua_State *L)
 {
     unsigned int freq;    /* Transmit freq, value range in UHF, VHF or WLB */
     unsigned char band_width;  /* 0->12.5KHz, 1->25KHz */
-    unsigned char power;  /* Signed 16-bit value represents power level in dBm times 100. 
+    unsigned char power;  /* Signed 16-bit value represents power level in dBm times 100.
                             For example,” -20.50 dBm” is specified as -2050. */
     unsigned char modulation; /*  */
 
-    unsigned int trans_on_time; 
+    unsigned int trans_on_time;
     unsigned int trans_off_time;
-    
+
     int i;
     int ret = -1;
     int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt < 6) {
+
+    argcnt = lua_gettop(L);
+    if (argcnt < 6) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, -1);
         return 2;
     }
-    
+
     for (i=1; i<=argcnt; i++){
         if (!lua_isnumber(L, i)) {
             lua_pushboolean(L, FALSE);
@@ -600,14 +600,14 @@ static int ldsp_tx_duty_cycle_test_start(lua_State *L)
             return 2;
         }
     }
-    
+
     freq = (unsigned int)lua_tointeger(L, 1);
     band_width = (unsigned char)lua_tointeger(L, 2);
     power = (unsigned char)lua_tointeger(L, 3);
     modulation = (unsigned char)lua_tointeger(L, 4);
     trans_on_time = (unsigned int)lua_tointeger(L, 5);
     trans_off_time = (unsigned int)lua_tointeger(L, 6);
-    
+
     ret = tx_duty_cycle_test_start(freq, band_width, power, modulation, trans_on_time, trans_off_time);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
@@ -641,24 +641,24 @@ static int ldsp_fcc_start(lua_State *L)
 {
     unsigned int freq;    /* Transmit freq, value range in UHF, VHF or WLB */
     unsigned char band_width;  /* 0->12.5KHz, 1->25KHz */
-    unsigned char power;  /* Signed 16-bit value represents power level in dBm times 100. 
+    unsigned char power;  /* Signed 16-bit value represents power level in dBm times 100.
                             For example,” -20.50 dBm” is specified as -2050. */
     unsigned char audio_path; /*  */
     unsigned char squelch; /*  */
 
     unsigned char modulation; /*  */
-    
+
     int i;
     int ret = -1;
     int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt < 6) {
+
+    argcnt = lua_gettop(L);
+    if (argcnt < 6) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, -1);
         return 2;
     }
-    
+
     for (i=1; i<=argcnt; i++){
         if (!lua_isnumber(L, i)) {
             lua_pushboolean(L, FALSE);
@@ -666,14 +666,14 @@ static int ldsp_fcc_start(lua_State *L)
             return 2;
         }
     }
-    
+
     freq = (unsigned int)lua_tointeger(L, 1);
     band_width = (unsigned char)lua_tointeger(L, 2);
     power = (unsigned char)lua_tointeger(L, 3);
     audio_path = (unsigned char)lua_tointeger(L, 4);
     squelch = (unsigned char)lua_tointeger(L, 5);
     modulation = (unsigned int)lua_tointeger(L, 6);
-    
+
     ret = fcc_start(freq, band_width, power, audio_path, squelch, modulation);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
@@ -706,14 +706,14 @@ static int ldsp_fcc_stop(lua_State *L)
  * int rx_desense_spkr_enable(unsigned char *path)
  * void rx_desense_spkr_stop(void)
 
- * 
+ *
  * */
 static int ldsp_rx_desense_spkr_enable(lua_State *L)
 {
     int ret = -1;
     char *path = NULL;
     int argcnt = 0;
-    
+
     argcnt = lua_gettop(L);
     if ((argcnt != 1) || (!lua_isstring(L, 1))) {
         lua_pushboolean(L, FALSE);
@@ -761,7 +761,7 @@ static int ldsp_baseband_spkr_start(lua_State *L)
     }
 }
 
-/** 
+/**
  * int baseband_spkr_stop(void)
  * */
 static int ldsp_baseband_spkr_stop(lua_State *L)
@@ -816,7 +816,7 @@ static int ldsp_get_original_afc_val(lua_State *L)
         lua_pushstring2table(L, "errmsg", "function call error");
         return 1;
     }
-    
+
     lua_newtable(L);
     lua_pushboolean2table(L, "ret", TRUE);
     lua_pushinteger2table(L, "afc_val", current_afc_val);
@@ -828,8 +828,8 @@ static int ldsp_calibrate_radio_oscillator_set_val(lua_State *L)
     unsigned short afc_val;
     int ret = -1;
     int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
+
+    argcnt = lua_gettop(L);
     if (argcnt != 1) {
         log_err("ldsp_calibrate_radio_oscillator_set_val argcnt != 1\n");
         lua_newtable(L);
@@ -838,7 +838,7 @@ static int ldsp_calibrate_radio_oscillator_set_val(lua_State *L)
         lua_pushstring2table(L, "errmsg", "argcnt != 1");
         return 1;
     }
-    
+
     if (!lua_isnumber(L, 1)) {
         lua_newtable(L);
         lua_pushboolean2table(L, "ret", FALSE);
@@ -915,41 +915,41 @@ int write_dsp_audio_samples_data(unsigned int audio_data_size, unsigned char *bu
 */
 static int ldsp_read_dsp_audio_samples_data(lua_State *L)
 {
-    unsigned int audio_data_size;    
+    unsigned int audio_data_size;
     unsigned char *buf = NULL;
-    
+
     int ret = -1;
     int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt != 2) {
+
+    argcnt = lua_gettop(L);
+    if (argcnt != 2) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_read_dsp_audio_samples_data argcnt != 2\n");
         return 2;
     }
-    
+
     if (!lua_isnumber(L, 1)) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_read_dsp_audio_samples_data arg[1] is not number\n");
         return 2;
     }
-    
+
     if (!lua_islightuserdata(L, 2)) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_read_dsp_audio_samples_data arg[2] is not buf\n");
         return 2;
     }
-    
+
     audio_data_size = (int)lua_tointeger(L, 1);
     buf = (unsigned char *)lua_touserdata(L, 2);
-    
+
     ret = read_dsp_audio_samples_data(audio_data_size, buf);
     if (ret != 0) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_read_dsp_audio_samples_data read_dsp_audio_samples_data fail\n");
         return 2;
     }
-    
+
     lua_pushboolean(L, TRUE);
     return 1;
 }
@@ -958,39 +958,39 @@ static int ldsp_write_dsp_audio_samples_data(lua_State *L)
 {
     unsigned int audio_data_size;
     unsigned char *buf = NULL;
-    
+
     int ret = -1;
     int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt != 2) {
+
+    argcnt = lua_gettop(L);
+    if (argcnt != 2) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_write_dsp_audio_samples_data argcnt != 2\n");
         return 2;
     }
-    
+
     if (!lua_isnumber(L, 1)) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_write_dsp_audio_samples_data arg[1] is not number\n");
         return 2;
     }
-    
+
     if (!lua_islightuserdata(L, 2)) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_write_dsp_audio_samples_data arg[2] is not buf\n");
         return 2;
     }
-    
+
     audio_data_size = (int)lua_tointeger(L, 1);
     buf = (unsigned char *)lua_touserdata(L, 2);
-    
+
     ret = write_dsp_audio_samples_data(audio_data_size, buf);
     if (ret != 0) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_read_dsp_audio_samples_data write_dsp_audio_samples_data fail\n");
         return 2;
     }
-    
+
     lua_pushboolean(L, TRUE);
     return 1;
 }
@@ -1005,9 +1005,9 @@ static int ldsp_dsp_capture_process(lua_State *L)
     int flag;
     int ret = -1;
     int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt != 1) {
+
+    argcnt = lua_gettop(L);
+    if (argcnt != 1) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_dsp_capture_process argcnt != 1\n");
         return 2;
@@ -1018,16 +1018,16 @@ static int ldsp_dsp_capture_process(lua_State *L)
         lua_pushstring(L, "ldsp_dsp_capture_process arg[1] is not boolean\n");
         return 2;
     }
-    
+
     flag = (int)lua_toboolean(L, 1);
-    
+
     ret = dsp_capture_process(flag);
     if (ret != 0) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_dsp_capture_process dsp_capture_process fail\n");
         return 2;
     }
-    
+
     lua_pushboolean(L, TRUE);
     return 1;
 }
@@ -1042,9 +1042,9 @@ static int ldsp_dsp_delivery_process(lua_State *L)
     int flag;
     int ret = -1;
     int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt != 1) {
+
+    argcnt = lua_gettop(L);
+    if (argcnt != 1) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_dsp_delivery_process argcnt != 1\n");
         return 2;
@@ -1055,16 +1055,16 @@ static int ldsp_dsp_delivery_process(lua_State *L)
         lua_pushstring(L, "ldsp_dsp_delivery_process arg[1] is not boolean\n");
         return 2;
     }
-    
+
     flag = (int)lua_toboolean(L, 1);
-    
+
     ret = dsp_delivery_process(flag);
     if (ret != 0) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_dsp_delivery_process dsp_delivery_process fail\n");
         return 2;
     }
-    
+
     lua_pushboolean(L, TRUE);
     return 1;
 }
@@ -1078,29 +1078,29 @@ static int ldsp_start_audio_transfer(lua_State *L)
     unsigned char src;
     unsigned char dest;
     unsigned char *path = NULL;
-    
+
     int ret = -1;
     int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt != 3) {
+
+    argcnt = lua_gettop(L);
+    if (argcnt != 3) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_start_audio_transfer argcnt != 3\n");
         return 2;
     }
-    
+
     if (!lua_isnumber(L, 1)) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_start_audio_transfer arg[1] is not number\n");
         return 2;
     }
-    
+
     if (!lua_isnumber(L, 2)) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_start_audio_transfer arg[2] is not number\n");
         return 2;
     }
-    
+
     if (!lua_isstring(L, 3)) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_start_audio_transfer arg[3] is not string\n");
@@ -1110,14 +1110,14 @@ static int ldsp_start_audio_transfer(lua_State *L)
     src  = (unsigned char)lua_tointeger(L, 1);
     dest = (unsigned char)lua_tointeger(L, 2);
     path = (unsigned char *)lua_tostring(L, 3);
-    
+
     ret = start_audio_transfer(src, dest, path);
     if (ret != 0) {
         lua_pushboolean(L, FALSE);
         lua_pushstring(L, "ldsp_start_audio_transfer start_audio_transfer fail\n");
         return 2;
     }
-    
+
     lua_pushboolean(L, TRUE);
     return 1;
 }
@@ -1142,29 +1142,29 @@ static int ldsp_stop_audio_transfer(lua_State *L)
 
 #if 0
 /** Tia603 DSP audio rx and tx interface
- * int start_tia603_audio_rx(unsigned char dest, unsigned int freq, unsigned char bandwidth, 
+ * int start_tia603_audio_rx(unsigned char dest, unsigned int freq, unsigned char bandwidth,
  *      unsigned char emphasis, unsigned char scrambler, unsigned char expander);
  */
 static int ldsp_audio_rx_start(lua_State *L)
 {
     unsigned char dest;
     unsigned int freq;
-    unsigned char bandwidth; 
+    unsigned char bandwidth;
     unsigned char emphasis;
     unsigned char scrambler;
     unsigned char expander;
-    
+
     int i;
     int ret = -1;
     int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt < 6) {
+
+    argcnt = lua_gettop(L);
+    if (argcnt < 6) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, -1);
         return 2;
     }
-    
+
     for (i=1; i<=argcnt; i++){
         if (!lua_isnumber(L, i)) {
             lua_pushboolean(L, FALSE);
@@ -1179,7 +1179,7 @@ static int ldsp_audio_rx_start(lua_State *L)
     emphasis = (unsigned char)lua_tointeger(L, 4);
     scrambler = (unsigned char)lua_tointeger(L, 5);
     expander = (unsigned char)lua_tointeger(L, 6);
-    
+
     ret = start_tia603_audio_rx(dest, freq, bandwidth, emphasis, scrambler, expander);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
@@ -1210,31 +1210,31 @@ static int ldsp_audio_rx_stop(lua_State *L)
 }
 
 /** Tia603 DSP audio rx and tx interface
- * int start_tia603_audio_tx(unsigned char src, unsigned int freq, unsigned char bandwidth, 
+ * int start_tia603_audio_tx(unsigned char src, unsigned int freq, unsigned char bandwidth,
  *      short pwrlevel, unsigned char emphasis, unsigned char scrambler, unsigned char compressor, unsigned char management);
  */
 static int ldsp_audio_tx_start(lua_State *L)
 {
     unsigned char src;
     unsigned int freq;
-    unsigned char bandwidth; 
+    unsigned char bandwidth;
     short pwrlevel;
     unsigned char emphasis;
     unsigned char scrambler;
     unsigned char compressor;
     unsigned char management;
-    
+
     int i;
     int ret = -1;
     int argcnt = 0;
-    
-	argcnt = lua_gettop(L);
-	if (argcnt < 8) {
+
+    argcnt = lua_gettop(L);
+    if (argcnt < 8) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, -1);
         return 2;
     }
-    
+
     for (i=1; i<=argcnt; i++){
         if (!lua_isnumber(L, i)) {
             lua_pushboolean(L, FALSE);
@@ -1251,7 +1251,7 @@ static int ldsp_audio_tx_start(lua_State *L)
     scrambler = (unsigned char)lua_tointeger(L, 6);
     compressor = (unsigned char)lua_tointeger(L, 7);
     management = (unsigned char)lua_tointeger(L, 8);
-    
+
     ret = start_tia603_audio_tx(src, freq, bandwidth, pwrlevel, emphasis, scrambler, compressor, management);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
@@ -1280,18 +1280,18 @@ static int ldsp_audio_tx_stop(lua_State *L)
         return 1;
     }
 }
-#endif 
+#endif
 
 /*
  * interface for lua
  */
-static const struct luaL_reg dsp_lib[] = 
+static const struct luaL_reg dsp_lib[] =
 {
 #define NF(n)   {#n, ldsp_##n}
     NF(init),
     NF(stop),
     NF(bit_launch_dsp),
-    
+
     /* for dsp event and exception */
     NF(register_callbacks),
     NF(start_dsp_service),
@@ -1303,80 +1303,80 @@ static const struct luaL_reg dsp_lib[] =
     NF(read_dsp_exception),
 #endif
 /* define by libbitdsp */
-#if 0 
+#if 0
     NF(release),
     NF(load),
     NF(release),
 #endif
 
     /* single power measurement interface */
-    NF(get_period_power_msr_data), 
-    
+    NF(get_period_power_msr_data),
+
     /* DSP RX desense scan interface */
-    NF(start_rx_desense_scan), 
+    NF(start_rx_desense_scan),
     NF(rx_desense_scan_flag_get),
     NF(stop_rx_desense_scan),
-    
+
     #ifndef CONFIG_PROJECT_G4_BBA
     /* DSP two way transmit interface */
     NF(two_way_transmit_start),
     NF(two_way_transmit_flag_get),
     NF(two_way_transmit_stop),
-    
+
     /* DSP tx duty cycle test interface */
     NF(tx_duty_cycle_test_start),
     NF(tx_duty_cycle_test_stop),
-    
+
     NF(fcc_start),
     NF(fcc_stop),
     #endif
 
     NF(rx_desense_spkr_enable),
-    NF(rx_desense_spkr_stop), 
-    
+    NF(rx_desense_spkr_stop),
+
     NF(baseband_spkr_start),
-    NF(baseband_spkr_stop), 
-    
+    NF(baseband_spkr_stop),
+
     #ifndef CONFIG_PROJECT_G4_BBA
     /* field test interface */
-    NF(calibrate_radio_oscillator_start), 
-    NF(get_original_afc_val), 
-    NF(calibrate_radio_oscillator_set_val), 
-    NF(save_radio_oscillator_calibration), 
-    NF(calibrate_radio_oscillator_stop), 
-    NF(restore_default_radio_oscillator_calibration), 
+    NF(calibrate_radio_oscillator_start),
+    NF(get_original_afc_val),
+    NF(calibrate_radio_oscillator_set_val),
+    NF(save_radio_oscillator_calibration),
+    NF(calibrate_radio_oscillator_stop),
+    NF(restore_default_radio_oscillator_calibration),
     #endif
-    
+
 #if ( defined (CONFIG_PROJECT_U4) || defined (CONFIG_PROJECT_G3) || defined (CONFIG_PROJECT_M1) || defined (CONFIG_PROJECT_M1RU) )
-    NF(read_dsp_audio_samples_data), 
-    NF(write_dsp_audio_samples_data), 
-    NF(dsp_capture_process), 
-    NF(dsp_delivery_process), 
+    NF(read_dsp_audio_samples_data),
+    NF(write_dsp_audio_samples_data),
+    NF(dsp_capture_process),
+    NF(dsp_delivery_process),
 #endif
 
-    NF(start_audio_transfer), 
-    NF(stop_audio_transfer), 
+    NF(start_audio_transfer),
+    NF(stop_audio_transfer),
 
     /* Tia603 DSP audio rx and tx interface */
 #if 0
-    NF(audio_rx_start), 
-    NF(audio_rx_stop), 
-    NF(audio_tx_start), 
-    NF(audio_tx_stop), 
+    NF(audio_rx_start),
+    NF(audio_rx_stop),
+    NF(audio_tx_start),
+    NF(audio_tx_stop),
 #endif
 
     {NULL, NULL}
 };
 
-#define set_integer_const(key, value)	\
-	lua_pushinteger(L, value);	\
-	lua_setfield(L, -2, key)
+#define set_integer_const(key, value)   \
+    lua_pushinteger(L, value);  \
+    lua_setfield(L, -2, key)
 
 int luaopen_ldsp(lua_State *L) {
-	luaL_register (L, LUA_LDSP_LIBNAME, dsp_lib);
+    luaL_register (L, LUA_LDSP_LIBNAME, dsp_lib);
     set_integer_const("dsp_master_fd", dsp_master_fd);
     set_integer_const("dsp_audio_fd", dsp_audio_fd);
     list_head_init(&dsp_list_head);
-    
-	return 1;
+
+    return 1;
 }

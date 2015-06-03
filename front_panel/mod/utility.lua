@@ -1,21 +1,21 @@
 
---utility.lua 
+--utility.lua
 require "log"
 require "posix"
 require "ldsp"
 require "lnondsp"
 
 process_do = function(func, t)
-	local pid = posix.fork()
-    
-	if pid == 0 then
+    local pid = posix.fork()
+
+    if pid == 0 then
         if "function" == type(func) then
             func(t)
         end
-        
+
         posix._exit(0)
     end
-    
+
     return pid
 end
 
@@ -56,16 +56,16 @@ switch_self_refresh = function(flag)
     else
         os.execute("echo 0 > /sys/devices/platform/ad6900-lcd/self_refresh")
     end
-    
+
     return true
 end
 
 function time_counter()
-	local t_start = os.time()
-	return function ()
-		local t_end = os.time()
-		return os.difftime(t_end, t_start)
-	end
+    local t_start = os.time()
+    return function ()
+        local t_end = os.time()
+        return os.difftime(t_end, t_start)
+    end
 end
 
 
@@ -80,12 +80,12 @@ function check_num_range(num, ...)
         if upper < low then
             upper, low = low, upper
         end
-        
+
         if (num > upper) or (num < low) then
             return false
         end
     end
-    
+
     return true
 end
 
@@ -96,33 +96,32 @@ function check_num_parameters(...)
         if nil == arg[i] then
             return {ret = false, errno = i, errmsg="arg["..i.."] nil"}
         end
-        
+
         if "number" ~= type(arg[i]) then
             return {ret = false, errno = i, errmsg="arg["..i.."] wrong type, not number"}
         end
     end
-    
+
     return {ret = true}
 end
 
 thread_do = function (func)
     local pid = posix.fork()
-    
+
     if pid == 0 then
         if "function" == type(func) then
             func()
         end
-        
+
         posix._exit(0)
     end
-    
+
     return pid
 end
 
-
 function get_para_func(pname, pinfo)
     return function (t)
-        local r = get_string_in_window(t[t.select_index])
+        local r = get_number_in_window(t[t.select_index])
         if r.ret then
             t[pname] =  tonumber(r.str)
             if nil == t[pname] then
@@ -135,7 +134,7 @@ function get_para_func(pname, pinfo)
                 slog:err("enter is not number")
                 return false
             end
-            
+
             if string.len(pinfo) > (curses.cols() - 9) then
                 t[t.select_index] = pinfo
             else
@@ -145,7 +144,7 @@ function get_para_func(pname, pinfo)
             slog:err("enter "..r.errmsg)
         end
     end
-end 
+end
 
 local device_type = device_type or read_config_mk_file("/etc/sconfig.mk", "Project")
 
@@ -154,8 +153,9 @@ function init_global_env()
         ldsp.bit_launch_dsp()
         ldsp.register_callbacks()
         ldsp.start_dsp_service()
-        
+
         lnondsp.register_callbacks()
+        lnondsp.start_powerkey_service()
         if "g4_bba" ~= device_type then
             lnondsp.bit_gps_thread_create()
         end
@@ -163,7 +163,7 @@ function init_global_env()
     end
 end
 
-try_read_fpl_test_mode_setting = function(f) 
+try_read_fpl_test_mode_setting = function(f)
     local f = io.open(f, "r")
     if nil == f then
         return "00000000"
@@ -174,17 +174,17 @@ try_read_fpl_test_mode_setting = function(f)
         slog:err("fpl mode setting error")
         return "00000000"
     end
-    
+
     return s
 end
 
 warning_tone = function (tm)
-	local tcnt = time_counter()
+    local tcnt = time_counter()
 
-	while tcnt() < tm do
-		ldsp.baseband_spkr_start()
-		posix.sleep(1)  
-		ldsp.baseband_spkr_stop()
-		posix.sleep(1)
-	end
+    while tcnt() < tm do
+        ldsp.baseband_spkr_start()
+        posix.sleep(1)
+        ldsp.baseband_spkr_stop()
+        posix.sleep(1)
+    end
 end

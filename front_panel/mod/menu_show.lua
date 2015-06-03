@@ -1,4 +1,4 @@
--- menu show 
+-- menu show
 require "log"
 require "curses"
 require "utility"
@@ -6,22 +6,22 @@ require "utility"
 local device_type = device_type or read_config_mk_file("/etc/sconfig.mk", "Project")
 
 key_map = {
-    up = curses.KEY_DOWN, 
-    down = curses.KEY_UP, 
-    space = 0x20, 
-    enter = 0xa, 
-    left = curses.KEY_LEFT, 
-    start = 0x2a, 
-    stop = 0x23, 
-    poweron = 39, 
+    up = curses.KEY_DOWN,
+    down = curses.KEY_UP,
+    space = 0x20,
+    enter = 0xa,
+    left = curses.KEY_LEFT,
+    start = 0x2a,
+    stop = 0x23,
+    poweron = 39,
 }
 
 if "u3" == device_type then
-    key_map.up = 259   --0x102 
-    key_map.down = 258 --0x101 
+    key_map.up = 259   --0x102
+    key_map.down = 258 --0x101
     key_map.space = 0x20
     key_map.enter = 0xa
-    key_map.left = 260  --0x103 
+    key_map.left = 260  --0x103
     key_map.start = 0x2a
     key_map.stop = 0x23
 elseif "u3_2nd" == device_type then
@@ -41,14 +41,14 @@ elseif "g4_bba" == device_type then
     key_map.start = 0x25
     key_map.stop = 0x107
 else
-    
+
 end
 
 init_menu = function()
     local lines = curses.lines()
     local cols  = curses.cols()
     slog:notice("curses: lines->"..tostring(lines).." : cols->"..tostring(cols))
-    
+
     stdscr:clear()
     stdscr:box(0, 0)
     for i=1, cols-2 do
@@ -56,33 +56,33 @@ init_menu = function()
         stdscr:mvaddstr(lines-4, i, "-")
     end
     stdscr:refresh()
-    
+
     title_win = stdscr:sub(1, cols-2, 1, 1)
     if nil == title_win then
         return {ret = false, errmsg = "stdscr:sub title_win create fail"}
     end
     title_win:clear()
-    
+
     tips_win = stdscr:sub(2, cols-2, lines-3, 1)
     if nil == tips_win then
         return {ret = false, errmsg = "stdscr:sub tips_win create fail"}
     end
     tips_win:clear()
-    
+
     list_win = stdscr:sub(lines-7, cols-2, 3, 1)
     if nil == list_win then
         return {ret = false, errmsg = "stdscr:sub list_win create fail"}
     end
     list_win:keypad()
     list_win:clear()
-    
+
     return {ret = true}
 end
 
 get_string_in_window = function(note)
     local lines = curses.lines()
     local cols  = curses.cols()
-    
+
     local nw = stdscr:sub(lines-7, cols-2, 3, 1)
     if nil == nw then
         return {ret = false, errmsg = "stdscr:sub get_string_in_window create fail"}
@@ -90,7 +90,7 @@ get_string_in_window = function(note)
     nw:clear()
     nw:box(0, 0)
     nw:refresh()
-    
+
     local nnw = stdscr:sub(lines-9, cols-4, 4, 2)
     if nil == nnw then
         return {ret = false, errmsg = "stdscr:sub get_string_in_window create fail"}
@@ -104,8 +104,55 @@ get_string_in_window = function(note)
     local str = nnw:getstr()
     nnw:close()
     curses.echo(false)
-    
+
     nw:close()
+    if (nil == str) and ("" == str) then
+        return {ret = false, errmsg = "nnw:getstr nil"}
+    end
+    return {ret = true, str = str}
+end
+
+get_number_in_window = function(note)
+    local lines = curses.lines()
+    local cols  = curses.cols()
+
+    local nw = stdscr:sub(lines-7, cols-2, 3, 1)
+    if nil == nw then
+        return {ret = false, errmsg = "stdscr:sub get_number_in_window create fail"}
+    end
+    nw:clear()
+    nw:box(0, 0)
+    nw:refresh()
+
+    local nnw = stdscr:sub(lines-9, cols-4, 4, 2)
+    if nil == nnw then
+        return {ret = false, errmsg = "stdscr:sub get_number_in_window create fail"}
+    end
+    nnw:clear()
+    nnw:refresh()
+
+    nnw:mvaddstr(0, 0, note)
+    nnw:move(1, 0)
+    nnw:refresh()
+    local tstr = {}
+    while true do
+        local ch = nnw:getch()
+        if ch >= string.byte('0') and ch <= string.byte('9') then
+            tstr[table.getn(tstr)+1] = string.char(ch)
+            nnw:addch(tstr[table.getn(tstr)])
+            nnw:refresh()
+        end
+
+        if ch == key_map.enter then
+            break
+        end
+    end
+
+    nnw:close()
+    nw:close()
+
+    local str = table.concat(tstr)
+
     if (nil == str) and ("" == str) then
         return {ret = false, errmsg = "nnw:getstr nil"}
     end
@@ -115,7 +162,7 @@ end
 note_in_window = function(note)
     local lines = curses.lines()
     local cols  = curses.cols()
-    
+
     local nw = stdscr:sub(lines-7, cols-2, 3, 1)
     if nil == nw then
         return {ret = false, errmsg = "stdscr:sub get_string_in_window create fail"}
@@ -123,7 +170,7 @@ note_in_window = function(note)
     nw:clear()
     nw:box(0, 0)
     nw:refresh()
-    
+
     local nnw = stdscr:sub(lines-9, cols-4, 4, 2)
     if nil == nnw then
         return {ret = false, errmsg = "stdscr:sub get_string_in_window create fail"}
@@ -133,7 +180,7 @@ note_in_window = function(note)
     nnw:mvaddstr(0, 0, note)
     nnw:refresh()
     local str = nnw:getch()
-    nnw:close()    
+    nnw:close()
     nw:close()
 end
 
@@ -141,15 +188,15 @@ create_main_menu = function(main_menu_table)
     if nil ~= main_menu_table.init_env and "function" == type(main_menu_table.init_env) then
         main_menu_table:init_env()
     end
-    
+
     return {
-        main_table = main_menu_table, 
+        main_table = main_menu_table,
         show = function(self, ...)
             local menu_table = arg[1] or self.main_table
             title_win:clear()
             if "string" == type(menu_table.title) then
                 title_win:mvaddstr(0, 0, menu_table.title)
-            else 
+            else
                 title_win:mvaddstr(0, 0, "no title")
             end
             title_win:refresh()
@@ -157,7 +204,7 @@ create_main_menu = function(main_menu_table)
             tips_win:clear()
             if "string" == type(menu_table.tips) then
                 tips_win:mvaddstr(0, 0, "Tips: "..menu_table.tips)
-            else 
+            else
                 tips_win:mvaddstr(0, 0, "Tips: no tips")
             end
             tips_win:refresh()
@@ -186,29 +233,29 @@ create_main_menu = function(main_menu_table)
             list_win:move(menu_table.select_index-1, 1)
 
             list_win:refresh()
-        end, 
-        
+        end,
+
         action = function(self, ...)
             local menu_table = arg[1] or self.main_table
             while true do
                 local ch = list_win:getch()
                 --slog:notice("key val: "..tonumber(ch))
-                if ch == key_map.down then  -- down 
+                if ch == key_map.down then  -- down
 
                     if menu_table.select_index < table.getn(menu_table) then
                         menu_table.select_index = menu_table.select_index + 1
                     end
 
-                elseif ch == key_map.up then  -- up 
+                elseif ch == key_map.up then  -- up
                     if menu_table.select_index > 1 then
                         menu_table.select_index = menu_table.select_index - 1
                     end
-                elseif ch == key_map.space then -- space 
+                elseif ch == key_map.space then -- space
                     if menu_table.select_status == nil then
                         menu_table.select_status = {}
                     end
-                    
-                    -- if radio select, clear other select status 
+
+                    -- if radio select, clear other select status
                     if not menu_table.multi_select_mode then
                         if menu_table.select_status[menu_table.select_index] == nil then
                             menu_table.select_status = {}
@@ -220,7 +267,7 @@ create_main_menu = function(main_menu_table)
                             menu_table.select_status[menu_table.select_index] = false
                         end
                     end
-                    
+
                     if menu_table.select_status[menu_table.select_index] == nil then
                         menu_table.select_status[menu_table.select_index] = true
                     elseif menu_table.select_status[menu_table.select_index] then
@@ -228,12 +275,12 @@ create_main_menu = function(main_menu_table)
                     else
                         menu_table.select_status[menu_table.select_index] = true
                     end
-                elseif ch == key_map.enter then  -- ENTER 
+                elseif ch == key_map.enter then  -- ENTER
                     if menu_table.select_status == nil then
                         menu_table.select_status = {}
                     end
 
-                    -- if radio select, clear other select status 
+                    -- if radio select, clear other select status
                     if not menu_table.multi_select_mode then
                         menu_table.select_status = {}
                     end
@@ -247,14 +294,14 @@ create_main_menu = function(main_menu_table)
                             self:action(menu_table[menu_table.select_index])
                         end
                     end
-                    
+
                     if nil ~= menu_table.action and "function" == type(menu_table.action) then
                          menu_table:action()
                     end
-                    
-                elseif ch == key_map.left then  -- <- left, goto pre-menu 
+
+                elseif ch == key_map.left then  -- <- left, goto pre-menu
                     return true
-                elseif ch == key_map.start then   -- * start test process 
+                elseif ch == key_map.start then   -- * start test process
                     if menu_table == self.main_table then
                         if "function" == type(menu_table.test_process_start) then
                             slog:notice("call test_process_start in")
@@ -277,11 +324,11 @@ create_main_menu = function(main_menu_table)
                             end
                         end
                     end
-                elseif ch == key_map.poweron then   -- power off/on 
+                elseif ch == key_map.poweron then   -- power off/on
                     os.execute("rm -f /userdata/Settings/set_fpl_mode.lua")
                     os.execute("/sbin/reboot")
                 end
-                
+
                 self:show(menu_table)
             end
         end
