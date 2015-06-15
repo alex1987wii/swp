@@ -240,8 +240,8 @@ create_main_menu = function(main_menu_table)
             while true do
                 local ch = list_win:getch()
                 --slog:notice("key val: "..tonumber(ch))
-                if ch == key_map.down then  -- down
 
+                if ch == key_map.down then  -- down
                     if menu_table.select_index < table.getn(menu_table) then
                         menu_table.select_index = menu_table.select_index + 1
                     end
@@ -324,9 +324,6 @@ create_main_menu = function(main_menu_table)
                             end
                         end
                     end
-                elseif ch == key_map.poweron then   -- power off/on
-                    os.execute("rm -f /userdata/Settings/set_fpl_mode.lua")
-                    os.execute("/sbin/reboot")
                 end
 
                 self:show(menu_table)

@@ -2083,6 +2083,12 @@ static int lnondsp_bt_txdata1_transmitter_stop(lua_State *L)
     }
 }
 
+typedef struct key_action {
+    int code;
+    int value;
+    char action[256];
+} key_action_t;
+
 static void *powerkey_process_thread(void *arg)
 {
     int32_t ret = 0, i;
@@ -2121,6 +2127,7 @@ static void *powerkey_process_thread(void *arg)
 
             for (i = 0; i < (int)(ret / sizeof(struct input_event)); i++) {
                 if ((event[i].code == POWER_KEY) && (0 == event[i].value)) {
+                     system("/bin/rm -f /userdata/Settings/set_fpl_mode.lua");
                      system("/sbin/poweroff");
                 }
             }
