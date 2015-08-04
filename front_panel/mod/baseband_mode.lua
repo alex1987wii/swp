@@ -10,6 +10,10 @@ BaseBand_MODE = {
     multi_select_mode = true, 
     init_env = function (t)
         init_global_env()
+        --[[
+        t.duration = 24 * 60 * 60
+        defunc_battery_voltage_test(1)(t)
+        --]]
     end, 
     action_map = {
         [1] = function (t) end, 
@@ -524,7 +528,6 @@ if "g4_bba" == tostring(device_type) then
 					t.test_process[i](t)
 				end
 			end
-			t.test_process_start_call = false
 		end, 
 		test_process_stop = function (t) 
 			for i=1, table.getn(t) do

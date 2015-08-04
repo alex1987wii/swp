@@ -188,3 +188,19 @@ warning_tone = function (tm)
         posix.sleep(1)
     end
 end
+
+function get_item_from_formats (str)
+    local index = 0
+    local stab = {cnt = 0}
+    
+    while true do
+        local s_start, s_end, item_str =  string.find(str, "(%S+)", index)
+        if nil == s_start then
+            return stab
+        else
+            stab.cnt = stab.cnt + 1
+            stab[stab.cnt] = item_str
+            index = s_end + 1
+        end
+    end
+end

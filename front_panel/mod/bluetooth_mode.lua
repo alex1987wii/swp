@@ -15,8 +15,10 @@ Bluetooth_MODE = {
     action_map = {
         [1] = defunc_enable_bt(1),
         [2] = function (t)
+            t.rftest_type = t[2].rftest_type
             t.freq = t[2].freq
             t.data_rate = t[2].data_rate
+            
             t.select_status[1] = false
         end,
     },
@@ -32,10 +34,25 @@ Bluetooth_MODE = {
         multi_select_mode = true,
 
         action = function (t)
-            t.freq = t[1].freq
-            t.data_rate = t[2].data_rate
+            t.rftest_type = t[1].rftest_type
+            if "TXDATA1" == t.rftest_type then
+                t.freq = t[2].freq
+            else
+                t.freq = 0
+            end
+            t.data_rate = t[3].data_rate
         end,
         [1] = {
+            title = "RFTest Type",
+            tips  = "Select RFTest Type",
+            multi_select_mode = false,
+            action = function (t)
+                t.rftest_type = t[t.select_index]
+            end,
+            "TXDATA1",
+            "TXDATA2",
+        },
+        [2] = {
             title = "Frequency",
             tips  = "Select Frequency",
             multi_select_mode = false,
@@ -47,7 +64,7 @@ Bluetooth_MODE = {
             "2441 MHz",
             "2480 MHz",
         },
-        [2] = {
+        [3] = {
             title = "Data Rate",
             tips  = "Select Data Rate(Packet Type)",
             multi_select_mode = false,
@@ -82,12 +99,12 @@ Bluetooth_MODE = {
 
     test_process = {
         [1] = function (t) end,
-        [2] = defunc_bt_txdata1_transmitter.start(2),
+        [2] = defunc_bt_rftest_transmitter.start(2),
 
     },
     stop_process = {
         [1] = function (t) end,
-        [2] = defunc_bt_txdata1_transmitter.stop(2),
+        [2] = defunc_bt_rftest_transmitter.stop(2),
 
     },
     test_process_start = function (t)

@@ -17,7 +17,12 @@ require "utility"
 
 if "fpl" ~= read_bootmode() then
     die("load2tty0.lua call, is not fpl mode")
-    --os.execute("/usr/bin/switch_fpl_mode.sh")
+    --[[
+    os.execute("unlock /")
+    os.execute("echo 11111111 > /usr/BIT/fpl_mode_en")
+    os.execute("echo global_fpl_mode=BaseBand_MODE > /userdata/Settings/set_fpl_mode.lua")
+    os.execute("/usr/bin/switch_fpl_mode.sh")
+    --]]
     os.exit(-1)
 end
 

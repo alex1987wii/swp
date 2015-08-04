@@ -229,6 +229,8 @@ static int lnondsp_get_evt_item(lua_State *L)
             case NONDSP_EVT_GPS_FIXED:
             {
                 gps_event_ttff_t *ttff = (gps_event_ttff_t *)pbuf;
+                
+                log_notice("lnondsp_get_evt_item: NONDSP_EVT_GPS_FIXED fixed: %d\n", ttff->fixed);
                 lua_pushboolean2table(L, "fixed", ttff->fixed);         /* 1: fixed, other: no fixed */
                 lua_pushinteger2table(L, "TTFF", ttff->TTFF);           /* unit: second */
                 lua_pushnumber2table(L, "lat", ttff->latitude);   /* unit: degree */
@@ -259,6 +261,7 @@ static int lnondsp_get_evt_item(lua_State *L)
             case NONDSP_EVT_GPS_TEST_MODE_INFO:
             {
                 gps_event_hw_test_mode_info_t *hw_test_info = (gps_event_hw_test_mode_info_t *)pbuf;
+                log_notice("lnondsp_get_evt_item: NONDSP_EVT_GPS_TEST_MODE_INFO SVid: %d\n", hw_test_info->SVid);
                 lua_pushinteger2table(L, "SVid", hw_test_info->SVid);
                 lua_pushinteger2table(L, "Period", hw_test_info->Period);
                 lua_pushinteger2table(L, "bit_sync_time", (unsigned int)hw_test_info->bit_sync_time);
@@ -2024,33 +2027,36 @@ static int lnondsp_bt_play_stop(lua_State *L)
     }
 }
 
-/* int32_t bt_txdata1_transmitter_start(uint16_t freq, char *packet_type);
- * start txdata1 transmitter for bluetooth radio test with max tx power.
+/* int32_t bt_rftest_transmitter_start(char *rftest_type, uint16_t freq, char *packet_type);
+ * start rftest transmitter for bluetooth radio test with max tx power.
+ * @rftest_type[in]    the type of rftest,only support "TXDATA1" or "TXDATA2"
  * @freq[in]           transmitter/receive frequency in MHz
- * @packet_type[in]    string of packet type.For examples:"DH1","DH3","DH5","2-DH1",...
- *
- * Return:
+ * @packet_type[in]    string of packet type.For examples:"DH1","DH3","DH5","2-DH1",... 
+ * 
+ * Return:  
  *    0: success
  *    -1: failed
  */
- static int lnondsp_bt_txdata1_transmitter_start(lua_State *L)
+ static int lnondsp_bt_rftest_transmitter_start(lua_State *L)
 {
+    char *rftest_type;
     uint16_t freq;
     char *packet_type;
     int ret = -1;
     int argcnt = 0;
 
     argcnt = lua_gettop(L);
-    if (argcnt == 2 && lua_isnumber(L, 1) && lua_isstring(L, 2)) {
-        freq = (uint16_t)lua_tointeger(L, 1);
-        packet_type = (char *)lua_tostring(L, 2);
+    if (argcnt == 3 && lua_isstring(L, 1) && lua_isnumber(L, 2) && lua_isstring(L, 3)) {
+        rftest_type = (char *)lua_tostring(L, 1);
+        freq = (uint16_t)lua_tointeger(L, 2);
+        packet_type = (char *)lua_tostring(L, 3);
     } else {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, -1);
         return 2;
     }
 
-    ret = bt_txdata1_transmitter_start(freq, packet_type);
+    ret = bt_rftest_transmitter_start(rftest_type, freq, packet_type);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -2061,18 +2067,18 @@ static int lnondsp_bt_play_stop(lua_State *L)
     }
 }
 
-/* int32_t bt_txdata1_transmitter_stop(void);
- * stop txdata1 transmitter
- *
+/* int32_t bt_rftest_transmitter_stop(void);
+ * stop rftest transmitter
+ * 
  * return:
  * 0: success
  *  -1: failed
  */
-static int lnondsp_bt_txdata1_transmitter_stop(lua_State *L)
+static int lnondsp_bt_rftest_transmitter_stop(lua_State *L)
 {
     int ret = -1;
 
-    ret = bt_txdata1_transmitter_stop();
+    ret = bt_rftest_transmitter_stop();
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -2154,7 +2160,6 @@ static int lnondsp_start_powerkey_service(lua_State *L)
     return 0;
 }
 
-
 /*
  * interface for lua
  */
@@ -2235,8 +2240,8 @@ static const struct luaL_reg nondsp_lib[] =
     NF(bt_record_stop),
     NF(bt_play_start),
     NF(bt_play_stop),
-    NF(bt_txdata1_transmitter_start),
-    NF(bt_txdata1_transmitter_stop),
+    NF(bt_rftest_transmitter_start),
+    NF(bt_rftest_transmitter_stop),
     NF(start_powerkey_service),
     {NULL, NULL}
 };

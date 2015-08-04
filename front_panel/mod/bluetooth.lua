@@ -7,25 +7,28 @@ require "log"
 --slog.win_note_en = true
 
 bt_init = function()
-
-    local wait_menu = {
-        title = "BT devices Scan",
-        tips  = "Enable devices ..., plaease wait",
-        multi_select_mode = false,
-        [1] = "Enable BT ..."
-    }
-
-    create_main_menu(wait_menu):show()
-
-    lnondsp.bt_disable()
-    local r_en, r_enno = lnondsp.bt_enable_block(lnondsp.BT_HIGH_SPEED)
-    if not r_en then
-        slog:err("bt_enable_block fail, return "..tostring(r_enno))
-        return nil
-    end
-
     return {
         find_devices = function(t)
+            local wait_menu = {
+                title = "BT devices Scan",
+                tips  = "Enable devices ..., plaease wait",
+                multi_select_mode = false,
+                [1] = "Enable BT ..."
+            }
+
+            create_main_menu(wait_menu):show()
+
+            local r_d, r_d_errno = lnondsp.bt_disable()
+            if not r_d then
+                slog:win("find_devices bt_disable fail, return "..tostring(r_d_enno))
+            end
+
+            local r_en, r_enno = lnondsp.bt_enable_block(lnondsp.BT_HIGH_SPEED)
+            if not r_en then
+                slog:win("find_devices bt_enable_block fail, return "..tostring(r_enno))
+                return nil
+            end
+
             wait_menu.tips  = "scanning devices ..., plaease wait"
             wait_menu[1] = "Scanning ..."
             create_main_menu(wait_menu):show()
@@ -34,7 +37,7 @@ bt_init = function()
             local ev = lnondsp.get_evt_item(lnondsp.get_evt_number())
             local e_id = NONDSP_EVT:get_id(ev.evt, ev.evi)
             if e_id ~= "SCAN_ID_NAME" then
-                slog:err("find_devices, can not get the event SCAN_ID_NAME")
+                slog:win("find_devices, can not get the event SCAN_ID_NAME")
                 return nil
             end
             slog:notice("find devices "..tostring(ev.ret)..":"..tostring(ev.evt)..":"..tostring(ev.evi)..":"..tostring(ev.count))
@@ -90,38 +93,53 @@ bt_init = function()
                     end
                 end
 
-                if (tab.select_index ~= nil) and (tab.select_status ~= nil) and tab.select_status[tab.select_index] then
+                if tab.select_status[tab.select_index] then
+                     --slog:win("lnondsp.bt_establish_sco_block("..tab.dev_id[tab.select_index]..")")
                     lnondsp.bt_establish_sco_block(tab.dev_id[tab.select_index])
+                    tab.devices_connect_status[tab.select_index] = true
+                    --tab.test_process_start_call = true
+                    tab.force_test_process_start_call = true
                 end
             end
 
             t.menu_tab.test_process_start = function(tab)
                 switch_self_refresh(true)
+                tab.test_process_start_call = false
+                tab.force_test_process_start_call = true
                 g_bt = g_bt or bt_init()
                 if nil == g_bt then
-                    slog:win("bt enable fail, please check the error msg")
+                    slog:win("g_bt fail, please check the error msg")
                     return false
-                end
-
-                for i=1, tab.devices_count do
-                    if (tab.select_status ~= nil) and tab.devices_connect_status[i] then
-                        lnondsp.bt_disconnect_sco(tab.dev_id[i])
-                        tab.devices_connect_status[i] = false
-                    end
                 end
 
                 g_bt:find_devices()
 
                 tab.devices_count = g_bt.devices.count
                 tab.dev_id = {}
+                tab.devices_connect_status = {}
+                tab.select_status = {}
                 for d=1, g_bt.devices.count do
                     tab[d] = g_bt.devices[d].name
                     tab.dev_id[d] = g_bt.devices[d].id
                     tab.devices_connect_status[d] = false
+                    tab.select_status[d] = false
                 end
+                tab.select_index = 1
+                tab[g_bt.devices.count + 1] = nil
+
             end
 
-            t.menu_tab.test_process_stop = function(tab) end
+            t.menu_tab.test_process_stop = function(tab) 
+                --slog:win("test_process_stop call")
+                for i=1, tab.devices_count do
+                    if tab.devices_connect_status[i] then
+                        lnondsp.bt_disconnect_sco(tab.dev_id[i])
+                    end
+                    tab.devices_connect_status[i] = false
+                    tab.select_status[i] = false
+                end
+                tab.force_test_process_start_call = false
+            end
 
             return t.menu_tab
         end,
@@ -132,7 +150,7 @@ bt_init = function()
     }
 end
 
-defunc_bt_txdata1_transmitter = {
+defunc_bt_rftest_transmitter = {
     start = function (list_index)
         return function (t)
             if not t.select_status[list_index] then
@@ -140,20 +158,29 @@ defunc_bt_txdata1_transmitter = {
                 return
             end
 
-            if nil == t.freq or "number" ~= type(t.freq) then
-                slog:win("bt_txdata1_transmitter freq error")
+            if "string" ~= type(t.rftest_type) or ("TXDATA1" ~= t.rftest_type and "TXDATA2" ~= t.rftest_type) then
+                slog:win("bt_rftest_transmitter_start rftest_type error")
                 t.test_process_start_call = false
                 return false
             end
+            
+            if "TXDATA1" == t.rftest_type then
+                if nil == t.freq or "number" ~= type(t.freq) or 0 == t.freq then
+                    slog:win("bt_rftest_transmitter_start freq error")
+                    t.test_process_start_call = false
+                    return false
+                end
+            end
+            
             if nil == t.data_rate or "string" ~= type(t.data_rate) then
-                slog:win("bt_txdata1_transmitter data_rate error")
+                slog:win("bt_rftest_transmitter_start data_rate error")
                 t.test_process_start_call = false
                 return false
             end
 
-            local r, msgid = lnondsp.bt_txdata1_transmitter_start(t.freq, t.data_rate)
+            local r, msgid = lnondsp.bt_rftest_transmitter_start(t.rftest_type, t.freq, t.data_rate)
             if not r then
-                slog:win("call bt_txdata1_transmitter_start fail! errcode: "..tostring(msgid))
+                slog:win("call bt_rftest_transmitter_start fail! errcode: "..tostring(msgid))
                 t.test_process_start_call = false
             end
         end
@@ -162,12 +189,11 @@ defunc_bt_txdata1_transmitter = {
     stop = function (list_index)
         return function (t)
             if t.select_status[list_index] then
-                lnondsp.bt_txdata1_transmitter_stop()
+                lnondsp.bt_rftest_transmitter_stop()
             end
         end
     end
 }
-
 
 defunc_enable_bt = function(list_index)
     return function(t)

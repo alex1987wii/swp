@@ -184,6 +184,33 @@ note_in_window = function(note)
     nw:close()
 end
 
+
+note_in_window_delay = function(note, t)
+    local lines = curses.lines()
+    local cols  = curses.cols()
+
+    local nw = stdscr:sub(lines-7, cols-2, 3, 1)
+    if nil == nw then
+        return {ret = false, errmsg = "stdscr:sub get_string_in_window create fail"}
+    end
+    nw:clear()
+    nw:box(0, 0)
+    nw:refresh()
+
+    local nnw = stdscr:sub(lines-9, cols-4, 4, 2)
+    if nil == nnw then
+        return {ret = false, errmsg = "stdscr:sub get_string_in_window create fail"}
+    end
+    nnw:clear()
+    nnw:refresh()
+    nnw:mvaddstr(0, 0, note)
+    nnw:refresh()
+    posix.sleep(t)
+    nnw:close()
+    nw:close()
+end
+
+
 create_main_menu = function(main_menu_table)
     if nil ~= main_menu_table.init_env and "function" == type(main_menu_table.init_env) then
         main_menu_table:init_env()
@@ -275,7 +302,7 @@ create_main_menu = function(main_menu_table)
                     else
                         menu_table.select_status[menu_table.select_index] = true
                     end
-                elseif ch == key_map.enter then  -- ENTER
+                elseif (not menu_table.test_process_start_call) and (ch == key_map.enter) then  -- ENTER
                     if menu_table.select_status == nil then
                         menu_table.select_status = {}
                     end
@@ -299,13 +326,13 @@ create_main_menu = function(main_menu_table)
                          menu_table:action()
                     end
 
-                elseif ch == key_map.left then  -- <- left, goto pre-menu
+                elseif (not menu_table.test_process_start_call) and (ch == key_map.left) then  -- <- left, goto pre-menu
                     return true
                 elseif ch == key_map.start then   -- * start test process
                     if menu_table == self.main_table then
                         if "function" == type(menu_table.test_process_start) then
                             slog:notice("call test_process_start in")
-                            if not menu_table.test_process_start_call then
+                            if (not menu_table.test_process_start_call) or menu_table.force_test_process_start_call then
                                 switch_self_refresh(false)
                                 menu_table.test_process_start_call = true
                                 menu_table:test_process_start()
@@ -316,7 +343,7 @@ create_main_menu = function(main_menu_table)
                     if menu_table == self.main_table then
                         if "function" == type(menu_table.test_process_stop) then
                             slog:notice("call test_process_stop in")
-                            if menu_table.test_process_start_call then
+                            if menu_table.test_process_start_call or menu_table.force_test_process_start_call then
                                 switch_self_refresh(true)
                                 menu_table.test_process_start_call = false
                                 menu_table:test_process_stop()

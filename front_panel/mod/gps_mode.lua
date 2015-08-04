@@ -74,7 +74,7 @@ GPS_MODE = {
         [2] = "Num of measurements",
 
         test_process_start = defunc_gps_functional_test.start(1),
-        test_process_stop = function (t) end
+        test_process_stop = defunc_gps_functional_test.stop(1),
     },
     [2] = {
         title = "Hardware",
@@ -102,7 +102,7 @@ GPS_MODE = {
         [4] = "Num of measurements",
 
         test_process_start = defunc_gps_hw_test.start(1),
-        test_process_stop = function (t) end
+        test_process_stop = defunc_gps_hw_test.stop(1),
     },
 
     test_process = {

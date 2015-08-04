@@ -634,6 +634,8 @@ static int ldsp_tx_duty_cycle_test_stop(lua_State *L)
     }
 }
 
+#endif
+
 /*  int fcc_start(unsigned int frequency, unsigned char band_width, unsigned char power,
  *         unsigned char audio_path, unsigned char squelch, unsigned char modulation)
  */
@@ -685,6 +687,28 @@ static int ldsp_fcc_start(lua_State *L)
     }
 }
 
+/**
+ * int fcc_battery_safe(void)
+ * return:
+ *     1 : safe
+ *     -1: vbat not safe
+ *     -2: temp not safe
+ * */
+static int ldsp_fcc_battery_safe(lua_State *L)
+{
+    int ret = -1;
+
+    ret = fcc_battery_safe();
+    if (1 == ret) {
+        lua_pushboolean(L, TRUE);
+    } else {
+        lua_pushboolean(L, FALSE); 
+    }
+    
+    lua_pushinteger(L, ret);
+    return 2;
+}
+
 static int ldsp_fcc_stop(lua_State *L)
 {
     int ret = -1;
@@ -699,7 +723,6 @@ static int ldsp_fcc_stop(lua_State *L)
         return 1;
     }
 }
-#endif
 
 /**
  * /userdata/sample_write.pcm
@@ -1326,10 +1349,11 @@ static const struct luaL_reg dsp_lib[] =
     /* DSP tx duty cycle test interface */
     NF(tx_duty_cycle_test_start),
     NF(tx_duty_cycle_test_stop),
+    #endif
 
     NF(fcc_start),
+    NF(fcc_battery_safe), 
     NF(fcc_stop),
-    #endif
 
     NF(rx_desense_spkr_enable),
     NF(rx_desense_spkr_stop),

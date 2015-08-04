@@ -4,8 +4,82 @@
 require "log"
 require "ldsp"
 require "baseband"
+require "posix"
+require "opkey"
 
 local device_type = device_type or read_config_mk_file("/etc/sconfig.mk", "Project")
+
+wait_and_show_bat_status = function(t)
+    local dev = "/dev/input/event0"
+    local k = openkey(dev, "nonblock")
+    if k == nil then
+        slog:err("Err: open "..dev)
+        return false
+    end
+    
+    while true do
+        local r_f, r_code = ldsp.fcc_battery_safe()
+        -- slog:notice("fcc_battery_safe return code:"..tostring(r_code)) 
+        if not r_f then
+            switch_self_refresh(true)
+            note_in_window_delay("battery not safe: "..tostring(r_code), 2)
+            t.battery_err_show = true
+        else
+            if t.battery_err_show then
+                switch_self_refresh(true)
+                note_in_window_delay("battery safe", 2)
+                t.battery_err_show = false
+            end
+        end
+        
+        local evts = k.readevts(lkey.event_size)
+        if evts.ret then
+			for k, v in ipairs(evts) do
+                --note_in_window_delay("key code:value -> "..tostring(v.code)..":"..tostring(v.value), 2)
+                
+                --[[
+                key code 33: *
+                key code 34: #
+                key value: 1 -> press, 0 -> release
+                --]]
+                if v.code == 34 and 0 == v.value then
+                    t:test_process_stop()
+                    t.test_process_start_call = false
+                    switch_self_refresh(true)
+                    return true
+                end
+            end 
+        end
+        
+        --posix.sleep(1)
+    end
+end
+
+defunc_fcc_freq_action_g4 = function (list_index)
+    return function (t)
+        local func = loadfile("/usr/local/share/lua/5.1/fcc_setting_g4.lua")
+        if nil == func then
+            slog:win("can not get the file: /usr/local/share/lua/5.1/fcc_setting_g4.lua")
+            t.select_status[list_index] = false
+            return
+        end
+        local setting = func()
+        if "table" ~= type(setting) then
+            slog:win("can not get setting from the file: /usr/local/share/lua/5.1/fcc_setting_g4.lua")
+            t.select_status[list_index] = false
+            return
+        end
+        
+        if nil == setting.freq then
+            slog:win("can not get freq in: /usr/local/share/lua/5.1/fcc_setting_g4.lua")
+            t.select_status[list_index] = false
+            return
+        end
+        
+        t.freq = setting.freq
+        t[list_index] = "freq "..tostring(setting.freq)
+    end
+end
 
 FCC_MODE = {
     title = "Front Panel", 
@@ -47,7 +121,7 @@ FCC_MODE = {
             end
         end
     end, 
-    [1] = "Enter freq (Hz)", 
+    [1] = "freq (Hz)", 
     [2] = {
         title = "Band Width", 
         tips  = "Select Band Width", 
@@ -189,6 +263,10 @@ FCC_MODE = {
                 t.test_process[i](t)
             end
         end
+        
+        if "g4_bba" ~= tostring(device_type) then
+            wait_and_show_bat_status(t)
+        end
     end, 
     test_process_stop = function (t)
         if "function" == type(t.stop_process[1]) then
@@ -202,6 +280,10 @@ FCC_MODE = {
     end, 
 
 }
+
+if "g4_bba" == tostring(device_type) then
+    FCC_MODE.action_map[1] = defunc_fcc_freq_action_g4(1)
+end
 
 if "u3_2nd" == tostring(device_type) then
     FCC_MODE[2][3] = "20 KHz"
