@@ -280,6 +280,18 @@ defunc_battery_voltage_test = function (list_index)
             return vol2percent(vol_cal, vols_table)
         end
         
+        get_adc_channel = function (chtype)
+            return function()
+                os.execute("echo "..chtype.." >  /sys/class/ad6855_adc/adc/channel")
+                return read_attr_file("/sys/class/ad6855_adc/adc/channel")
+            end
+        end
+        
+        set_abb_reg = function (reg, val)
+            os.execute("echo "..reg.." >  /sys/devices/virtual/validate_ad6855/validate_ad6855/address")
+            os.execute("echo "..val.." >  /sys/devices/virtual/validate_ad6855/validate_ad6855/data")
+        end      
+
         get_abb_reg = function (reg)
             return function()
                 os.execute("echo "..reg.." >  /sys/devices/virtual/validate_ad6855/validate_ad6855/address")
@@ -320,7 +332,10 @@ defunc_battery_voltage_test = function (list_index)
                     local capa_percent = {
                         ["1800mAH"] = capacity_cal(vol_cal["1800mAH"], capacity_percent_vols_table["1800mAH"]), 
                         ["2800mAH"] = capacity_cal(vol_cal["2800mAH"], capacity_percent_vols_table["2800mAH"])}
-                    self[13] = "vbat:1800|2800: "..stat_tab.vbat..":"..vol_cal["1800mAH"].."|"..vol_cal["2800mAH"]
+                    --self[13] = "vbat:1800|2800: "..stat_tab.vbat..":"..vol_cal["1800mAH"].."|"..vol_cal["2800mAH"]
+                    
+                    self[13] = "battype "..tostring(get_adc_channel("battype")())
+                    
                     self[14] = "bat capacity : "..capa_percent["1800mAH"].." | "..capa_percent["2800mAH"]
                     self[15] = "status : "..tostring(read_attr_file("/sys/devices/platform/battery/status")) 
                 else
