@@ -24,7 +24,7 @@ MFC_MODE = {
     end,
 
     [1] = {
-        title = "LCD Slideshow test",
+        title = "1. LCD Slideshow test",
         tips  = "Press SF3 to start and SF4 to end test",
         multi_select_mode = true,
         new_main_menu = function (t)
@@ -65,7 +65,7 @@ MFC_MODE = {
         end
     },
     [2] = {
-        title = "LED/Keypad BL test",
+        title = "2. LED/Keypad BL test",
         tips  = "Press SF3 to start and SF4 to end test",
         multi_select_mode = true,
         new_main_menu = function (t)
@@ -123,7 +123,7 @@ MFC_MODE = {
         end
     },
     [3] = {
-        title = "Vibrator Test",
+        title = "3. Vibrator Test",
         tips  = "Press SF3 to start and SF4 to end test",
         multi_select_mode = true,
         new_main_menu = function (t)
@@ -157,7 +157,7 @@ MFC_MODE = {
         end
     },
     [4] = {
-        title = "Button test",
+        title = "4. Button test",
         tips  = "Press SF3 to start and SF4 to end test",
         multi_select_mode = true,
         new_main_menu = function (t)

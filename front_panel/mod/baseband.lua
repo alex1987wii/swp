@@ -553,7 +553,7 @@ defunc_keypad_test = {
                 lnondsp.keypad_disable()
             end
         end
-    end
+    end,
 }
 
 defunc_keypad_backlight_test = function (list_index)
