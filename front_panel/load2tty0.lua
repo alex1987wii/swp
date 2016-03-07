@@ -1,8 +1,9 @@
 #!/usr/bin/lua
 
---load2fb.lua 
+--load2fb.lua
 
 require "posix"
+require "mfc_check_services"
 
 local bit = require("bit32")
 
@@ -23,6 +24,8 @@ if "fpl" ~= read_bootmode() then
     os.execute("echo global_fpl_mode=BaseBand_MODE > /userdata/Settings/set_fpl_mode.lua")
     os.execute("/usr/bin/switch_fpl_mode.sh")
     --]]
+    process_do(wait_and_check_mfc_mode, 10)
+
     os.exit(-1)
 end
 
@@ -46,16 +49,16 @@ elseif pid == 0 then -- child process
     if not posix.dup2 (tty, posix.STDIN_FILENO) then
         die ("error dup2-ing STDIN_FILENO")
     end
-    
+
     if not posix.dup2 (tty, posix.STDOUT_FILENO) then
         die ("error dup2-ing STDOUT_FILENO")
     end
-    
+
     posix.setenv("PATH", "/bin:/sbin:/usr/bin:/usr/sbin", 1)
     posix.setenv("TERM", "xterm", 1)
     posix.setenv("TERMINFO", "/usr/share/terminfo", 1)
     posix.setenv( "LD_LIBRARY_PATH", "/lib", 1)
-    
+
     posix.exec(arg[1])
 
 else -- parent process
@@ -72,5 +75,5 @@ else -- parent process
     print("while for pid: "..pid)
     --posix.wait(pid)
     posix.close (tty)
-  
+
 end

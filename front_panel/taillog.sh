@@ -1,2 +1,2 @@
 #!/bin/sh
-tail -f /userdata/SysLog/messages
+tail -f /root/SysLog/messages
