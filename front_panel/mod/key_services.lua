@@ -1,27 +1,27 @@
--- key_services.lua 
+-- key_services.lua
 
 require "opkey"
 
 key_action = {
 --[[
     [1] = {
-        keycode = 0x27, 
-        keyvolue = 0, 
+        keycode = 0x27,
+        keyvolue = 0,
         active = function ()
             os.execute("/bin/rm -f /userdata/Settings/set_fpl_mode.lua")
             os.execute("/sbin/poweroff")
         end
-    }, 
+    },
 --]]
     [1] = {
-        keycode = 0x27, 
-        keyvolue = 0, 
+        keycode = 0x27,
+        keyvolue = 0,
         action = function ()
-            os.execute("/bin/rm -f /userdata/Settings/set_fpl_mode.lua")
+            os.execute("/bin/rm -f /root/Settings/set_fpl_mode.lua")
             os.execute("/sbin/poweroff")
         end
-    }, 
-    
+    },
+
 }
 
 wait_and_show_bat_status = function(t)
@@ -31,10 +31,10 @@ wait_and_show_bat_status = function(t)
         slog:err("Err: open "..dev)
         return false
     end
-    
+
     while true do
         local r_f, r_code = ldsp.fcc_battery_safe()
-        -- slog:notice("fcc_battery_safe return code:"..tostring(r_code)) 
+        -- slog:notice("fcc_battery_safe return code:"..tostring(r_code))
         if not r_f then
             switch_self_refresh(true)
             note_in_window_delay("battery not safe: "..tostring(r_code), 2)
@@ -46,12 +46,12 @@ wait_and_show_bat_status = function(t)
                 t.battery_err_show = false
             end
         end
-        
+
         local evts = k.readevts(lkey.event_size)
         if evts.ret then
-			for k, v in ipairs(evts) do
+            for k, v in ipairs(evts) do
                 --note_in_window_delay("key code:value -> "..tostring(v.code)..":"..tostring(v.value), 2)
-                
+
                 --[[
                 key code 33: *
                 key code 34: #
@@ -63,9 +63,9 @@ wait_and_show_bat_status = function(t)
                     switch_self_refresh(true)
                     return true
                 end
-            end 
+            end
         end
-        
+
         --posix.sleep(1)
     end
 end

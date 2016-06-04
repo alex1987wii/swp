@@ -16,7 +16,15 @@ key_map = {
     poweron = 39,
 }
 
-if "u3" == device_type then
+if "ad6900_bba" == device_type then
+    key_map.up = 259   --0x102
+    key_map.down = 258 --0x101
+    key_map.space = 0x20
+    key_map.enter = 0xa
+    key_map.left = 260  --0x103
+    key_map.start = 0x25
+    key_map.stop = 0x107
+elseif "u3" == device_type then
     key_map.up = 259   --0x102
     key_map.down = 258 --0x101
     key_map.space = 0x20

@@ -104,7 +104,7 @@ defunc_select_duration = function (list_index)
         end,
 
         "30 s",
-        "600 s",
+        "60 s",
         "240 s",
         "20 h",
         "Enter duration(s)",

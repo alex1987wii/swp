@@ -553,7 +553,7 @@ if "g4_bba" == tostring(device_type) then
             [1] = defunc_query_device_accessory_g4(1),
         },
         stop_process = {
-            [1] = function (t) end, ,
+            [1] = function (t) end,
         },
 
         test_process_start = function (t)
