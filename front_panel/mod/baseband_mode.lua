@@ -573,3 +573,55 @@ if "g4_bba" == tostring(device_type) then
         end
     }
 end
+
+if "ad6900_bba" == tostring(device_type) then
+    BaseBand_MODE[table.getn(BaseBand_MODE)+1] = {
+        title = "Sensor Test",
+        tips  = "motion sensor and ecompass test",
+        multi_select_mode = true,
+        new_main_menu = function (t)
+            local m_sub = create_main_menu(t)
+            m_sub:show()
+            m_sub:action()
+        end,
+        action_map = {
+            [1] = function (t)  end,
+            [2] = function (t)
+                t.duration = t[2].duration
+            end,
+        },
+
+        action = function (t)
+            if ((t.select_index ~= nil) and ("function" == type(t.action_map[t.select_index]))) then
+                t.action_map[t.select_index](t)
+            end
+        end,
+        [1] = "Query Sensor test",
+        [2] = defunc_select_duration(2),
+
+        test_process = {
+            [1] = defunc_query_sensor_test(1),
+        },
+        stop_process = {
+            [1] = function (t) end,
+        },
+
+        test_process_start = function (t)
+            switch_self_refresh(true)
+            for i=1, table.getn(t) do
+                if "function" == type(t.test_process[i]) then
+                    t.test_process[i](t)
+                end
+            end
+            t.test_process_start_call = false
+        end,
+        test_process_stop = function (t)
+            for i=1, table.getn(t) do
+                if "function" == type(t.stop_process[i]) then
+                    t.stop_process[i](t)
+                end
+            end
+        end
+    }
+
+end

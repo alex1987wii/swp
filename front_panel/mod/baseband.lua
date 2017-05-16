@@ -472,8 +472,8 @@ defunc_query_volume_knob_test = function (list_index)
                 self[1] = "status : "..tostring(read_attr_file("/sys/class/adc/volume/status"))
                 self[2] = "vol (mV) : "..tostring(read_attr_file("/sys/class/adc/volume/curr_value"))
                 self[3] = "level set : "..tostring(read_attr_file("/sys/class/adc/volume/level"))
-                self[3] = "upper : "..tostring(read_attr_file("/sys/class/adc/volume/upper"))
-                self[4] = "lower : "..tostring(read_attr_file("/sys/class/adc/volume/lower"))
+                self[4] = "upper : "..tostring(read_attr_file("/sys/class/adc/volume/upper"))
+                self[5] = "lower : "..tostring(read_attr_file("/sys/class/adc/volume/lower"))
                 self.tips = "Query Volume Knob ("..tostring(tcnt()).." s)"
             end,
         }
@@ -504,6 +504,8 @@ defunc_keypad_test = {
                     [1] = "type : ",
                     [2] = "code : ",
                     [3] = "value : ",
+                    [4] = "event channel : ",
+                    [5] = "cur_channel : ",
                     update = function(self, wait_time)
                         if "number" ~= type(wait_time) then
                             slog:win("keypad wait time is not number(s)")
@@ -515,6 +517,7 @@ defunc_keypad_test = {
                             local evt_index = lnondsp.get_evt_number()
                             local evt
                             if 0 == evt_index then
+                                self[5] = "cur_channel : "..tostring(read_attr_file("/sys/devices/virtual/input/input0/cur_channel"))
                                 posix.sleep(1)
                             else
                                 evt = lnondsp.get_evt_item(1)
@@ -528,6 +531,7 @@ defunc_keypad_test = {
                                     self[1] = "type : "..tostring(evt.type)
                                     self[2] = "code : "..tostring(key_code:key_function(evt.code))
                                     self[3] = "value : "..tostring(key_value[evt.value])
+                                    self[4] = "event channel : "..tostring(read_attr_file("/sys/devices/virtual/input/input0/cur_channel"))
                                     self.tips = "Keypad test ("..tostring(tcnt()).." s)"
 
                                     return
@@ -581,3 +585,85 @@ defunc_vibrator_test = {
         end
     end
 }
+
+
+defunc_query_sensor_test = function (list_index)
+    return function (t)
+        if "number" ~= type(t.duration) then
+            slog:win("the measure duration is not setting!")
+            t.test_process_start_call = false
+            return
+        end
+
+        require "opkey"
+
+        local dev = "/dev/input/event0"
+        local k = openkey(dev, "nonblock")
+        if k == nil then
+            slog:win("Err: open "..dev)
+            t.test_process_start_call = false
+            return
+        end
+
+        -- os.execute("ecompass_daemon &")
+        posix.sleep(1)
+        os.execute("echo 400 > /sys/devices/virtual/sensors/motion_sensor/freefall_duration")
+        os.execute("echo 1 > /sys/devices/virtual/sensors/motion_sensor/freefall_enable")
+        os.execute("echo 1 > /sys/devices/virtual/sensors/motion_sensor/static_enable")
+        os.execute("echo 1 > /sys/devices/virtual/sensors/motion_sensor/tilt_enable")
+        os.execute("echo 1 > /sys/devices/virtual/sensors/ecompass/enable")
+        os.execute("echo 1 > /sys/devices/virtual/sensors/pressure_sensor/enable")
+        os.execute("echo 1 > /sys/devices/virtual/sensors/ecompass/calibration_enable")
+
+        local tcnt = time_counter()
+        local mt = {
+            title = "Query Sensor",
+            tips = "Query Sensor",
+            update_event = function(self, index)
+                local evts = k.readevts(lkey.event_size)
+                if evts.ret then
+                    for k, v in ipairs(evts) do
+                        --note_in_window_delay("key code:value -> "..tostring(v.code)..":"..tostring(v.value), 2)
+
+                        --[[
+                        key code 150 : FREE_FALL_EVN
+                        key code 151 : STATIC_EVN
+                        key code 152 : TILT_EVN
+                        key value: 2 -> press
+                        --]]
+                        if v.code == 150 then
+                            self[index] = "Event: 150->FREE_FALL"
+                        elseif v.code == 151 then
+                            self[index] = "Event: 151->STATIC"
+                        elseif v.code == 152 then
+                            self[index] = "Event: 152->TILT"
+                        end
+                    end
+                end
+            end,
+            update = function(self)
+                self[1] = "accel dataxyz ->"
+                self[2] = tostring(read_attr_file("/sys/devices/virtual/sensors/motion_sensor/dataxyz"))
+                if nil == self[3] then
+                    self[3] = "Event: nil"
+                else
+                    self:update_event(3)
+                end
+                self[4] = "Ecompass azimuth ->"
+                self[5] = tostring(read_attr_file("/sys/devices/virtual/sensors/ecompass/azimuth"))
+                self[6] = "Pressure : Temperature ->"
+                self[7] = tostring(read_attr_file("/sys/devices/virtual/sensors/pressure_sensor/pressure")).." : "..tostring(read_attr_file("/sys/devices/virtual/sensors/pressure_sensor/temperature"))
+                self.tips = "Query Sensor ("..tostring(tcnt()).." s)"
+            end,
+        }
+
+        while tcnt() < tonumber(t.duration) do
+            mt:update()
+            create_main_menu(mt):show()
+            posix.sleep(1)
+        end
+
+        k.close()
+    end
+end
+

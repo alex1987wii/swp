@@ -3,10 +3,6 @@
 require "utility"
 require "posix"
 
-bat_attr = function(name)
-    return tostring(read_attr_file("/sys/devices/platform/battery/"..name))
-end
-
 get_reg = function (reg)
     return function()
         os.execute("echo "..reg.." >   /sys/devices/virtual/ebus_tool/ebus_control/address")
