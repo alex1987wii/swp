@@ -202,8 +202,6 @@ static int lnondsp_get_evt_item(lua_State *L)
                 break;
         }
     }
-    #ifndef CONFIG_PROJECT_G4_BBA
-    #ifndef CONFIG_PROJECT_AD6900_BBA
     else if (NONDSP_EVT_GPS == evt.evt){
 
         switch(evt.evi) {
@@ -221,8 +219,7 @@ static int lnondsp_get_evt_item(lua_State *L)
 
             case NONDSP_EVT_GPS_FIRM_VER:
             {
-                gps_event_firmware_version_t *fw = (gps_event_firmware_version_t *)pbuf;
-                fw ++;
+                char *fw = (char *)pbuf;
                 lua_pushstring2table(L, "fw_version", (unsigned char *)fw);
             }
                 break;
@@ -232,30 +229,12 @@ static int lnondsp_get_evt_item(lua_State *L)
                 gps_event_ttff_t *ttff = (gps_event_ttff_t *)pbuf;
 
                 log_notice("lnondsp_get_evt_item: NONDSP_EVT_GPS_FIXED fixed: %d\n", ttff->fixed);
-                lua_pushboolean2table(L, "fixed", ttff->fixed);         /* 1: fixed, other: no fixed */
+                lua_pushinteger2table(L, "fix_mode", ttff->fix_mode);   /* 0:not_seen, 1: no_fix, 2:2D fixed, 3:3D fixed */
+                lua_pushboolean2table(L, "fixed", ttff->fixed);   /* 1: fixed, other: no fixed */
                 lua_pushinteger2table(L, "TTFF", ttff->TTFF);           /* unit: second */
                 lua_pushnumber2table(L, "lat", ttff->latitude);   /* unit: degree */
                 lua_pushnumber2table(L, "lon", ttff->longitude); /* unit: degree */
                 lua_pushnumber2table(L, "alt", ttff->altitude);   /* unit: meters */
-            }
-                break;
-
-            case NONDSP_EVT_GPS_PACKET_DUMP:
-            {
-                gps_event_packet_dump_t *packet = (gps_event_packet_dump_t *)pbuf;
-                lua_pushinteger2table(L, "len", (int)packet->len);
-                lua_pushinteger2table(L, "type", (int)packet->type); /* 1: NMEA, 0: SIRF */
-                if (packet->type == GPS_NMEA_PROTOCOL) {
-                    packet ++;
-                    lua_pushstring2table(L, "msg", (unsigned char *)packet);
-                }
-            }
-                break;
-
-            case NONDSP_EVT_GPS_CURRENT_MODE:
-            {
-                gps_event_current_mode_t *cur_mode = (gps_event_current_mode_t *)pbuf;
-                lua_pushinteger2table(L, "mode", cur_mode->mode);
             }
                 break;
 
@@ -281,10 +260,10 @@ static int lnondsp_get_evt_item(lua_State *L)
                 lua_pushnumber2table(L, "Q_I_ratio", hw_test_info->Q_I_ratio);
             }
                 break;
+            default:
+				log_notice("lnondsp_get_evt_item:GPS_EVT not-match evi: %d\n", evt.evi);
         }
     }
-    #endif
-    #endif
     else if (NONDSP_EVT_KEY == evt.evt) {
         switch(evt.evi) {
             case NONDSP_EVT_KEY_EVENT_REPORT:
@@ -307,31 +286,12 @@ static int lnondsp_register_callbacks(lua_State *L)
     return 0;
 }
 
-#ifndef CONFIG_PROJECT_G4_BBA
-
-#ifndef CONFIG_PROJECT_AD6900_BBA
-/* GPS test interface */
-static int lnondsp_bit_gps_thread_create(lua_State *L)
-{
-    int ret = -1;
-
-    ret = bit_gps_thread_create();
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
 /*  */
 static int lnondsp_gps_enable(lua_State *L)
 {
     int ret = -1;
 
-    ret = target_enableGPS(0);
+    ret = bit_gps_enable();
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -346,7 +306,7 @@ static int lnondsp_gps_disable(lua_State *L)
 {
     int ret = -1;
 
-    ret = target_disableGPS(0);
+    ret = bit_gps_disable();
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -361,7 +321,38 @@ static int lnondsp_gps_disable(lua_State *L)
  * #define GPS_COLD_START (0)
  * #define GPS_WARM_START (1)
  * #define GPS_HOT_START  (2)
- * extern int target_ReStartGPSReq(unsigned char socId, unsigned char resetMode);
+ * extern int bit_gps_position_fixed(unsigned char resetMode)
+ */
+static int lnondsp_gps_req_fixed(lua_State *L)
+{
+    unsigned char resetMode;
+    int ret = -1;
+    int argcnt = 0;
+
+    argcnt = lua_gettop(L);
+    if (argcnt == 1 && lua_isnumber(L, 1)) {
+        resetMode = (unsigned char)lua_tointeger(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+
+    ret = bit_gps_position_fixed(resetMode);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+/*
+ * #define GPS_COLD_START (0)
+ * #define GPS_WARM_START (1)
+ * #define GPS_HOT_START  (2)
+ * extern int bit_gps_restart(unsigned char resetMode);
  */
 static int lnondsp_gps_restart(lua_State *L)
 {
@@ -378,7 +369,7 @@ static int lnondsp_gps_restart(lua_State *L)
         return 2;
     }
 
-    ret = target_ReStartGPSReq(0, resetMode);
+    ret = bit_gps_restart(resetMode);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -389,7 +380,7 @@ static int lnondsp_gps_restart(lua_State *L)
     }
 }
 
-/* extern int target_GPSHardwareTestReq(unsigned char socId, unsigned short SvID, unsigned short period); */
+/* extern int bit_gps_hw_test_enable(unsigned short SvID, unsigned short period); */
 static int lnondsp_gps_hardware_test(lua_State *L)
 {
     unsigned short SvID;
@@ -407,7 +398,7 @@ static int lnondsp_gps_hardware_test(lua_State *L)
         return 2;
     }
 
-    ret = target_GPSHardwareTestReq(0, SvID, period);
+    ret = bit_gps_hw_test_enable(SvID, period);
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -418,13 +409,13 @@ static int lnondsp_gps_hardware_test(lua_State *L)
     }
 }
 
-/* extern int target_FrontpanelGetPositionFixReq(unsigned char socId);
+/* extern int bit_gps_get_fix_status_once(void);
  * NONDSP_EVT_GPS_FIXED would return once */
 static int lnondsp_gps_get_position_fix(lua_State *L)
 {
     int ret = -1;
 
-    ret = target_FrontpanelGetPositionFixReq(0);
+    ret = bit_gps_get_fix_status_once();
     if (ret < 0) {
         lua_pushboolean(L, FALSE);
         lua_pushinteger(L, ret);
@@ -434,8 +425,6 @@ static int lnondsp_gps_get_position_fix(lua_State *L)
         return 1;
     }
 }
-#endif
-#endif
 
 #if 1
 /* LCD test interface */
@@ -1129,6 +1118,196 @@ static int lnondsp_gsm_keep_sending_gprs_datas_stop(lua_State *L)
         return 1;
     }
 }
+
+
+/*
+ * get the hardware state of ble module(check if the BLE HW is installed or uninstalled?),as FPL API
+ *
+ * RETURN VALUE:
+ * & 1: HW has been installed
+ * & 0: HW has NOT been installed
+ * & -1: failed
+ * int32_t get_ble_hw_state_fpl(void)
+ */
+static int lnondsp_ble_get_hw_state(lua_State *L)
+{
+    int ret = -1;
+
+    ret = get_ble_hw_state_fpl();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        lua_pushinteger(L, ret);
+        return 2;
+    }
+}
+
+/*
+ * set the power state of ble module,as FPL API
+ * @state[in]    0: power off, 1: power on
+ * & 0: success
+ * & -1: failed
+ * int32_t set_ble_power_state_fpl(uint32_t state);
+ */
+static int lnondsp_ble_set_power_state(lua_State *L)
+{
+    int pwr_on = 0;
+    int ret = -1;
+    int argcnt = 0;
+
+    argcnt = lua_gettop(L);
+    if (argcnt >= 1 && lua_isnumber(L, 1)) {
+        pwr_on = (uint8_t *)lua_tointeger(L, 1);
+    } else {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, -1);
+        return 2;
+    }
+
+    ret = set_ble_power_state_fpl(pwr_on);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/*
+ * get the power state of ble module,as FPL API
+ * @state[out]    0: power off, 1: power on
+ * & 0: success
+ * & -1: failed
+ * int32_t get_ble_power_state_fpl(uint32_t *state);
+ */
+static int lnondsp_ble_get_power_state(lua_State *L)
+{
+    uint32_t state;
+    int ret = -1;
+
+    ret = get_ble_power_state_fpl(&state);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        lua_pushinteger(L, (uint32_t)state);
+        return 2;
+    }
+}
+
+/*
+ *get the current state of of ble module,as FPL API
+ * @state[out]
+ *    0 --> init
+ *    1 --> advertising
+ *    2 --> connected
+ *    3 --> disconnected
+ * & 0: success
+ * & -1: failed
+ * int32_t get_ble_con_state_fpl(uint8_t *state);
+ */
+static int lnondsp_ble_get_con_state(lua_State *L)
+{
+    uint8_t state;
+    int ret = -1;
+
+    ret = get_ble_con_state_fpl(&state);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        lua_pushinteger(L, (uint32_t)state);
+        return 2;
+    }
+}
+
+/*
+ * get the state of ble data-sending,as FPL API
+ * @err[in]
+ *                0:no error;
+ *      -1:data transfer error;
+ *      -2:state err,e.g.the connection is set down when datas are transfering
+ *      -3:operation err,e.g.can not open the file
+ * void get_ble_send_status_fpl(int32_t *error);
+ */
+static int lnondsp_ble_get_send_status(lua_State *L)
+{
+    int32_t state;
+    int ret = -1;
+    char *msg[] = {
+        "no error",
+        "data transfer error",
+        "state err,e.g.the connection is set down when datas are transfering",
+        "operation err,e.g.can not open the file"};
+
+    ret = get_ble_send_status_fpl(&state);
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        if ((ret < -3) || (ret > 0)) {
+            lua_pushstring(L, "unknown error");
+        } else {
+            lua_pushstring(L, msg[-ret]);
+        }
+        return 3;
+    } else {
+        lua_pushboolean(L, TRUE);
+        lua_pushinteger(L, (uint32_t)state);
+        return 2;
+    }
+}
+
+/*
+ * start to send data to another ble device,as FPL API
+ * & 0: success
+ * & -1: failed
+ * int32_t ble_send_start_fpl(void);
+ */
+static int lnondsp_ble_send_start(lua_State *L)
+{
+    int ret = -1;
+
+    ret = ble_send_start_fpl();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
+/*
+ * stop to send data to another ble device,as FPL API
+ * & 0: success
+ * & -1: failed
+ * int32_t ble_send_stop_fpl(void);
+ */
+static int lnondsp_ble_send_stop(lua_State *L)
+{
+    int ret = -1;
+
+    ret = ble_send_stop_fpl();
+    if (ret < 0) {
+        lua_pushboolean(L, FALSE);
+        lua_pushinteger(L, ret);
+        return 2;
+    } else {
+        lua_pushboolean(L, TRUE);
+        return 1;
+    }
+}
+
 #endif
 
 /*
@@ -2165,194 +2344,6 @@ static int lnondsp_start_powerkey_service(lua_State *L)
     return 0;
 }
 
-/*
- * get the hardware state of ble module(check if the BLE HW is installed or uninstalled?),as FPL API
- *
- * RETURN VALUE:
- * & 1: HW has been installed
- * & 0: HW has NOT been installed
- * & -1: failed
- * int32_t get_ble_hw_state_fpl(void)
- */
-static int lnondsp_ble_get_hw_state(lua_State *L)
-{
-    int ret = -1;
-
-    ret = get_ble_hw_state_fpl();
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        lua_pushinteger(L, ret);
-        return 2;
-    }
-}
-
-/*
- * set the power state of ble module,as FPL API
- * @state[in]    0: power off, 1: power on
- * & 0: success
- * & -1: failed
- * int32_t set_ble_power_state_fpl(uint32_t state);
- */
-static int lnondsp_ble_set_power_state(lua_State *L)
-{
-    int pwr_on = 0;
-    int ret = -1;
-    int argcnt = 0;
-
-    argcnt = lua_gettop(L);
-    if (argcnt >= 1 && lua_isnumber(L, 1)) {
-        pwr_on = (uint8_t *)lua_tointeger(L, 1);
-    } else {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, -1);
-        return 2;
-    }
-
-    ret = set_ble_power_state_fpl(pwr_on);
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
-/*
- * get the power state of ble module,as FPL API
- * @state[out]    0: power off, 1: power on
- * & 0: success
- * & -1: failed
- * int32_t get_ble_power_state_fpl(uint32_t *state);
- */
-static int lnondsp_ble_get_power_state(lua_State *L)
-{
-    uint32_t state;
-    int ret = -1;
-
-    ret = get_ble_power_state_fpl(&state);
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        lua_pushinteger(L, (uint32_t)state);
-        return 2;
-    }
-}
-
-/*
- *get the current state of of ble module,as FPL API
- * @state[out]
- *    0 --> init
- *    1 --> advertising
- *    2 --> connected
- *    3 --> disconnected
- * & 0: success
- * & -1: failed
- * int32_t get_ble_con_state_fpl(uint8_t *state);
- */
-static int lnondsp_ble_get_con_state(lua_State *L)
-{
-    uint8_t state;
-    int ret = -1;
-
-    ret = get_ble_con_state_fpl(&state);
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        lua_pushinteger(L, (uint32_t)state);
-        return 2;
-    }
-}
-
-/*
- * get the state of ble data-sending,as FPL API
- * @err[in]
- *                0:no error;
- *      -1:data transfer error;
- *      -2:state err,e.g.the connection is set down when datas are transfering
- *      -3:operation err,e.g.can not open the file
- * void get_ble_send_status_fpl(int32_t *error);
- */
-static int lnondsp_ble_get_send_status(lua_State *L)
-{
-    int32_t state;
-    int ret = -1;
-    char *msg[] = {
-        "no error",
-        "data transfer error",
-        "state err,e.g.the connection is set down when datas are transfering",
-        "operation err,e.g.can not open the file"};
-
-    ret = get_ble_send_status_fpl(&state);
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        if ((ret < -3) || (ret > 0)) {
-            lua_pushstring(L, "unknown error");
-        } else {
-            lua_pushstring(L, msg[-ret]);
-        }
-        return 3;
-    } else {
-        lua_pushboolean(L, TRUE);
-        lua_pushinteger(L, (uint32_t)state);
-        return 2;
-    }
-}
-
-/*
- * start to send data to another ble device,as FPL API
- * & 0: success
- * & -1: failed
- * int32_t ble_send_start_fpl(void);
- */
-static int lnondsp_ble_send_start(lua_State *L)
-{
-    int ret = -1;
-
-    ret = ble_send_start_fpl();
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
-/*
- * stop to send data to another ble device,as FPL API
- * & 0: success
- * & -1: failed
- * int32_t ble_send_stop_fpl(void);
- */
-static int lnondsp_ble_send_stop(lua_State *L)
-{
-    int ret = -1;
-
-    ret = ble_send_stop_fpl();
-    if (ret < 0) {
-        lua_pushboolean(L, FALSE);
-        lua_pushinteger(L, ret);
-        return 2;
-    } else {
-        lua_pushboolean(L, TRUE);
-        return 1;
-    }
-}
-
 
  /***********************************************************************************************
 
@@ -2371,16 +2362,12 @@ static const struct luaL_reg nondsp_lib[] =
     NF(get_evt_number),
     NF(get_evt_item),
 
-    #ifndef CONFIG_PROJECT_G4_BBA
-    #ifndef CONFIG_PROJECT_AD6900_BBA
-    NF(bit_gps_thread_create),
     NF(gps_enable),
     NF(gps_disable),
     NF(gps_restart),
     NF(gps_get_position_fix),
     NF(gps_hardware_test),
-    #endif
-    #endif
+    NF(gps_req_fixed),
 
     #if 1
     NF(lcd_enable),
@@ -2413,6 +2400,14 @@ static const struct luaL_reg nondsp_lib[] =
     NF(gsm_set_band),
     NF(gsm_keep_sending_gprs_datas_start),
     NF(gsm_keep_sending_gprs_datas_stop),
+
+    NF(ble_get_hw_state),
+    NF(ble_set_power_state),
+    NF(ble_get_power_state),
+    NF(ble_get_con_state),
+    NF(ble_get_send_status),
+    NF(ble_send_start),
+    NF(ble_send_stop),
     #endif
 
     NF(bt_enable),
@@ -2446,13 +2441,6 @@ static const struct luaL_reg nondsp_lib[] =
     NF(bt_rftest_transmitter_stop),
     NF(start_powerkey_service),
 
-    NF(ble_get_hw_state),
-    NF(ble_set_power_state),
-    NF(ble_get_power_state),
-    NF(ble_get_con_state),
-    NF(ble_get_send_status),
-    NF(ble_send_start),
-    NF(ble_send_stop),
     {NULL, NULL}
 };
 

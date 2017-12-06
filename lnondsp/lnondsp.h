@@ -34,7 +34,8 @@
 #include <bitnondsp_adapter.h>
 #include <bitnondsp_struct.h>
 #include <led.h>
-#include <bit_gps.h>
+#include <asm/arch/gps.h>
+#include <gps.h>
 #include <lcd.h>
 #include <key.h>
 #include <bluetooth.h>

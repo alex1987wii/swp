@@ -263,10 +263,11 @@ FCC_MODE = {
                 t.test_process[i](t)
             end
         end
-        
+        --[[
         if "g4_bba" ~= tostring(device_type) then
             wait_and_show_bat_status(t)
         end
+        --]]
     end, 
     test_process_stop = function (t)
         if "function" == type(t.stop_process[1]) then

@@ -49,24 +49,7 @@ gps =  {
     end,
 
     enable = function (t)
-        if not t.enable_call then
-            lnondsp.gps_enable()
-        end
-
-        return true
-    end,
-
-    enable_block = function (t)
-        if not t.enable_call then
-            lnondsp.gps_enable()
-            local r = t:get_req_state(5)
-            if r.ret then
-                t.enable_call = true
-            else
-                slog:err("gps:enable error -> "..r.errmsg)
-                return false
-            end
-        end
+        lnondsp.gps_enable()
 
         return true
     end,
@@ -81,6 +64,17 @@ gps =  {
         end
         return true
     end,
+
+    req_fixed = function (t, restart_mode)
+        if nil ~= t[restart_mode] and "number" == type(t[restart_mode]) then
+            slog:notice("gps restart: "..tostring(restart_mode)..": "..tostring(t[restart_mode]))
+            lnondsp.gps_req_fixed(t[restart_mode])
+        else
+            slog:err("gps restart mode error: "..tostring(restart_mode))
+            return false
+        end
+        return true
+    end, 
 
     restart_block = function (t, restart_mode)
         if nil ~= t[restart_mode] and "number" == type(t[restart_mode]) then
@@ -106,8 +100,6 @@ gps =  {
         end
 
         local gpslog = gpslog or modlog("gps", gpslogfullpath)
-
-        lnondsp.gps_get_position_fix()
 
         local time_cnt = time_counter()
         while time_cnt() < tonumber(wait_time) do
@@ -148,6 +140,8 @@ gps =  {
     end,
 
     hw_test_start = function(t, svid, period)
+        lnondsp.gps_enable()
+        
         lnondsp.gps_hardware_test(svid, period)
 
         local r = t:get_req_state(20)
@@ -160,7 +154,7 @@ gps =  {
     end,
 
     hw_test_stop = function(t)
-        lnondsp.gps_enable()
+        lnondsp.gps_disable()
 
         local r = t:get_req_state(10)
         if not r.ret then
@@ -287,11 +281,12 @@ defunc_gps_functional_test = {
             end
 
             local show_list = {
-                [1] = "fixed",
-                [2] = "TTFF",
-                [3] = "lat",
-                [4] = "lon",
-                [5] = "alt",
+                [1] = "fix_mode",
+                [2] = "fixed",
+                [3] = "TTFF",
+                [4] = "lat",
+                [5] = "lon",
+                [6] = "alt",
             }
             local menu_tab = {
                 title = "GPS functional test",
@@ -305,12 +300,14 @@ defunc_gps_functional_test = {
             create_main_menu(menu_tab):show()
 
             gpslog = gpslog or modlog("gps", gpslogfullpath)
-
+            gps:enable()
+            posix.sleep(2)
             local unity_time_cnt = time_counter()
             for index=1, t.measurement_num do
                 --slog:notice("index "..index)
                 local time_cnt = time_counter()
-                if not gps:restart(t.restart_mode) then
+                
+                if not gps:req_fixed(t.restart_mode) then
                     slog:win("index "..index.." restart error: <- "..tostring(t.restart_mode))
                     return false
                 end
@@ -329,6 +326,7 @@ defunc_gps_functional_test = {
                     posix.sleep(1)
                 until nil ~= info.fixed and info.fixed
 
+                posix.sleep(5)
                 slog:notice("gps:get_fixed info to update menu list("..unity_time_cnt()..")")
                 menu_tab:update_list(show_list, info, index)
                 menu_tab.title = "GPS functional test ("..unity_time_cnt()..")"

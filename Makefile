@@ -4,20 +4,22 @@
 # LDFLAGS=-lncurses -llua
 # LDFLAGS=-lncurses -llua5.1 -I/usr/include/lua5.1
 
-PROJECT=CONFIG_PROJECT_G4_BBA
+# PROJECT=CONFIG_PROJECT_G4_BBA
 # PROJECT=CONFIG_PROJECT_U3
+PROJECT=CONFIG_PROJECT_M2
 # PROJECT=CONFIG_PROJECT_AD6900_BBA
 
 CLIBS= -lncurses
 CC=/opt/ad6900/arm-compiler/bin/arm-linux-gcc
 CFLAGS=-I/opt/ad6900/arm-compiler/arm-none-linux-gnueabi/include/ncurses -Iinclude -DHAVE_NCURSES_CURSES_H
-AD6900_PATH= /home/simba/work/src/v2/ad6900
+AD6900_PATH= /home/simba/work/src/m2/ad6900
 # AD6900_PATH= /home/simba/work/ad6900
 UNILIB_PATH= $(AD6900_PATH)/unilibs
+KERNEL_PATH= $(AD6900_PATH)/linux
 ROOTFS_IFS_PATH= $(AD6900_PATH)/output/ifs/rootfs
 DSP_INC= -I$(UNILIB_PATH)/libbitdsp -L$(UNILIB_PATH)/caldb -L$(UNILIB_PATH)/libbitdsp -I/$(UNILIB_PATH)/dspadapter/include -L/$(UNILIB_PATH)/dspadapter -L/$(UNILIB_PATH)/timers -L$(UNILIB_PATH)/annal -L$(UNILIB_PATH)/circbuf -L$(UNILIB_PATH)/crc16 -L$(ROOTFS_IFS_PATH)/lib
 # NONDSP_INC= -I$(UNILIB_PATH)/libbitnondsp/include -L$(UNILIB_PATH)/libbitnondsp -L/$(UNILIB_PATH)/timers -L$(UNILIB_PATH)/annal -L$(UNILIB_PATH)/circbuf -I$(UNILIB_PATH)/bitservice/include
-NONDSP_INC= -I$(UNILIB_PATH)/libbitnondsp/include -I$(UNILIB_PATH)/libbitnondsp/nondspdriver -I$(UNILIB_PATH)/gps/include -L$(ROOTFS_IFS_PATH)/lib -I$(UNILIB_PATH)/bitservice/include -L$(UNILIB_PATH)/bt
+NONDSP_INC= -I$(KERNEL_PATH)/include -I$(UNILIB_PATH)/libbitnondsp/include -I$(UNILIB_PATH)/libbitnondsp/nondspdriver -L$(ROOTFS_IFS_PATH)/lib -I$(UNILIB_PATH)/bitservice/include -L$(UNILIB_PATH)/bt
 
 ifeq (CONFIG_PROJECT_G4_BBA, $(PROJECT))
 DSP_INC += -lcaldb
@@ -40,6 +42,9 @@ lib/ldsp.so: ldsp/ldsp.c
 
 lib/lnondsp.so: lnondsp/lnondsp.c
 	$(CC) -Wall -shared -o $@ -fPIC $^ $(CFLAGS) $(NONDSP_INC) -D$(PROJECT) -lbitnondsp -lpthread -ltimers -lannal -lcircbuf -lbluetooth -ldspadapter -lbitdsp -lcrc16
+
+gps_test: gps_test.c
+	$(CC) gps_test_0.c -o gps_test
 
 install:
 	cp lib/*.so front_panel/arm-so

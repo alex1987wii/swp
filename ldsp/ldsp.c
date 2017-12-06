@@ -1321,10 +1321,7 @@ static const struct luaL_reg dsp_lib[] =
 
     NF(get_evt_number),
     NF(get_evt_item),
-#if 0
-    NF(read_dsp_evt),
-    NF(read_dsp_exception),
-#endif
+
 /* define by libbitdsp */
 #if 0
     NF(release),

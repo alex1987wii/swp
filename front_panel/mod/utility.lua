@@ -156,9 +156,11 @@ function init_global_env()
 
         lnondsp.register_callbacks()
         lnondsp.start_powerkey_service()
+        --[[
         if "g4_bba" ~= device_type then
             lnondsp.bit_gps_thread_create()
         end
+        --]]
         global_env_init = true
     end
 end
